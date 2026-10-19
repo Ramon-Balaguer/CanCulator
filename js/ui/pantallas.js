@@ -180,7 +180,7 @@ function ListaEditable({ titulo, valores, onGuardar, notificar }) {
     </div>`;
 }
 
-export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar, sincronizacion }) {
+export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar, sincronizacion, estadoSync, ultimaSync, pendientes, onGuardarSincro, onSincronizar }) {
   const [sincro, setSincro] = useState(sincronizacion);
   const [importado, setImportado] = useState('');
   const guardar = async (clave, valor) => {
@@ -213,9 +213,11 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
   }
 
   async function guardarSincro() {
-    await guardarMeta(db, 'sync_url', sincro.url.trim());
-    await guardarMeta(db, 'sync_token', sincro.token.trim());
+    const nueva = { url: sincro.url.trim(), token: sincro.token.trim() };
+    await guardarMeta(db, 'sync_url', nueva.url);
+    await guardarMeta(db, 'sync_token', nueva.token);
     notificar('Datos de sincronización guardados', 'ok');
+    onGuardarSincro(nueva);
   }
 
   return html`
@@ -244,7 +246,9 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
 
       <div class="bloque">
         <h3>Sincronización</h3>
-        <p class="secundario">Estado: sin sincronizar. La sincronización llega en la fase 4.</p>
+        <p class="secundario" data-testid="estado-sync" role="status">${estadoSync.mensaje || 'Sin sincronizar.'}</p>
+        <p class="secundario">Operaciones pendientes de enviar: <strong data-testid="pendientes-sync">${pendientes}</strong>.
+          ${ultimaSync ? ' Última sincronización: ' + new Date(ultimaSync).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }) + '.' : ' Aún no se ha sincronizado.'}</p>
         <${Campo} etiqueta="URL de Apps Script">
           <input type="url" value=${sincro.url} onInput=${(e) => setSincro({ ...sincro, url: e.currentTarget.value })} />
         <//>
@@ -253,7 +257,7 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
         <//>
         <div class="acciones">
           <${Boton} tipo="secundario" onClick=${guardarSincro}>Guardar<//>
-          <${Boton} disabled=${true} title="Disponible en la fase 4">Sincronizar ahora<//>
+          <${Boton} disabled=${estadoSync.estado === 'sincronizando'} onClick=${onSincronizar}>Sincronizar ahora<//>
         </div>
       </div>
 
