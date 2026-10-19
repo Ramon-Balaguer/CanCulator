@@ -12,6 +12,10 @@ URL pública: https://ramon-balaguer.github.io/survivor-resources/
 - [ ] iPhone: en Safari, Compartir → «Añadir a pantalla de inicio». Al abrirla desde el icono, no se ve la barra de Safari.
 - [ ] Abre la app instalada, cierra la app del todo, activa el modo avión y vuelve a abrirla: carga y dice «Sin conexión».
 - [ ] Desactiva el modo avión: vuelve a decir «En línea».
+- [ ] Desde la app instalada, abre «Prueba de cámara y código de barras» → «Abrir cámara»: el navegador pide permiso, se ve la cámara trasera y, al apuntar al código de una lata de casa, sale el número con «dígito de control correcto».
+- [ ] En la misma página, «Leer de una foto»: haz una foto al código y sale el mismo número.
+- [ ] Con el modo avión activado, la página de prueba de cámara abre y lee un código (no necesita internet).
+- [ ] Si algo de la cámara falla, haz una captura de la sección «Este dispositivo» y del mensaje de error.
 
 ## Fin de fase 2: app local
 

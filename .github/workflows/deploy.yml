@@ -68,7 +68,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # Fase 2: aquí se copiará ZXing a vendor/ (aún no es una dependencia).
+      - name: Copiar ZXing, Preact y htm a vendor/
+        run: npm run vendor
 
       - name: Preparar _site e inyectar el hash del commit en sw.js
         run: node scripts/construir.mjs "$GITHUB_SHA"

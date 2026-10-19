@@ -7,7 +7,9 @@ Publicada en https://ramon-balaguer.github.io/survivor-resources/
 
 ## Desarrollo
 
-Sin frameworks ni paso de compilación: HTML, CSS y módulos JavaScript nativos.
+Sin paso de compilación: HTML, CSS y módulos JavaScript nativos. La interfaz usa Preact + htm
+(plantillas en texto, sin JSX) y la lectura de códigos de barras usa ZXing. `npm run vendor` copia
+sus builds de navegador a `vendor/` (no se sube al repositorio) y un import map las enlaza.
 
 ```bash
 npm install
@@ -17,7 +19,8 @@ npm test            # unitarias (node --test) y E2E (Playwright)
 ```
 
 - `js/logica/`: lógica sin DOM, probada con `node --test`.
-- `sw.js`: service worker, red primero y caché si no hay conexión. El despliegue sustituye `__COMMIT__` por el hash del commit.
+- `prueba-camara.html`: diagnóstico de cámara y lectura de códigos en el móvil.
+- `sw.js`: service worker, red primero y caché si no hay conexión o la red tarda más de 4 s. El despliegue sustituye `__COMMIT__` por el hash del commit.
 - `scripts/construir.mjs`: prepara `_site/` para GitHub Pages (copia e inyecta la versión).
 - `docs/checklist-movil.md`: comprobaciones manuales en móvil por fase.
 
