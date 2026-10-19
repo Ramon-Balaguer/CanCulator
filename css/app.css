@@ -1,0 +1,57 @@
+:root {
+  --verde: #2f6b3a;
+  --fondo: #f6f7f5;
+  --texto: #1d211e;
+  --suave: #5c645e;
+  --borde: #d8ddd9;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--fondo);
+  color: var(--texto);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.cabecera {
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  background: var(--verde);
+  color: #fff;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.contenido {
+  flex: 1;
+  padding: 16px;
+}
+
+.pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px calc(env(safe-area-inset-bottom) + 8px);
+  border-top: 1px solid var(--borde);
+  color: var(--suave);
+  font-size: 0.8rem;
+}
+
+.estado-conexion[data-estado="sin-conexion"] { color: #a33a1f; }
+
+@media print {
+  .pie { display: none; }
+  .cabecera { background: none; color: #000; padding: 0 0 8px; }
+}
