@@ -14,18 +14,26 @@
   <link rel="icon" href="icons/icono-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "preact": "./vendor/preact.module.js",
+        "preact/hooks": "./vendor/preact-hooks.module.js",
+        "htm": "./vendor/htm.module.js",
+        "htm/preact": "./vendor/htm-preact.module.js"
+      }
+    }
+  </script>
+  <script src="vendor/zxing-browser.min.js" defer></script>
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
   <header class="cabecera">
     <h1>Inventario de casa</h1>
   </header>
-  <main id="contenido" class="contenido">
-    <p>La app está en construcción.</p>
-    <ul class="enlaces">
-      <li><a href="prueba-camara.html">Prueba de cámara y código de barras</a></li>
-    </ul>
-  </main>
+  <div id="contenido" class="contenido">
+    <p class="cargando">Cargando…</p>
+  </div>
   <footer class="pie">
     <span>Versión <span id="version"></span></span>
     <span id="estado-conexion" class="estado-conexion"></span>
