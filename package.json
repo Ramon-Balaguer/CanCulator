@@ -1,0 +1,19 @@
+{
+  "name": "inventario-casa",
+  "private": true,
+  "type": "module",
+  "description": "Inventario de casa: PWA para la comida no perecedera",
+  "scripts": {
+    "servir": "node scripts/servir.mjs",
+    "construir": "node scripts/construir.mjs",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test \"tests/unit/**/*.test.js\"",
+    "test:e2e": "playwright test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}
