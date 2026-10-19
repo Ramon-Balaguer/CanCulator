@@ -22,6 +22,8 @@ npm test            # unitarias (node --test) y E2E (Playwright)
 - `js/datos/off.js`: consulta a Open Food Facts con caché (`cache_off`). `node scripts/comprobar-off.mjs` hace una consulta real de comprobación.
 - `prueba-camara.html`: diagnóstico de cámara y lectura de códigos en el móvil.
 - `sw.js`: service worker, red primero y caché si no hay conexión o la red tarda más de 4 s. El despliegue sustituye `__COMMIT__` por el hash del commit.
+- `js/datos/sincro.js` y `js/logica/sincronizacion.js`: sincronización con la hoja (cola de operaciones, fusión por `actualizado`, fotos a Drive).
+- `apps-script/Code.gs`: servidor de Apps Script (se pega en la hoja). Puesta en marcha en `docs/apps-script.md`.
 - `scripts/construir.mjs`: prepara `_site/` para GitHub Pages (copia e inyecta la versión).
 - `docs/checklist-movil.md`: comprobaciones manuales en móvil por fase.
 

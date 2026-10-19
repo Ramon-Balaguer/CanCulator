@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prueba de conexión · Inventario de casa</title>
+  <meta name="theme-color" content="#2f6b3a">
+  <link rel="icon" href="icons/icono-192.png" type="image/png">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/prueba-sync.js"></script>
+</head>
+<body>
+  <header class="cabecera">
+    <h1>Prueba de conexión</h1>
+  </header>
+  <main id="contenido" class="contenido">
+    <p>Comprueba que el móvil llega al servidor de Apps Script. No guarda nada: solo envía un «ping».</p>
+    <form id="formulario" class="formulario">
+      <label class="campo">
+        <span class="campo-etiqueta">URL de Apps Script</span>
+        <input id="url" type="url" required autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+      </label>
+      <label class="campo">
+        <span class="campo-etiqueta">Token</span>
+        <input id="token" type="password" required autocomplete="off">
+      </label>
+      <div class="acciones">
+        <button type="submit" class="boton">Enviar ping</button>
+      </div>
+    </form>
+    <section class="tarjeta" aria-live="polite">
+      <h2>Resultado</h2>
+      <pre id="resultado" class="resultado">Sin probar todavía.</pre>
+    </section>
+  </main>
+  <footer class="pie">
+    <a href="./">Volver a la app</a>
+  </footer>
+</body>
+</html>
