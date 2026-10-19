@@ -41,3 +41,27 @@ test('todo lo que precarga el service worker se publica', async () => {
     assert.ok(PUBLICADOS.includes(ruta.split('/')[0]), `se publica ${ruta}`);
   }
 });
+
+test('el service worker precarga todos los ficheros de la app (sin conexión, todo debe estar)', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
+  const lista = sw.match(/const PRECARGA = \[([\s\S]*?)\];/)[1];
+  const precargados = new Set([...lista.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]));
+  async function recorrer(dir) {
+    const entradas = await readdir(new URL(`../../${dir}/`, import.meta.url), { withFileTypes: true });
+    const archivos = await Promise.all(entradas.map((e) => (e.isDirectory()
+      ? recorrer(`${dir}/${e.name}`)
+      : [`${dir}/${e.name}`])));
+    return archivos.flat();
+  }
+  const necesarios = [
+    ...await recorrer('js'),
+    ...await recorrer('css'),
+    ...(await recorrer('vendor')).filter((f) => !f.includes('/licencias/')),
+    'index.html',
+    'prueba-camara.html',
+    'manifest.webmanifest',
+  ];
+  const faltan = necesarios.filter((f) => !precargados.has(f));
+  assert.deepEqual(faltan, [], 'ficheros que no se precargan');
+});
