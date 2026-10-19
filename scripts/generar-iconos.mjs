@@ -1,6 +1,6 @@
 // Genera los iconos PNG de la app (una lata sobre fondo verde) sin dependencias.
 // Uso: node scripts/generar-iconos.mjs
-import { deflateSync, crc32 } from 'node:zlib';
+import { codificarPng } from './png.mjs';
 import { writeFileSync } from 'node:fs';
 
 const FONDO = [47, 107, 58];
@@ -29,9 +29,8 @@ function colorEn(x, y) {
 
 function png(tamano) {
   const sub = 4;
-  const filas = [];
+  const rgb = Buffer.alloc(tamano * tamano * 3);
   for (let py = 0; py < tamano; py++) {
-    const fila = Buffer.alloc(1 + tamano * 3);
     for (let px = 0; px < tamano; px++) {
       const suma = [0, 0, 0];
       for (let sy = 0; sy < sub; sy++) {
@@ -40,29 +39,10 @@ function png(tamano) {
           suma[0] += c[0]; suma[1] += c[1]; suma[2] += c[2];
         }
       }
-      for (let i = 0; i < 3; i++) fila[1 + px * 3 + i] = Math.round(suma[i] / (sub * sub));
+      for (let i = 0; i < 3; i++) rgb[(py * tamano + px) * 3 + i] = Math.round(suma[i] / (sub * sub));
     }
-    filas.push(fila);
   }
-  const trozo = (tipo, datos) => {
-    const largo = Buffer.alloc(4);
-    largo.writeUInt32BE(datos.length);
-    const cuerpo = Buffer.concat([Buffer.from(tipo, 'ascii'), datos]);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(cuerpo));
-    return Buffer.concat([largo, cuerpo, crc]);
-  };
-  const cabecera = Buffer.alloc(13);
-  cabecera.writeUInt32BE(tamano, 0);
-  cabecera.writeUInt32BE(tamano, 4);
-  cabecera[8] = 8; // bits por canal
-  cabecera[9] = 2; // RGB
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    trozo('IHDR', cabecera),
-    trozo('IDAT', deflateSync(Buffer.concat(filas))),
-    trozo('IEND', Buffer.alloc(0)),
-  ]);
+  return codificarPng(tamano, tamano, rgb);
 }
 
 for (const [nombre, tamano] of [['icono-192.png', 192], ['icono-512.png', 512], ['apple-touch-icon.png', 180]]) {
