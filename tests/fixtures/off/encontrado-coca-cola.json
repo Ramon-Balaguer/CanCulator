@@ -1,0 +1,15 @@
+{
+  "codigo": "5449000000996",
+  "http": 200,
+  "cuerpo": {
+    "code": "5449000000996",
+    "product": {
+      "brands": "COCA-COLA SERVICES SA/NV",
+      "product_name": "Coca-Cola Original"
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "grabado": "2026-10-19",
+  "url": "https://world.openfoodfacts.org/api/v2/product/5449000000996.json?fields=product_name,brands"
+}

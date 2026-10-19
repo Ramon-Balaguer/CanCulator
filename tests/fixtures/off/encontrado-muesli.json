@@ -1,0 +1,15 @@
+{
+  "codigo": "3229820129488",
+  "http": 200,
+  "cuerpo": {
+    "code": "3229820129488",
+    "product": {
+      "brands": "Bjorg",
+      "product_name": "muesli raisin,datte,figue"
+    },
+    "status": 1,
+    "status_verbose": "product found"
+  },
+  "grabado": "2026-10-19",
+  "url": "https://world.openfoodfacts.org/api/v2/product/3229820129488.json?fields=product_name,brands"
+}

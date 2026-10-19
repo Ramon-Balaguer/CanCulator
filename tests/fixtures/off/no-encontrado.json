@@ -1,0 +1,11 @@
+{
+  "codigo": "2012345678903",
+  "http": 404,
+  "cuerpo": {
+    "code": "2012345678903",
+    "status": 0,
+    "status_verbose": "product not found"
+  },
+  "grabado": "2026-10-19",
+  "url": "https://world.openfoodfacts.org/api/v2/product/2012345678903.json?fields=product_name,brands"
+}

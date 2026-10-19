@@ -11,6 +11,7 @@ export const TABLAS = Object.freeze({
   operaciones: 'Operaciones',
   fotos: 'Fotos',
   meta: 'Meta',
+  cacheOff: 'cache_off',
 });
 
 const crearSiFalta = (db, nombre, opciones) => {
@@ -29,6 +30,10 @@ const MIGRACIONES = [
     crearSiFalta(db, TABLAS.operaciones, { keyPath: 'id' });
     crearSiFalta(db, TABLAS.fotos, { keyPath: 'id' });
     crearSiFalta(db, TABLAS.meta, { keyPath: 'clave' });
+  },
+  // v2: caché de Open Food Facts (fase 3).
+  (db) => {
+    crearSiFalta(db, TABLAS.cacheOff, { keyPath: 'codigo' });
   },
 ];
 
