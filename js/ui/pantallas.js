@@ -4,6 +4,7 @@ import { Aviso, Boton, Campo, Vacio } from './componentes.js';
 import { Miniatura } from './miniatura.js';
 import { consumir, guardarConfiguracion, guardarMeta } from '../datos/tienda.js';
 import { descargarTexto, exportarCopia, importarCopia } from '../datos/copia-io.js';
+import { VERSION } from '../version.js';
 import { validarValor } from '../logica/configuracion.js';
 import { describirCaducidad, diasEntre, formatearFecha, hoyEnMadrid } from '../logica/fechas.js';
 import { estadoCaducidad, filtrarResumen, idCorto, lotesVisibles, mapaPorId, aReponer, resumenStock } from '../logica/inventario.js';
@@ -254,6 +255,12 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
           <${Boton} tipo="secundario" onClick=${guardarSincro}>Guardar<//>
           <${Boton} disabled=${true} title="Disponible en la fase 4">Sincronizar ahora<//>
         </div>
+      </div>
+
+      <div class="bloque">
+        <h3>Versión</h3>
+        <p class="secundario">Commit de esta app: <span class="codigo-pequeno" data-testid="version-completa">${VERSION}</span></p>
+        <p class="secundario">Compara este texto entre móviles: si coincide, es la misma versión.</p>
       </div>
 
       <div class="bloque">
