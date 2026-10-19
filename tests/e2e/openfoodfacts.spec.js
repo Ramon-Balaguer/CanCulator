@@ -49,7 +49,7 @@ test.describe('Open Food Facts en el alta', () => {
     await expect(formulario.getByLabel('Producto')).toHaveValue('muesli raisin,datte,figue');
     await expect(formulario).toContainText('Open Food Facts: muesli raisin,datte,figue (Bjorg)');
     expect(llamadas).toHaveLength(1);
-    expect(llamadas[0]).toContain(`/api/v2/product/${MUESLI}.json?fields=product_name,brands`);
+    expect(llamadas[0]).toContain(`/api/v2/product/${MUESLI}.json`);
   });
 
   test('no encontrado: avisa y deja escribir el nombre; el alta se guarda igual', async ({ page }) => {

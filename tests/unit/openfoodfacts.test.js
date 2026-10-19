@@ -1,13 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { cacheVigente, interpretarRespuesta, urlProducto, CAMPOS } from '../../js/logica/openfoodfacts.js';
+import { cacheVigente, interpretarRespuesta, urlProducto } from '../../js/logica/openfoodfacts.js';
 
 const fixture = (nombre) => JSON.parse(readFileSync(new URL(`../fixtures/off/${nombre}.json`, import.meta.url), 'utf8'));
 
 test('la URL pide solo nombre y marca, y rechaza códigos mal formados', () => {
-  assert.equal(urlProducto('3229820129488'), 'https://world.openfoodfacts.org/api/v2/product/3229820129488.json?fields=product_name,brands');
-  assert.equal(CAMPOS, 'product_name,brands');
+  assert.equal(urlProducto('3229820129488'), 'https://world.openfoodfacts.org/api/v2/product/3229820129488.json');
   assert.throws(() => urlProducto('abc'), /no válido/);
   assert.throws(() => urlProducto('1234'), /no válido/);
 });
@@ -24,7 +23,12 @@ test('fixture real: producto encontrado (muesli)', () => {
 test('fixture real: producto encontrado (Coca-Cola)', () => {
   const f = fixture('encontrado-coca-cola');
   const r = interpretarRespuesta(f.http, f.cuerpo);
-  assert.deepEqual(r, { encontrado: true, nombre: 'Coca-Cola Original', marca: 'COCA-COLA SERVICES SA/NV' });
+  assert.equal(r.encontrado, true);
+  assert.equal(r.nombre, 'Coca-Cola Original');
+  assert.equal(r.marca, 'COCA-COLA SERVICES SA/NV');
+  // El producto completo viaja con el resultado: se guarda en caché y se muestra entero.
+  assert.equal(r.producto.code, '5449000000996');
+  assert.ok(Object.keys(r.producto).length > 300);
 });
 
 test('fixture real: no encontrado es un 404 con status 0, no un error', () => {
@@ -46,7 +50,7 @@ test('respuestas inesperadas lanzan error (no se guardan en caché)', () => {
 
 test('caché: un encontrado vale siempre; un no encontrado, una semana', () => {
   const ahora = new Date('2026-10-20T10:00:00Z');
-  assert.ok(cacheVigente({ encontrado: true, consultado: '2020-01-01T00:00:00Z' }, ahora));
+  assert.ok(cacheVigente({ encontrado: true, producto: { code: 'x' }, consultado: '2020-01-01T00:00:00Z' }, ahora));
   assert.ok(cacheVigente({ encontrado: false, consultado: '2026-10-14T10:00:00Z' }, ahora));
   assert.ok(!cacheVigente({ encontrado: false, consultado: '2026-10-12T10:00:00Z' }, ahora));
   assert.ok(!cacheVigente(undefined, ahora));

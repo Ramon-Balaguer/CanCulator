@@ -37,6 +37,7 @@ URL pública: https://ramon-balaguer.github.io/survivor-resources/
 - [ ] Con el modo avión, escanear un código nuevo: sale «Sin conexión» y el alta sigue funcionando a mano.
 - [ ] Escanear dos veces el mismo código, sin guardar: la segunda vez no tarda (sale de la caché).
 - [ ] Tras cargar la app, la consulta no se repite en bucle: solo al escanear.
+- [ ] Tras escanear un producto conocido, «Ver todos los datos de Open Food Facts» muestra fotos, ingredientes, nutrientes y la lista de campos; sin conexión, el mismo producto sigue viéndose desde «Datos de Open Food Facts» en Stock.
 
 ## Fin de fase 4: sincronización
 

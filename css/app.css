@@ -365,3 +365,19 @@ textarea { min-height: 80px; }
   .tabla-imprimir tr { break-inside: avoid; }
   .celda-vacia { min-height: 1.6em; }
 }
+
+/* ---------- Fase 3: información de Open Food Facts ---------- */
+.datos-off { display: grid; gap: 12px; }
+.datos-off-resumen { margin: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.datos-off-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.datos-off-fotos figure { margin: 0; text-align: center; font-size: 0.8rem; color: var(--suave); }
+.datos-off-fotos img { width: 100%; max-height: 160px; object-fit: contain; border-radius: 6px; background: #fff; }
+.datos-off-seccion h3 { margin: 8px 0 4px; font-size: 0.95rem; }
+.datos-off-lista { display: grid; grid-template-columns: minmax(90px, 35%) 1fr; gap: 4px 10px; margin: 0; font-size: 0.9rem; }
+.datos-off-lista dt { color: var(--suave); }
+.datos-off-lista dd { margin: 0; overflow-wrap: anywhere; }
+.datos-off-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.datos-off-tabla th, .datos-off-tabla td { padding: 4px; border-bottom: 1px solid var(--borde); text-align: left; }
+.datos-off-todos summary { cursor: pointer; font-weight: 600; min-height: 36px; }
+.datos-off-todos .datos-off-lista { margin-top: 8px; font-size: 0.8rem; }
+.datos-off-pie { margin: 0; font-size: 0.8rem; color: var(--suave); }

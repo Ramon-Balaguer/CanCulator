@@ -34,7 +34,7 @@ export async function consultarOFF(db, codigo, { fetchFn = globalThis.fetch.bind
   const guardada = await transaccion(db, [TABLAS.cacheOff], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.cacheOff).get(codigo)));
   if (cacheVigente(guardada, ahora)) {
     return guardada.encontrado
-      ? { estado: ESTADOS.ENCONTRADO, nombre: guardada.nombre, marca: guardada.marca, origen: 'cache' }
+      ? { estado: ESTADOS.ENCONTRADO, nombre: guardada.nombre, marca: guardada.marca, producto: guardada.producto, origen: 'cache' }
       : { estado: ESTADOS.NO_ENCONTRADO, origen: 'cache' };
   }
 
@@ -49,10 +49,17 @@ export async function consultarOFF(db, codigo, { fetchFn = globalThis.fetch.bind
     return { estado: ESTADOS.ERROR, mensaje: error.message, origen: 'red' };
   }
 
-  const entrada = { codigo, encontrado: resultado.encontrado, nombre: resultado.nombre ?? '', marca: resultado.marca ?? '', consultado: ahora.toISOString() };
+  const entrada = {
+    codigo,
+    encontrado: resultado.encontrado,
+    nombre: resultado.nombre ?? '',
+    marca: resultado.marca ?? '',
+    producto: resultado.producto ?? null,
+    consultado: ahora.toISOString(),
+  };
   await transaccion(db, [TABLAS.cacheOff], 'readwrite', (tx) => { tx.objectStore(TABLAS.cacheOff).put(entrada); });
 
   return resultado.encontrado
-    ? { estado: ESTADOS.ENCONTRADO, nombre: entrada.nombre, marca: entrada.marca, origen: 'red' }
+    ? { estado: ESTADOS.ENCONTRADO, nombre: entrada.nombre, marca: entrada.marca, producto: entrada.producto, origen: 'red' }
     : { estado: ESTADOS.NO_ENCONTRADO, origen: 'red' };
 }

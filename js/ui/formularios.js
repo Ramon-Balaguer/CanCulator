@@ -9,6 +9,7 @@ import { esGtinValido } from '../logica/codigo-barras.js';
 import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad } from '../logica/fechas.js';
 import { Miniatura } from './miniatura.js';
 import { consultarOFF, ESTADOS } from '../datos/off.js';
+import { DatosOFF } from './datos-off.js';
 
 const CAMPOS_VACIOS = () => ({
   codigo: '',
@@ -40,6 +41,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
   const [previa, setPrevia] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [consultando, setConsultando] = useState(false);
+  const [ofProducto, setOfProducto] = useState(null);
+  const [verOFF, setVerOFF] = useState(false);
 
   const cambiar = (clave) => (evento) => setCampos({ ...campos, [clave]: evento.currentTarget.value });
 
@@ -74,6 +77,7 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
     try {
       const r = await consultarOFF(db, codigo);
       if (r.estado === ESTADOS.ENCONTRADO) {
+        setOfProducto(r.producto ?? null);
         setCampos((c) => ({ ...c, nombre: c.nombre.trim() ? c.nombre : r.nombre }));
         const marca = r.marca && r.marca !== r.nombre ? ` (${r.marca})` : '';
         setAviso({ tipo: 'info', texto: `Open Food Facts: ${r.nombre}${marca}. Revisa el nombre antes de guardar.` });
@@ -151,6 +155,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
         ${escaneando && html`<${ModalEscaner} onCodigo=${alEscanear} onCerrar=${() => setEscaneando(false)} />`}
         ${consultando && html`<p class="secundario">Consultando Open Food Facts…</p>`}
         <${Aviso} tipo=${aviso?.tipo ?? 'info'}>${aviso?.texto}<//>
+        ${ofProducto && html`<${Boton} tipo="secundario" onClick=${() => setVerOFF(true)}>Ver todos los datos de Open Food Facts<//>`}
+        ${verOFF && ofProducto && html`<${DatosOFF} codigo=${campos.codigo} producto=${ofProducto} onCerrar=${() => setVerOFF(false)} />`}
 
         <${Campo} etiqueta="Producto">
           <input required list="productos-existentes" value=${campos.nombre} onInput=${cambiar('nombre')} autocomplete="off" />
@@ -205,6 +211,8 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
   const [cantidades, setCantidades] = useState({});
   const [editando, setEditando] = useState(false);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+  const [datosOFF, setDatosOFF] = useState(null);
+  const [buscandoOFF, setBuscandoOFF] = useState(false);
   const lotes = lotesParaConsumir(producto.id, datos.lotes);
   const hoy = hoyEnMadrid();
 
@@ -228,6 +236,20 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
       refrescar();
     } catch (e) {
       notificar(e.message, 'error');
+    }
+  }
+
+  // Lee los datos de la caché (o de la red si no están). Sin conexión y sin caché, avisa.
+  async function verDatosOFF() {
+    setBuscandoOFF(true);
+    try {
+      const r = await consultarOFF(db, producto.codigo_barras);
+      if (r.estado === ESTADOS.ENCONTRADO && r.producto) setDatosOFF(r.producto);
+      else if (r.estado === ESTADOS.NO_ENCONTRADO) notificar('Open Food Facts no tiene este producto.', 'info');
+      else if (r.estado === ESTADOS.SIN_CONEXION) notificar('Sin conexión y sin datos guardados de este producto.', 'error');
+      else notificar('No se pudo consultar Open Food Facts.', 'error');
+    } finally {
+      setBuscandoOFF(false);
     }
   }
 
@@ -271,7 +293,9 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
       <div class="acciones">
         <${Boton} onClick=${() => onAnadirLote(producto)}>Añadir lote<//>
         <${Boton} tipo="secundario" onClick=${() => setEditando(true)}>Editar producto<//>
+        ${producto.codigo_barras && html`<${Boton} tipo="secundario" disabled=${buscandoOFF} onClick=${verDatosOFF}>${buscandoOFF ? 'Buscando…' : 'Datos de Open Food Facts'}<//>`}
       </div>
+      ${datosOFF && html`<${DatosOFF} codigo=${producto.codigo_barras} producto=${datosOFF} onCerrar=${() => setDatosOFF(null)} />`}
       <div class="zona-peligro">
         ${!confirmarBorrado
           ? html`<${Boton} tipo="peligro" onClick=${() => setConfirmarBorrado(true)}>Borrar producto<//>`
