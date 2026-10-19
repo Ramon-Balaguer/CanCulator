@@ -19,6 +19,7 @@ npm test            # unitarias (node --test) y E2E (Playwright)
 ```
 
 - `js/logica/`: lógica sin DOM, probada con `node --test`.
+- `js/datos/off.js`: consulta a Open Food Facts con caché (`cache_off`). `node scripts/comprobar-off.mjs` hace una consulta real de comprobación.
 - `prueba-camara.html`: diagnóstico de cámara y lectura de códigos en el móvil.
 - `sw.js`: service worker, red primero y caché si no hay conexión o la red tarda más de 4 s. El despliegue sustituye `__COMMIT__` por el hash del commit.
 - `scripts/construir.mjs`: prepara `_site/` para GitHub Pages (copia e inyecta la versión).

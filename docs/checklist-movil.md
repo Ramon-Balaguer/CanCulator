@@ -30,6 +30,14 @@ URL pública: https://ramon-balaguer.github.io/survivor-resources/
 - [ ] A reponer: un producto con mínimo mayor que su stock aparece, y «Comprado» abre el alta con el producto ya escrito.
 - [ ] Con una foto de lote guardada, cerrar la app del todo y volver a abrirla: la miniatura sigue ahí (iOS).
 
+## Fin de fase 3: Open Food Facts
+
+- [ ] Escanear un código de un producto conocido (por ejemplo, una lata o un paquete de supermercado con código): el nombre se rellena solo, con el aviso «Open Food Facts: …».
+- [ ] Escanear un código que no esté en la base de datos: sale «No está en Open Food Facts» y se puede escribir el nombre; el lote se guarda.
+- [ ] Con el modo avión, escanear un código nuevo: sale «Sin conexión» y el alta sigue funcionando a mano.
+- [ ] Escanear dos veces el mismo código, sin guardar: la segunda vez no tarda (sale de la caché).
+- [ ] Tras cargar la app, la consulta no se repite en bucle: solo al escanear.
+
 ## Fin de fase 4: sincronización
 
 - [ ] Pegar en Ajustes la URL de Apps Script y el token, y pulsar «Sincronizar ahora»: el estado dice que se ha sincronizado.
