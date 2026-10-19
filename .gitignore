@@ -1,0 +1,27 @@
+# Dependencias y resultados
+node_modules/
+_site/
+vendor/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Datos personales: nunca al repositorio
+*.export.json
+inventario-*.json
+exportaciones/
+fotos/
+*.jpg
+*.jpeg
+*.heic
+
+# Secretos y tokens
+.env
+.env.*
+*token*
+*secreto*
+.clasprc.json
+
+# Sistema
+.DS_Store
+Thumbs.db
