@@ -8,6 +8,7 @@ import { buscarProductoPorCodigo, buscarProductoPorNombre, lotesParaConsumir } f
 import { esGtinValido } from '../logica/codigo-barras.js';
 import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad } from '../logica/fechas.js';
 import { Miniatura } from './miniatura.js';
+import { consultarOFF, ESTADOS } from '../datos/off.js';
 
 const CAMPOS_VACIOS = () => ({
   codigo: '',
@@ -37,6 +38,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [previa, setPrevia] = useState(null);
+  const [aviso, setAviso] = useState(null);
+  const [consultando, setConsultando] = useState(false);
 
   const cambiar = (clave) => (evento) => setCampos({ ...campos, [clave]: evento.currentTarget.value });
 
@@ -47,8 +50,11 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
     return () => URL.revokeObjectURL(url);
   }, [campos.foto]);
 
-  function alEscanear(codigo) {
+  // Tras escanear: si ya hay un producto, se usa; si no, se pregunta a Open Food Facts UNA vez.
+  // Un fallo nunca bloquea el alta: el nombre queda editable a mano.
+  async function alEscanear(codigo) {
     setEscaneando(false);
+    setAviso(null);
     const existente = buscarProductoPorCodigo(datos.productos, codigo);
     setCampos((c) => ({
       ...c,
@@ -56,10 +62,30 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
       nombre: existente?.nombre ?? c.nombre,
       categoria: existente?.categoria ?? c.categoria,
     }));
-    if (!existente) {
-      notificar(esGtinValido(codigo)
-        ? 'Código nuevo. Escribe el nombre del producto.'
-        : 'Código leído, pero no tiene un dígito de control válido.', 'info');
+    if (existente) {
+      setAviso({ tipo: 'info', texto: `Ya tienes «${existente.nombre}». Revisa los datos del lote.` });
+      return;
+    }
+    if (!esGtinValido(codigo)) {
+      setAviso({ tipo: 'error', texto: 'El código no tiene un dígito de control válido. Escribe el nombre a mano.' });
+      return;
+    }
+    setConsultando(true);
+    try {
+      const r = await consultarOFF(db, codigo);
+      if (r.estado === ESTADOS.ENCONTRADO) {
+        setCampos((c) => ({ ...c, nombre: c.nombre.trim() ? c.nombre : r.nombre }));
+        const marca = r.marca && r.marca !== r.nombre ? ` (${r.marca})` : '';
+        setAviso({ tipo: 'info', texto: `Open Food Facts: ${r.nombre}${marca}. Revisa el nombre antes de guardar.` });
+      } else if (r.estado === ESTADOS.NO_ENCONTRADO) {
+        setAviso({ tipo: 'info', texto: 'No está en Open Food Facts. Escribe el nombre a mano.' });
+      } else if (r.estado === ESTADOS.SIN_CONEXION) {
+        setAviso({ tipo: 'info', texto: 'Sin conexión: escribe el nombre a mano.' });
+      } else {
+        setAviso({ tipo: 'error', texto: 'No se pudo consultar Open Food Facts. Escribe el nombre a mano.' });
+      }
+    } finally {
+      setConsultando(false);
     }
   }
 
@@ -123,6 +149,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
           ${campos.codigo && html`<span class="codigo-pequeno">${campos.codigo}</span>`}
         </div>
         ${escaneando && html`<${ModalEscaner} onCodigo=${alEscanear} onCerrar=${() => setEscaneando(false)} />`}
+        ${consultando && html`<p class="secundario">Consultando Open Food Facts…</p>`}
+        <${Aviso} tipo=${aviso?.tipo ?? 'info'}>${aviso?.texto}<//>
 
         <${Campo} etiqueta="Producto">
           <input required list="productos-existentes" value=${campos.nombre} onInput=${cambiar('nombre')} autocomplete="off" />

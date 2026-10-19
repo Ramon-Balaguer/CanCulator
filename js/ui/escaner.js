@@ -60,7 +60,7 @@ export function ModalEscaner({ onCodigo, onCerrar }) {
           <input inputmode="numeric" autocomplete="off" value=${manual} onInput=${(e) => setManual(e.currentTarget.value)} />
         <//>
         <${Aviso} tipo="error">${aviso}<//>
-        <${Boton}>Usar este código<//>
+        <${Boton} type="submit">Usar este código<//>
       </form>
     <//>
   `;
