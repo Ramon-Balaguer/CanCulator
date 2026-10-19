@@ -31,3 +31,13 @@ test('todo lo que precarga el service worker existe', async () => {
     assert.ok(existsSync(new URL(`../../${ruta}`, import.meta.url)), `existe ${ruta}`);
   }
 });
+
+test('todo lo que precarga el service worker se publica', async () => {
+  const { PUBLICADOS } = await import('../../scripts/construir.mjs');
+  const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
+  const lista = sw.match(/const PRECARGA = \[([\s\S]*?)\];/)[1];
+  const rutas = [...lista.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  for (const ruta of rutas) {
+    assert.ok(PUBLICADOS.includes(ruta.split('/')[0]), `se publica ${ruta}`);
+  }
+});
