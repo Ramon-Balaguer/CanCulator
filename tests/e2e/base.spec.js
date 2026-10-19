@@ -45,7 +45,7 @@ test('sin conexión: tras cortar la red y recargar, la app carga desde la caché
     // La página de cámara (Preact, htm y ZXing en vendor/) también funciona sin red.
     // Margen amplio: en Windows, WebKit tarda ~2 s en dar por fallida cada petición a un puerto
     // cerrado, y los módulos se piden en cadena. En Linux el fallo es inmediato.
-    await page.getByRole('link', { name: 'Prueba de cámara y código de barras' }).click();
+    await page.goto(new URL('prueba-camara.html', servidor.url).href);
     await expect(page.getByRole('button', { name: 'Abrir cámara' })).toBeVisible({ timeout: 20_000 });
   } finally {
     await servidor.cortar();

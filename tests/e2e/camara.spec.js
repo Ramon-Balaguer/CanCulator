@@ -5,6 +5,7 @@ test('la página de prueba de cámara carga Preact, htm y ZXing', async ({ page 
   const errores = [];
   page.on('pageerror', (error) => errores.push(error.message));
   await page.goto('./');
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
   await page.getByRole('link', { name: 'Prueba de cámara y código de barras' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Prueba de cámara');
   await expect(page.getByRole('button', { name: 'Abrir cámara' })).toBeVisible();
