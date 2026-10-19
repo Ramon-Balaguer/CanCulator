@@ -11,7 +11,7 @@ import { inyectarVersion } from '../js/logica/version.js';
 const raiz = fileURLToPath(new URL('..', import.meta.url));
 const destino = join(raiz, '_site');
 
-export const PUBLICADOS = ['index.html', 'manifest.webmanifest', 'sw.js', 'css', 'js', 'icons', 'vendor'];
+export const PUBLICADOS = ['index.html', 'prueba-camara.html', 'manifest.webmanifest', 'sw.js', 'css', 'js', 'icons', 'vendor'];
 export const CON_VERSION = ['sw.js', 'js/version.js'];
 
 export async function construir(hash) {
