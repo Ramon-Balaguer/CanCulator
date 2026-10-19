@@ -119,7 +119,14 @@ export function altaLote(db, dispositivo, datos) {
     tx.objectStore(TABLAS.lotes).put(lote);
     operaciones.put(nuevaOperacion({
       dispositivo, tipo: 'crear', entidad: 'lote', entidad_id: lote.id,
-      cambio: { producto_id: lote.producto_id, cantidad, caducidad: lote.caducidad, ubicacion: lote.ubicacion },
+      cambio: {
+        producto_id: lote.producto_id,
+        cantidad,
+        caducidad: lote.caducidad,
+        ubicacion: lote.ubicacion,
+        observaciones: lote.observaciones,
+        foto_id: lote.foto_id,
+      },
     }));
     return lote;
   });
@@ -213,9 +220,10 @@ export function borrarProducto(db, dispositivo, id) {
 
 // Configuración: valores por clave. No genera operaciones (la sincronización de ajustes
 // se decide en la fase 4).
+// Guarda un ajuste con su fecha, para que la sincronización gane el más reciente.
 export function guardarConfiguracion(db, clave, valor) {
   return transaccion(db, [TABLAS.configuracion], 'readwrite', (tx) => {
-    tx.objectStore(TABLAS.configuracion).put({ clave, valor });
+    tx.objectStore(TABLAS.configuracion).put({ clave, valor, actualizado: ahora() });
     return valor;
   });
 }
@@ -231,9 +239,15 @@ export async function guardarFoto(db, blob) {
   });
 }
 
+// Un lote puede llevar el id local de la foto o, tras subirla a Drive, el id de Drive.
 export async function leerFoto(db, id) {
   if (!id) return null;
-  const foto = await transaccion(db, [TABLAS.fotos], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.fotos).get(id)));
+  const foto = await transaccion(db, [TABLAS.fotos], 'readonly', async (tx) => {
+    const almacen = tx.objectStore(TABLAS.fotos);
+    const directa = await peticion(almacen.get(id));
+    if (directa) return directa;
+    return (await peticion(almacen.getAll())).find((f) => f.drive_id === id) ?? null;
+  });
   if (!foto) return null;
   return { id: foto.id, creada: foto.creada, blob: new Blob([foto.bytes], { type: foto.tipo }) };
 }
