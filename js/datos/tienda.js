@@ -220,17 +220,22 @@ export function guardarConfiguracion(db, clave, valor) {
   });
 }
 
-export function guardarFoto(db, blob) {
+// Las fotos se guardan como bytes y no como Blob: WebKit (Safari) no puede guardar en
+// IndexedDB un Blob creado con canvas.toBlob ("Error preparing Blob/File data").
+export async function guardarFoto(db, blob) {
   const id = nuevoId();
+  const bytes = await blob.arrayBuffer();
   return transaccion(db, [TABLAS.fotos], 'readwrite', (tx) => {
-    tx.objectStore(TABLAS.fotos).put({ id, blob, creada: ahora() });
+    tx.objectStore(TABLAS.fotos).put({ id, bytes, tipo: blob.type || 'image/jpeg', creada: ahora() });
     return id;
   });
 }
 
-export function leerFoto(db, id) {
-  if (!id) return Promise.resolve(null);
-  return transaccion(db, [TABLAS.fotos], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.fotos).get(id)));
+export async function leerFoto(db, id) {
+  if (!id) return null;
+  const foto = await transaccion(db, [TABLAS.fotos], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.fotos).get(id)));
+  if (!foto) return null;
+  return { id: foto.id, creada: foto.creada, blob: new Blob([foto.bytes], { type: foto.tipo }) };
 }
 
 // Lee todo lo que necesita la interfaz de una vez.
@@ -241,4 +246,16 @@ export function cargarTodo(db) {
     configuracion: await peticion(tx.objectStore(TABLAS.configuracion).getAll()),
     operaciones: await peticion(tx.objectStore(TABLAS.operaciones).getAll()),
   }));
+}
+
+// Ajustes locales del móvil (no se exportan ni se sincronizan), como la URL y el token.
+export function guardarMeta(db, clave, valor) {
+  return transaccion(db, [TABLAS.meta], 'readwrite', (tx) => {
+    tx.objectStore(TABLAS.meta).put({ clave, valor });
+    return valor;
+  });
+}
+
+export function leerMeta(db, clave) {
+  return transaccion(db, [TABLAS.meta], 'readonly', async (tx) => (await peticion(tx.objectStore(TABLAS.meta).get(clave)))?.valor ?? '');
 }

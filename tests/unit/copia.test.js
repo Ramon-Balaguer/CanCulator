@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { construirCopia, fusionarCopia, validarCopia, VERSION_COPIA } from '../../js/logica/copia.js';
+import { calcularTamano } from '../../js/logica/imagen.js';
 
 const base = {
   productos: [{ id: 'p1', nombre: 'Atún', actualizado: '2026-10-01T10:00:00Z' }],
@@ -65,4 +66,11 @@ test('fusionar no pierde registros locales que no están en la copia', () => {
   const r = fusionarCopia(base, copia);
   assert.equal(r.lotes.length, 1);
   assert.equal(r.productos.length, 1);
+});
+
+test('calcularTamano reduce el lado mayor a 1000 px y mantiene la proporción', () => {
+  assert.deepEqual(calcularTamano(4032, 3024), { ancho: 1000, alto: 750 });
+  assert.deepEqual(calcularTamano(800, 600), { ancho: 800, alto: 600 });
+  assert.deepEqual(calcularTamano(600, 3000), { ancho: 200, alto: 1000 });
+  assert.throws(() => calcularTamano(0, 10), /dimensiones/);
 });
