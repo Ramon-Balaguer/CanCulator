@@ -24,6 +24,11 @@ URL pública: https://ramon-balaguer.github.io/survivor-resources/
 - [ ] Consumir 1 unidad desde Caducidad: el stock baja y el lote que caduca antes es el propuesto.
 - [ ] En modo avión, dar de alta un lote y consumir otro; cerrar la app del todo y volver a abrirla: los cambios siguen.
 - [ ] Al día siguiente, abrir la app: los datos siguen (sobre todo en iPhone).
+- [ ] Desde Ajustes, añadir una categoría y una ubicación nuevas, y quitarlas: se guardan al cerrar y volver a abrir la app.
+- [ ] Imprimir: el botón abre el diálogo de impresión y la lista sale sin la barra de pantallas (en iPhone, Compartir → Imprimir, o «Guardar en Archivos» en PDF).
+- [ ] Exportar JSON: se descarga el fichero (en iPhone, aparece en Archivos). Importarlo de nuevo no duplica nada.
+- [ ] A reponer: un producto con mínimo mayor que su stock aparece, y «Comprado» abre el alta con el producto ya escrito.
+- [ ] Con una foto de lote guardada, cerrar la app del todo y volver a abrirla: la miniatura sigue ahí (iOS).
 
 ## Fin de fase 4: sincronización
 
