@@ -226,7 +226,7 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
 }
 
 // Detalle de un producto: sus lotes (el que caduca antes primero), consumir, editar y borrar.
-export function DetalleProducto({ db, dispositivo, datos, config, producto, onCerrar, onAnadirLote, onEditarLote, notificar, refrescar }) {
+export function DetalleProducto({ db, dispositivo, datos, config, producto, onCerrar, onAnadirLote, onEditarLote, notificar, refrescar, solicitarBorrado }) {
   const [cantidades, setCantidades] = useState({});
   const [editando, setEditando] = useState(false);
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
@@ -269,11 +269,10 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
     }
   }
 
-  async function borrarTodo() {
-    await borrarProducto(db, dispositivo, producto.id);
-    notificar(`Borrado: ${producto.nombre}`, 'ok');
+  // El borrado se escribe más tarde, salvo que se pulse «Deshacer» en el aviso.
+  function borrarTodo() {
+    solicitarBorrado({ tipo: 'producto', id: producto.id, texto: `${producto.nombre} borrado` });
     onCerrar();
-    refrescar();
   }
 
   if (editando) {
@@ -371,7 +370,7 @@ export function EditarProducto({ db, dispositivo, config, producto, notificar, o
   `;
 }
 
-export function EditarLote({ db, dispositivo, lote, producto, config, notificar, onHecho, onCerrar }) {
+export function EditarLote({ db, dispositivo, lote, producto, config, notificar, onHecho, onCerrar, solicitarBorrado }) {
   const [caducidad, setCaducidad] = useState(formatearFecha(lote.caducidad));
   const [ubicacion, setUbicacion] = useState(lote.ubicacion);
   const [observaciones, setObservaciones] = useState(lote.observaciones ?? '');
@@ -415,10 +414,10 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
     }
   }
 
-  async function borrar() {
+  // El borrado se confirma aquí y se escribe más tarde, salvo que se pulse «Deshacer».
+  function borrar() {
     setConfirmarBorradoLote(false);
-    await borrarLote(db, dispositivo, lote.id);
-    notificar('Lote borrado', 'ok');
+    solicitarBorrado({ tipo: 'lote', id: lote.id, texto: `Lote de ${producto.nombre} borrado` });
     onHecho();
   }
 

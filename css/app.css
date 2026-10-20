@@ -251,16 +251,24 @@ textarea { min-height: 80px; }
 /* Toast */
 .toast {
   position: fixed;
-  left: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(132px + env(safe-area-inset-bottom));
   z-index: 20;
-  padding: 10px 14px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border: 0;
   border-radius: 8px;
   background: #1d211e;
   color: #fff;
+  font: inherit;
+  text-align: center;
   box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
 }
+/* Con acción (p. ej. Deshacer), el aviso entero es el botón. */
+.toast-accion { cursor: pointer; }
+.toast-accion strong { color: #b9e4c3; margin-left: 6px; text-decoration: underline; }
 .toast.error { background: #a33a1f; }
 
 /* Listas y tarjetas */

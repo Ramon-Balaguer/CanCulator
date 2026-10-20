@@ -159,7 +159,10 @@ function ListaEditable({ titulo, valores, onGuardar, notificar }) {
   // Quitar una categoría o ubicación pide confirmación.
   const quitar = (valor) => {
     if (!window.confirm(`¿Quitar «${valor}»?`)) return;
-    onGuardar(valores.filter((v) => v !== valor)).catch((e) => notificar(e.message, 'error'));
+    const anteriores = valores;
+    onGuardar(valores.filter((v) => v !== valor))
+      .then(() => notificar(`Quitada «${valor}».`, 'info', { etiqueta: 'Deshacer', onClick: () => onGuardar(anteriores) }))
+      .catch((e) => notificar(e.message, 'error'));
   };
   const añadir = (evento) => {
     evento.preventDefault();

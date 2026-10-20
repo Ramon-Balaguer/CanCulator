@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Aviso } from './componentes.js';
 import { AltaLote, DetalleProducto, EditarLote } from './formularios.js';
 import { PantallaAjustes, PantallaCaducidad, PantallaImprimir, PantallaReponer, PantallaStock } from './pantallas.js';
-import { cargarTodo, dispositivoId, leerMeta } from '../datos/tienda.js';
+import { borrarLote, borrarProducto, cargarTodo, dispositivoId, leerMeta } from '../datos/tienda.js';
 import { sincronizarTodo, SinConexion } from '../datos/sincro.js';
 import { configuracionEfectiva } from '../logica/configuracion.js';
 
@@ -17,6 +17,8 @@ const PESTANAS = [
 
 // Espera tras un cambio local antes de sincronizar: agrupa varios cambios seguidos en un envío.
 const ESPERA_TRAS_CAMBIO_MS = 3000;
+// Tiempo para pulsar «Deshacer» tras un borrado. Solo después se escribe el borrado de verdad.
+const ESPERA_DESHACER_MS = 5000;
 
 // Estado de la app: carga todo desde IndexedDB y lo vuelve a leer después de cada cambio.
 export function Raiz({ db }) {
@@ -29,11 +31,15 @@ export function Raiz({ db }) {
   const [vista, setVista] = useState(null); // { tipo, ... } para modales y formularios
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState('');
+  // Ids de lotes y productos con un borrado pendiente: se ocultan hasta que se confirma o se deshace.
+  const [ocultos, setOcultos] = useState(() => new Set());
   const temporizador = useRef(null);
   const sincroEnCurso = useRef(false);
+  const borradosPendientes = useRef(new Map());
 
-  const notificar = useCallback((texto, tipo = 'info') => {
-    setAviso({ texto, tipo, id: Date.now() });
+  // accion opcional: { etiqueta, onClick } para mostrar un botón en el aviso (p. ej. «Deshacer»).
+  const notificar = useCallback((texto, tipo = 'info', accion = null) => {
+    setAviso({ texto, tipo, id: Date.now(), accion });
   }, []);
 
   const cargarDatos = useCallback(async () => {
@@ -79,13 +85,44 @@ export function Raiz({ db }) {
     }
   }, [db, dispositivo, sincronizacion, cargarDatos, notificar]);
 
-
   // Tras un cambio local: recargar y programar una sincronización dentro de unos segundos.
   const refrescar = useCallback(() => {
     cargarDatos();
     clearTimeout(temporizador.current);
     temporizador.current = setTimeout(() => sincronizarAhora(), ESPERA_TRAS_CAMBIO_MS);
   }, [cargarDatos, sincronizarAhora]);
+
+  // Borrado con «Deshacer»: se oculta enseguida y, si pasan unos segundos sin deshacer, se escribe.
+  const solicitarBorrado = useCallback(({ tipo, id, texto }) => {
+    setOcultos((previos) => new Set(previos).add(id));
+    const mostrar = () => setOcultos((previos) => {
+      const siguientes = new Set(previos);
+      siguientes.delete(id);
+      return siguientes;
+    });
+    const escribir = setTimeout(async () => {
+      borradosPendientes.current.delete(id);
+      try {
+        if (tipo === 'lote') await borrarLote(db, dispositivo, id);
+        else await borrarProducto(db, dispositivo, id);
+      } catch (e) {
+        notificar(`No se pudo borrar: ${e.message}`, 'error');
+      } finally {
+        mostrar();
+        refrescar();
+      }
+    }, ESPERA_DESHACER_MS);
+    borradosPendientes.current.set(id, escribir);
+    notificar(texto, 'info', {
+      etiqueta: 'Deshacer',
+      onClick: () => {
+        clearTimeout(escribir);
+        borradosPendientes.current.delete(id);
+        mostrar();
+        setAviso(null);
+      },
+    });
+  }, [db, dispositivo, notificar, refrescar]);
 
   useEffect(() => {
     (async () => {
@@ -114,7 +151,7 @@ export function Raiz({ db }) {
 
   useEffect(() => {
     if (!aviso) return undefined;
-    const t = setTimeout(() => setAviso(null), 3000);
+    const t = setTimeout(() => setAviso(null), aviso.accion ? ESPERA_DESHACER_MS : 3000);
     return () => clearTimeout(t);
   }, [aviso]);
 
@@ -126,13 +163,20 @@ export function Raiz({ db }) {
   const alHacer = () => { cerrar(); refrescar(); };
   const pendientes = datos.operaciones.length;
 
+  // Lo que se ve: sin los lotes y productos con un borrado pendiente (ni los lotes de un producto oculto).
+  const visibles = {
+    ...datos,
+    productos: datos.productos.filter((p) => !ocultos.has(p.id)),
+    lotes: datos.lotes.filter((l) => !ocultos.has(l.id) && !ocultos.has(l.producto_id)),
+  };
+
   const pantalla = {
-    caducidad: html`<${PantallaCaducidad} db=${db} dispositivo=${dispositivo} datos=${datos} config=${config}
+    caducidad: html`<${PantallaCaducidad} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config}
       notificar=${notificar} refrescar=${refrescar} onEditarLote=${(lote) => setVista({ tipo: 'editar-lote', lote })} />`,
-    stock: html`<${PantallaStock} datos=${datos} config=${config}
+    stock: html`<${PantallaStock} datos=${visibles} config=${config}
       onAbrirProducto=${(producto) => setVista({ tipo: 'producto', producto })} />`,
-    reponer: html`<${PantallaReponer} datos=${datos} onComprado=${(producto) => setVista({ tipo: 'alta', producto })} />`,
-    imprimir: html`<${PantallaImprimir} db=${db} datos=${datos} />`,
+    reponer: html`<${PantallaReponer} datos=${visibles} onComprado=${(producto) => setVista({ tipo: 'alta', producto })} />`,
+    imprimir: html`<${PantallaImprimir} db=${db} datos=${visibles} />`,
     ajustes: html`<${PantallaAjustes} db=${db} dispositivo=${dispositivo} config=${config}
       notificar=${notificar} refrescar=${refrescar} sincronizacion=${sincronizacion}
       estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pendientes}
@@ -142,22 +186,22 @@ export function Raiz({ db }) {
 
   let modal = null;
   if (vista?.tipo === 'alta') {
-    modal = html`<section class="modal-pantalla"><${AltaLote} db=${db} dispositivo=${dispositivo} datos=${datos} config=${config}
+    modal = html`<section class="modal-pantalla"><${AltaLote} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config}
       productoInicial=${vista.producto} notificar=${notificar} onHecho=${alHacer} onCancelar=${cerrar} /></section>`;
   } else if (vista?.tipo === 'producto') {
-    const producto = datos.productos.find((p) => p.id === vista.producto.id);
+    const producto = visibles.productos.find((p) => p.id === vista.producto.id);
     if (producto && !producto.borrado) {
-      modal = html`<${DetalleProducto} db=${db} dispositivo=${dispositivo} datos=${datos} config=${config} producto=${producto}
-        notificar=${notificar} refrescar=${refrescar} onCerrar=${cerrar}
+      modal = html`<${DetalleProducto} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config} producto=${producto}
+        notificar=${notificar} refrescar=${refrescar} onCerrar=${cerrar} solicitarBorrado=${solicitarBorrado}
         onAnadirLote=${(p) => setVista({ tipo: 'alta', producto: p })}
         onEditarLote=${(lote) => setVista({ tipo: 'editar-lote', lote, desde: 'producto', producto })} />`;
     }
   } else if (vista?.tipo === 'editar-lote') {
-    const lote = datos.lotes.find((l) => l.id === vista.lote.id);
-    const producto = lote && datos.productos.find((p) => p.id === lote.producto_id);
+    const lote = visibles.lotes.find((l) => l.id === vista.lote.id);
+    const producto = lote && visibles.productos.find((p) => p.id === lote.producto_id);
     if (lote && producto && !lote.borrado) {
       modal = html`<${EditarLote} db=${db} dispositivo=${dispositivo} lote=${lote} producto=${producto} config=${config}
-        notificar=${notificar} onHecho=${alHacer} onCerrar=${cerrar} />`;
+        notificar=${notificar} onHecho=${alHacer} onCerrar=${cerrar} solicitarBorrado=${solicitarBorrado} />`;
     }
   }
 
@@ -169,7 +213,11 @@ export function Raiz({ db }) {
 
       <button type="button" class="fab" aria-label="Añadir lote" onClick=${() => setVista({ tipo: 'alta' })}>+</button>
 
-      ${aviso && html`<div class=${`toast ${aviso.tipo}`} role="status" key=${aviso.id}>${aviso.texto}</div>`}
+      ${aviso && (aviso.accion
+        ? html`<button type="button" class=${`toast toast-accion ${aviso.tipo}`} role="status" key=${aviso.id} onClick=${aviso.accion.onClick}>
+            <span>${aviso.texto}</span> <strong>${aviso.accion.etiqueta}</strong>
+          </button>`
+        : html`<div class=${`toast ${aviso.tipo}`} role="status" key=${aviso.id}>${aviso.texto}</div>`)}
 
       <nav class="barra" aria-label="Pantallas">
         ${PESTANAS.map((p) => html`
