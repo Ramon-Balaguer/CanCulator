@@ -44,11 +44,6 @@ export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, r
               </div>
               <div class="tarjeta-acciones">
                 <${Boton} onClick=${() => consumirLote(lote, 1)}>−1<//>
-                <${Boton} tipo="secundario" onClick=${(e) => {
-                  const n = Number(e.currentTarget.parentElement.querySelector('input').value);
-                  consumirLote(lote, n);
-                }}>Consumir<//>
-                <input type="number" min="1" max=${lote.cantidad} value="1" aria-label="Unidades a consumir" class="pequeno" />
                 <${Boton} tipo="secundario" onClick=${() => onEditarLote(lote)}>Editar<//>
               </div>
             </li>`;

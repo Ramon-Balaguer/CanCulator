@@ -78,8 +78,8 @@ test.describe('sincronización entre dos móviles', () => {
       await ver(movilA, 'Caducidad');
       await movilA.locator('li.tarjeta', { hasText: 'Lentejas' }).getByRole('button', { name: '−1' }).click();
       await ver(movilB, 'Caducidad');
-      await movilB.locator('li.tarjeta', { hasText: 'Lentejas' }).getByRole('spinbutton', { name: 'Unidades a consumir' }).fill('2');
-      await movilB.locator('li.tarjeta', { hasText: 'Lentejas' }).getByRole('button', { name: 'Consumir' }).click();
+      await movilB.locator('li.tarjeta', { hasText: 'Lentejas' }).getByRole('button', { name: '−1' }).click();
+      await movilB.locator('li.tarjeta', { hasText: 'Lentejas' }).getByRole('button', { name: '−1' }).click();
       await expect(movilA.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('4 ud.');
       await expect(movilB.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('3 ud.');
 

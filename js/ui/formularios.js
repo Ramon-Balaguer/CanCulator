@@ -6,7 +6,7 @@ import { altaLote, borrarLote, borrarProducto, consumir, crearProducto, editarLo
 import { comprimirFoto } from '../datos/fotos.js';
 import { buscarProductoPorCodigo, buscarProductoPorNombre, lotesParaConsumir } from '../logica/inventario.js';
 import { esGtinValido } from '../logica/codigo-barras.js';
-import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad } from '../logica/fechas.js';
+import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad, formatearEntradaFecha, leerFechaEscrita } from '../logica/fechas.js';
 import { Miniatura } from './miniatura.js';
 import { consultarOFF, ESTADOS } from '../datos/off.js';
 import { DatosOFF } from './datos-off.js';
@@ -100,7 +100,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
     if (!nombre) return setError('Escribe el nombre del producto');
     if (!campos.categoria) return setError('Elige una categoría');
     if (!campos.ubicacion) return setError('Elige una ubicación');
-    if (!campos.caducidad) return setError('Indica la fecha de caducidad');
+    const caducidadIso = leerFechaEscrita(campos.caducidad);
+    if (!caducidadIso) return setError('Indica la caducidad como DD/MM/AAAA, por ejemplo 01/03/2027');
     const cantidad = Number(campos.cantidad);
     if (!Number.isInteger(cantidad) || cantidad < 1) return setError('La cantidad debe ser un número entero de 1 o más');
 
@@ -127,7 +128,7 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
       await altaLote(db, dispositivo, {
         producto_id: producto.id,
         cantidad,
-        caducidad: campos.caducidad,
+        caducidad: caducidadIso,
         ubicacion: campos.ubicacion,
         observaciones: campos.observaciones,
         foto_id,
@@ -179,7 +180,9 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
 
         <div class="fila">
           <${Campo} etiqueta="Caducidad">
-            <input type="date" required value=${campos.caducidad} onInput=${cambiar('caducidad')} />
+            <input type="text" inputmode="numeric" autocomplete="off" required placeholder="DD/MM/AAAA" maxlength="10"
+              value=${campos.caducidad}
+              onInput=${(e) => setCampos({ ...campos, caducidad: formatearEntradaFecha(e.currentTarget.value) })} />
           <//>
           <${Campo} etiqueta="Unidades">
             <input type="number" inputmode="numeric" min="1" step="1" value=${campos.cantidad} onInput=${cambiar('cantidad')} />
@@ -356,7 +359,7 @@ export function EditarProducto({ db, dispositivo, config, producto, notificar, o
 }
 
 export function EditarLote({ db, dispositivo, lote, producto, config, notificar, onHecho, onCerrar }) {
-  const [caducidad, setCaducidad] = useState(lote.caducidad);
+  const [caducidad, setCaducidad] = useState(formatearFecha(lote.caducidad));
   const [ubicacion, setUbicacion] = useState(lote.ubicacion);
   const [observaciones, setObservaciones] = useState(lote.observaciones ?? '');
   // Cantidad real del lote: se escribe el número final (útil en un recuento).
@@ -368,7 +371,9 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
     evento.preventDefault();
     setError('');
     try {
-      await editarLote(db, dispositivo, lote.id, { caducidad, ubicacion, observaciones, cantidad: Number(cantidad) });
+      const caducidadIso = leerFechaEscrita(caducidad);
+      if (!caducidadIso) throw new Error('La caducidad debe ser una fecha válida, por ejemplo 01/03/2027');
+      await editarLote(db, dispositivo, lote.id, { caducidad: caducidadIso, ubicacion, observaciones, cantidad: Number(cantidad) });
       notificar('Lote guardado', 'ok');
       onHecho();
     } catch (e) {
@@ -385,7 +390,10 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
   return html`
     <${Modal} titulo=${`Editar lote de ${producto.nombre}`} onCerrar=${onCerrar}>
       <form class="formulario" onSubmit=${guardar}>
-        <${Campo} etiqueta="Caducidad"><input type="date" required value=${caducidad} onInput=${(e) => setCaducidad(e.currentTarget.value)} /><//>
+        <${Campo} etiqueta="Caducidad" ayuda="Escríbela con el teclado: DD/MM/AAAA.">
+          <input type="text" inputmode="numeric" autocomplete="off" required placeholder="DD/MM/AAAA" maxlength="10"
+            value=${caducidad} onInput=${(e) => setCaducidad(formatearEntradaFecha(e.currentTarget.value))} />
+        <//>
         <${Campo} etiqueta="Ubicación">
           <select value=${ubicacion} onChange=${(e) => setUbicacion(e.currentTarget.value)}>
             ${ubicaciones.map((u) => html`<option value=${u} selected=${u === ubicacion}>${u}</option>`)}
