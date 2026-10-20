@@ -59,3 +59,35 @@ test.describe('información completa de Open Food Facts', () => {
     await expect(vista).toContainText('Bjorg');
   });
 });
+
+test.describe('calorías del stock desde la caché de Open Food Facts', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('el detalle del producto muestra kcal por bote y kcal totales del stock', async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('sin cámara'), { name: 'NotFoundError' }));
+    });
+    await page.route('https://world.openfoodfacts.org/**', (ruta) => ruta.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify(fixture('encontrado-muesli').cuerpo),
+    }));
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Añadir lote' }).click();
+    await page.locator('.modal-pantalla').getByRole('button', { name: 'Escanear código' }).click();
+    const escaner = page.getByRole('dialog', { name: 'Escanear código' });
+    await escaner.getByLabel('O escribe el código').fill(MUESLI);
+    await escaner.getByRole('button', { name: 'Usar este código' }).click();
+    const alta = page.locator('.modal-pantalla');
+    await alta.getByLabel('Caducidad').fill('2027-03-01');
+    await alta.getByLabel('Unidades').fill('2');
+    await alta.getByRole('button', { name: 'Guardar lote' }).click();
+    await expect(page.locator('.modal-pantalla')).toHaveCount(0);
+
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
+    await page.locator('button.fila-boton', { hasText: 'muesli' }).click();
+    await expect(page.getByTestId('kcal-producto')).toContainText('1320 kcal por bote');
+    await expect(page.getByTestId('kcal-producto')).toContainText('2640 kcal en el stock (2 ud.)');
+  });
+});

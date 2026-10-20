@@ -2,14 +2,15 @@ import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
 import { Aviso, Boton, Campo, Modal } from './componentes.js';
 import { ModalEscaner } from './escaner.js';
-import { altaLote, borrarLote, borrarProducto, consumir, crearProducto, editarLote, editarProducto, guardarFoto, reponer } from '../datos/tienda.js';
+import { altaLote, borrarLote, borrarProducto, consumir, crearProducto, editarLote, editarProducto, guardarFoto } from '../datos/tienda.js';
 import { comprimirFoto } from '../datos/fotos.js';
-import { buscarProductoPorCodigo, buscarProductoPorNombre, lotesParaConsumir } from '../logica/inventario.js';
+import { buscarLoteIgual, buscarProductoPorCodigo, buscarProductoPorNombre, lotesParaConsumir } from '../logica/inventario.js';
 import { esGtinValido } from '../logica/codigo-barras.js';
 import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad, formatearEntradaFecha, leerFechaEscrita } from '../logica/fechas.js';
 import { Miniatura } from './miniatura.js';
-import { consultarOFF, ESTADOS } from '../datos/off.js';
+import { consultarOFF, ESTADOS, leerCacheOFF } from '../datos/off.js';
 import { DatosOFF } from './datos-off.js';
+import { kcalDeUnidades, kcalPorBote } from '../logica/nutricion.js';
 
 const CAMPOS_VACIOS = () => ({
   codigo: '',
@@ -125,7 +126,7 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
           avisoFoto = ` La foto no se guardó: ${e.message}`;
         }
       }
-      await altaLote(db, dispositivo, {
+      const r = await altaLote(db, dispositivo, {
         producto_id: producto.id,
         cantidad,
         caducidad: caducidadIso,
@@ -133,7 +134,12 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
         observaciones: campos.observaciones,
         foto_id,
       });
-      notificar(`Añadido: ${producto.nombre}.${avisoFoto}`, avisoFoto ? 'error' : 'ok');
+      if (r.fusionado) {
+        // No se crea un lote nuevo: se suma al que ya existe, y se dice cuánto hay ahora.
+        notificar(`Ya había un lote de ${producto.nombre} con esa caducidad (${r.anterior} ud.). Sumadas ${r.sumadas}: ahora hay ${r.lote.cantidad}.${avisoFoto}`, 'info');
+      } else {
+        notificar(`Añadido: ${producto.nombre}.${avisoFoto}`, avisoFoto ? 'error' : 'ok');
+      }
       onHecho();
     } catch (e) {
       setError(e.message);
@@ -141,6 +147,15 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
       setGuardando(false);
     }
   }
+
+  // Aviso previo: si el producto ya tiene un lote con esa caducidad y ubicación, se suma a ese.
+  const productoActual = productoInicial
+    ?? buscarProductoPorCodigo(datos.productos, campos.codigo)
+    ?? buscarProductoPorNombre(datos.productos, campos.nombre);
+  const caducidadPrevia = leerFechaEscrita(campos.caducidad);
+  const loteIgual = productoActual && caducidadPrevia
+    ? buscarLoteIgual(datos.lotes, { producto_id: productoActual.id, caducidad: caducidadPrevia, ubicacion: campos.ubicacion })
+    : null;
 
   const categorias = [...new Set([...config.categorias, campos.categoria].filter(Boolean))];
   const ubicaciones = [...new Set([...config.ubicaciones, campos.ubicacion].filter(Boolean))];
@@ -199,6 +214,7 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
         <//>
         ${previa && html`<img class="previa" src=${previa} alt="Foto del lote" />`}
 
+        ${loteIgual && html`<${Aviso} tipo="info">Ya tienes ${loteIgual.cantidad} ud. de ${productoActual.nombre} con esta caducidad y ubicación. Si guardas, se suman a ese lote.<//>`}
         <${Aviso} tipo="error">${error}<//>
         <div class="acciones">
           <${Boton} type="submit" disabled=${guardando}>${guardando ? 'Guardando…' : 'Guardar lote'}<//>
@@ -216,6 +232,13 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
   const [confirmarBorrado, setConfirmarBorrado] = useState(false);
   const [datosOFF, setDatosOFF] = useState(null);
   const [buscandoOFF, setBuscandoOFF] = useState(false);
+  const [productoOFF, setProductoOFF] = useState(null);
+
+  // Datos de Open Food Facts guardados en caché (sin red) para calcular las calorías.
+  useEffect(() => {
+    if (!producto.codigo_barras) { setProductoOFF(null); return; }
+    leerCacheOFF(db, producto.codigo_barras).then(setProductoOFF).catch(() => setProductoOFF(null));
+  }, [db, producto.codigo_barras]);
   const lotes = lotesParaConsumir(producto.id, datos.lotes);
   const hoy = hoyEnMadrid();
 
@@ -226,16 +249,6 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
     try {
       await consumir(db, dispositivo, lote.id, n);
       notificar(`Consumido: ${n} de ${producto.nombre}`, 'ok');
-      refrescar();
-    } catch (e) {
-      notificar(e.message, 'error');
-    }
-  }
-
-  async function reponerEn(lote) {
-    const n = cantidadDe(lote.id);
-    try {
-      await reponer(db, dispositivo, lote.id, n);
       refrescar();
     } catch (e) {
       notificar(e.message, 'error');
@@ -273,6 +286,7 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
   return html`
     <${Modal} titulo=${producto.nombre} onCerrar=${onCerrar}>
       <p class="secundario">${producto.categoria} · mínimo ${producto.stock_minimo}</p>
+      ${productoOFF && kcalPorBote(productoOFF) !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${kcalPorBote(productoOFF)} kcal por bote · ${kcalDeUnidades(productoOFF, lotes.reduce((s, l) => s + l.cantidad, 0))} kcal en el stock (${lotes.reduce((s, l) => s + l.cantidad, 0)} ud.)</p>`}
       ${lotes.length === 0 && html`<p class="vacio">No quedan unidades de este producto.</p>`}
       <ul class="lista-lotes">
         ${lotes.map((lote) => html`
@@ -287,7 +301,6 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
                 value=${cantidades[lote.id] ?? 1}
                 onInput=${(e) => setCantidades({ ...cantidades, [lote.id]: e.currentTarget.value })} />
               <${Boton} onClick=${() => consumirDe(lote)}>Consumir<//>
-              <${Boton} tipo="secundario" onClick=${() => reponerEn(lote)}>Añadir<//>
               <${Boton} tipo="secundario" onClick=${() => onEditarLote(lote)}>Editar<//>
             </div>
           </li>
@@ -365,7 +378,18 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
   // Cantidad real del lote: se escribe el número final (útil en un recuento).
   const [cantidad, setCantidad] = useState(String(lote.cantidad));
   const [error, setError] = useState('');
+  // Foto que se añade ahora a un lote que ya existe (o que sustituye a la anterior).
+  const [foto, setFoto] = useState(null);
+  const [previa, setPrevia] = useState(null);
+  const [confirmarBorradoLote, setConfirmarBorradoLote] = useState(false);
   const ubicaciones = [...new Set([...config.ubicaciones, lote.ubicacion])];
+
+  useEffect(() => {
+    if (!foto) { setPrevia(null); return undefined; }
+    const url = URL.createObjectURL(foto);
+    setPrevia(url);
+    return () => URL.revokeObjectURL(url);
+  }, [foto]);
 
   async function guardar(evento) {
     evento.preventDefault();
@@ -373,7 +397,17 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
     try {
       const caducidadIso = leerFechaEscrita(caducidad);
       if (!caducidadIso) throw new Error('La caducidad debe ser una fecha válida, por ejemplo 01/03/2027');
-      await editarLote(db, dispositivo, lote.id, { caducidad: caducidadIso, ubicacion, observaciones, cantidad: Number(cantidad) });
+      let foto_id;
+      if (foto) {
+        try {
+          foto_id = await guardarFoto(db, await comprimirFoto(foto));
+        } catch (e) {
+          throw new Error(`No se pudo guardar la foto: ${e.message}`);
+        }
+      }
+      await editarLote(db, dispositivo, lote.id, {
+        caducidad: caducidadIso, ubicacion, observaciones, cantidad: Number(cantidad), foto_id,
+      });
       notificar('Lote guardado', 'ok');
       onHecho();
     } catch (e) {
@@ -382,6 +416,7 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
   }
 
   async function borrar() {
+    setConfirmarBorradoLote(false);
     await borrarLote(db, dispositivo, lote.id);
     notificar('Lote borrado', 'ok');
     onHecho();
@@ -403,10 +438,22 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
         <${Campo} etiqueta="Cantidad" ayuda="Escribe cuántas unidades hay. 0 oculta el lote, no lo borra.">
           <input type="number" inputmode="numeric" min="0" step="1" required value=${cantidad} onInput=${(e) => setCantidad(e.currentTarget.value)} />
         <//>
+        <div class="campo">
+          <span class="campo-etiqueta">Foto del lote</span>
+          ${!previa && html`<${Miniatura} db=${db} fotoId=${lote.foto_id} />`}
+          ${previa && html`<img class="previa" src=${previa} alt="Foto nueva del lote" />`}
+          <input type="file" accept="image/*" capture="environment"
+            onChange=${(e) => setFoto(e.currentTarget.files?.[0] ?? null)} />
+          <span class="campo-ayuda">Elige una foto para añadirla o cambiarla. Sin foto nueva, se queda la que había.</span>
+        </div>
         <${Aviso} tipo="error">${error}<//>
         <div class="acciones">
           <${Boton} type="submit">Guardar<//>
-          <${Boton} tipo="peligro" onClick=${borrar}>Borrar lote<//>
+          ${!confirmarBorradoLote
+            ? html`<${Boton} tipo="peligro" onClick=${() => setConfirmarBorradoLote(true)}>Borrar lote<//>`
+            : html`<span class="confirmacion">¿Seguro? Se quitará este lote.</span>
+                <${Boton} tipo="peligro" onClick=${borrar}>Sí, borrar<//>
+                <${Boton} tipo="secundario" onClick=${() => setConfirmarBorradoLote(false)}>No<//>`}
         </div>
       </form>
     <//>

@@ -381,3 +381,14 @@ textarea { min-height: 80px; }
 .datos-off-todos summary { cursor: pointer; font-weight: 600; min-height: 36px; }
 .datos-off-todos .datos-off-lista { margin-top: 8px; font-size: 0.8rem; }
 .datos-off-pie { margin: 0; font-size: 0.8rem; color: var(--suave); }
+
+/* ---------- Imprimir: foto y código de barras ---------- */
+.tabla-imprimir .celda-foto { width: 52px; }
+.tabla-imprimir .miniatura { width: 44px; height: 44px; }
+.tabla-imprimir .celda-codigo { width: 130px; }
+.codigo-barras { display: block; width: 120px; height: auto; }
+@media print {
+  .tabla-imprimir .miniatura { width: 36px; height: 36px; }
+  .codigo-barras { width: 110px; }
+  .tabla-imprimir tr { break-inside: avoid; }
+}

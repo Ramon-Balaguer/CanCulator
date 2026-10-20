@@ -102,7 +102,8 @@ export function altaLote(db, dispositivo, datos) {
       operaciones.put(nuevaOperacion({
         dispositivo, tipo: 'reponer', entidad: 'lote', entidad_id: lote.id, cambio: { cantidad },
       }));
-      return lote;
+      // Ya había un lote con esa caducidad y ubicación: se suman las unidades y se avisa.
+      return { lote, fusionado: true, anterior: igual.cantidad, sumadas: cantidad };
     }
     const lote = {
       id: nuevoId(),
@@ -128,7 +129,7 @@ export function altaLote(db, dispositivo, datos) {
         foto_id: lote.foto_id,
       },
     }));
-    return lote;
+    return { lote, fusionado: false };
   });
 }
 

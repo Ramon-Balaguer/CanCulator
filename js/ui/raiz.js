@@ -132,7 +132,7 @@ export function Raiz({ db }) {
     stock: html`<${PantallaStock} datos=${datos} config=${config}
       onAbrirProducto=${(producto) => setVista({ tipo: 'producto', producto })} />`,
     reponer: html`<${PantallaReponer} datos=${datos} onComprado=${(producto) => setVista({ tipo: 'alta', producto })} />`,
-    imprimir: html`<${PantallaImprimir} datos=${datos} />`,
+    imprimir: html`<${PantallaImprimir} db=${db} datos=${datos} />`,
     ajustes: html`<${PantallaAjustes} db=${db} dispositivo=${dispositivo} config=${config}
       notificar=${notificar} refrescar=${refrescar} sincronizacion=${sincronizacion}
       estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pendientes}

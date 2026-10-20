@@ -2,6 +2,7 @@ import { html } from 'htm/preact';
 import { useState } from 'preact/hooks';
 import { Aviso, Boton, Campo, Vacio } from './componentes.js';
 import { Miniatura } from './miniatura.js';
+import { CodigoBarras } from './codigo-barras.js';
 import { consumir, guardarConfiguracion, guardarMeta } from '../datos/tienda.js';
 import { descargarTexto, exportarCopia, importarCopia } from '../datos/copia-io.js';
 import { VERSION } from '../version.js';
@@ -120,7 +121,7 @@ export function PantallaReponer({ datos, onComprado }) {
 }
 
 // ---------- Imprimir ----------
-export function PantallaImprimir({ datos }) {
+export function PantallaImprimir({ db, datos }) {
   const porId = mapaPorId(datos.productos);
   const lotes = lotesVisibles(datos.lotes, datos.productos);
   return html`
@@ -132,13 +133,15 @@ export function PantallaImprimir({ datos }) {
       <p class="solo-imprimir cabecera-impresion">Inventario de casa · ${formatearFecha(hoyEnMadrid())}</p>
       <table class="tabla-imprimir">
         <thead>
-          <tr><th>ID</th><th>Producto</th><th>Ubicación</th><th>Caducidad</th><th>Cant.</th><th>Consumido</th></tr>
+          <tr><th>Foto</th><th>ID</th><th>Producto</th><th>Código</th><th>Ubicación</th><th>Caducidad</th><th>Cant.</th><th>Consumido</th></tr>
         </thead>
         <tbody>
           ${lotes.map((lote) => html`
             <tr>
+              <td class="celda-foto"><${Miniatura} db=${db} fotoId=${lote.foto_id} /></td>
               <td>${idCorto(lote.id)}</td>
               <td>${porId.get(lote.producto_id).nombre}</td>
+              <td class="celda-codigo"><${CodigoBarras} codigo=${porId.get(lote.producto_id).codigo_barras} /></td>
               <td>${lote.ubicacion}</td>
               <td>${formatearFecha(lote.caducidad)}</td>
               <td>${lote.cantidad}</td>
@@ -153,7 +156,11 @@ export function PantallaImprimir({ datos }) {
 // ---------- Ajustes ----------
 function ListaEditable({ titulo, valores, onGuardar, notificar }) {
   const [nuevo, setNuevo] = useState('');
-  const quitar = (valor) => onGuardar(valores.filter((v) => v !== valor)).catch((e) => notificar(e.message, 'error'));
+  // Quitar una categoría o ubicación pide confirmación.
+  const quitar = (valor) => {
+    if (!window.confirm(`¿Quitar «${valor}»?`)) return;
+    onGuardar(valores.filter((v) => v !== valor)).catch((e) => notificar(e.message, 'error'));
+  };
   const añadir = (evento) => {
     evento.preventDefault();
     const texto = nuevo.trim();

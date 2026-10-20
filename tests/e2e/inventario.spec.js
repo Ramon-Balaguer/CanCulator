@@ -127,7 +127,7 @@ test.describe('stock, reponer e imprimir', () => {
     await expect(page.locator('.no-imprimir')).toBeHidden();
     const tabla = page.locator('table.tabla-imprimir');
     await expect(tabla).toBeVisible();
-    const primeraCelda = await tabla.locator('tbody tr').first().locator('td').first().textContent();
+    const primeraCelda = await tabla.locator('tbody tr').first().locator('td').nth(1).textContent();
     expect(primeraCelda).toHaveLength(6);
     await expect(tabla).toContainText('Melocotón');
     await page.emulateMedia({ media: 'screen' });

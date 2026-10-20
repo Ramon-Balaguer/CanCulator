@@ -5,6 +5,12 @@ import { cacheVigente, interpretarRespuesta, urlProducto } from '../logica/openf
 
 export const TIMEOUT_OFF_MS = 8000;
 
+// Lee el producto guardado en caché, sin ir a la red. Null si no hay nada guardado.
+export async function leerCacheOFF(db, codigo) {
+  const entrada = await transaccion(db, [TABLAS.cacheOff], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.cacheOff).get(codigo)));
+  return entrada?.encontrado ? entrada.producto ?? null : null;
+}
+
 export const ESTADOS = Object.freeze({
   ENCONTRADO: 'encontrado',
   NO_ENCONTRADO: 'no-encontrado',
