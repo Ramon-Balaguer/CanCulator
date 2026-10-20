@@ -359,7 +359,8 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
   const [caducidad, setCaducidad] = useState(lote.caducidad);
   const [ubicacion, setUbicacion] = useState(lote.ubicacion);
   const [observaciones, setObservaciones] = useState(lote.observaciones ?? '');
-  const [ajuste, setAjuste] = useState('0');
+  // Cantidad real del lote: se escribe el número final (útil en un recuento).
+  const [cantidad, setCantidad] = useState(String(lote.cantidad));
   const [error, setError] = useState('');
   const ubicaciones = [...new Set([...config.ubicaciones, lote.ubicacion])];
 
@@ -367,12 +368,7 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
     evento.preventDefault();
     setError('');
     try {
-      const delta = Number(ajuste);
-      if (!Number.isInteger(delta)) throw new Error('El ajuste debe ser un número entero');
-      await editarLote(db, dispositivo, lote.id, { caducidad, ubicacion, observaciones });
-      if (delta !== 0) {
-        await (delta > 0 ? reponer : consumir)(db, dispositivo, lote.id, Math.abs(delta));
-      }
+      await editarLote(db, dispositivo, lote.id, { caducidad, ubicacion, observaciones, cantidad: Number(cantidad) });
       notificar('Lote guardado', 'ok');
       onHecho();
     } catch (e) {
@@ -396,8 +392,8 @@ export function EditarLote({ db, dispositivo, lote, producto, config, notificar,
           </select>
         <//>
         <${Campo} etiqueta="Observaciones"><input value=${observaciones} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} /><//>
-        <${Campo} etiqueta=${`Ajustar unidades (ahora hay ${lote.cantidad})`} ayuda="Positivo para añadir, negativo para quitar.">
-          <input type="number" step="1" value=${ajuste} onInput=${(e) => setAjuste(e.currentTarget.value)} />
+        <${Campo} etiqueta="Cantidad" ayuda="Escribe cuántas unidades hay. 0 oculta el lote, no lo borra.">
+          <input type="number" inputmode="numeric" min="0" step="1" required value=${cantidad} onInput=${(e) => setCantidad(e.currentTarget.value)} />
         <//>
         <${Aviso} tipo="error">${error}<//>
         <div class="acciones">

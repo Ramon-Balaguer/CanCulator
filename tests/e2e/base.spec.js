@@ -26,6 +26,8 @@ test('el manifest es válido y enlaza iconos que existen', async ({ page, reques
 });
 
 test('sin conexión: tras cortar la red y recargar, la app carga desde la caché', async ({ page }) => {
+  // WebKit en Windows tarda ~20 s en dar por fallidas las peticiones a un puerto cerrado.
+  test.setTimeout(60_000);
   const servidor = await servidorPropio();
   try {
     await page.goto(servidor.url);

@@ -167,6 +167,9 @@ export function editarLote(db, dispositivo, id, cambios) {
     };
     if (!esFechaISO(campos.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
     if (!campos.ubicacion) throw new Error('Elige una ubicación');
+    // "cantidad" es el número final que cuenta la persona (recuento), no un ajuste.
+    const nuevaCantidad = cambios.cantidad === undefined ? actual.cantidad : Number(cambios.cantidad);
+    if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
     const nuevo = {
       observaciones: cambios.observaciones !== undefined ? String(cambios.observaciones).trim() : actual.observaciones,
       foto_id: cambios.foto_id ?? actual.foto_id,
@@ -174,12 +177,22 @@ export function editarLote(db, dispositivo, id, cambios) {
     const cambio = Object.fromEntries(
       Object.entries({ ...campos, ...nuevo }).filter(([k, v]) => actual[k] !== v),
     );
-    if (Object.keys(cambio).length === 0) return actual;
-    const lote = { ...actual, ...cambio, actualizado: ahora() };
+    const delta = nuevaCantidad - actual.cantidad;
+    if (Object.keys(cambio).length === 0 && delta === 0) return actual;
+    const lote = { ...actual, ...cambio, cantidad: nuevaCantidad, actualizado: ahora() };
     almacen.put(lote);
-    tx.objectStore(TABLAS.operaciones).put(nuevaOperacion({
-      dispositivo, tipo: 'editar', entidad: 'lote', entidad_id: id, cambio,
-    }));
+    const operaciones = tx.objectStore(TABLAS.operaciones);
+    if (Object.keys(cambio).length > 0) {
+      operaciones.put(nuevaOperacion({
+        dispositivo, tipo: 'editar', entidad: 'lote', entidad_id: id, cambio,
+      }));
+    }
+    // La diferencia viaja como incremento (reponer o consumir), igual que el resto de cambios de stock.
+    if (delta !== 0) {
+      operaciones.put(nuevaOperacion({
+        dispositivo, tipo: delta > 0 ? 'reponer' : 'consumir', entidad: 'lote', entidad_id: id, cambio: { cantidad: delta },
+      }));
+    }
     return lote;
   });
 }
