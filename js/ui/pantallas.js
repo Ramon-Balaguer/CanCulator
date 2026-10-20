@@ -9,6 +9,7 @@ import { VERSION } from '../version.js';
 import { validarValor } from '../logica/configuracion.js';
 import { describirCaducidad, diasEntre, formatearFecha, hoyEnMadrid } from '../logica/fechas.js';
 import { estadoCaducidad, filtrarResumen, idCorto, lotesVisibles, mapaPorId, aReponer, resumenStock } from '../logica/inventario.js';
+import { estadisticasStock } from '../logica/estadisticas.js';
 
 // ---------- Caducidad ----------
 export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, refrescar, onEditarLote }) {
@@ -55,6 +56,31 @@ export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, r
 }
 
 // ---------- Stock ----------
+// Resumen del stock: unidades y calorías, en total y por categoría. Ignora los filtros de abajo.
+function Estadisticas({ datos }) {
+  const e = estadisticasStock(datos.productos, datos.lotes, datos.cacheOff ?? []);
+  if (e.totalUnidades === 0) return null;
+  return html`
+    <div class="estadisticas bloque" data-testid="estadisticas">
+      <h3>Estadísticas</h3>
+      <p>Unidades en total: <strong data-testid="unidades-total">${e.totalUnidades}</strong></p>
+      <p>Calorías en total: <strong data-testid="kcal-total">${e.totalKcal} kcal</strong>
+        ${e.productosSinKcal > 0 && html`<span class="secundario"> (faltan datos de ${e.productosSinKcal} ${e.productosSinKcal === 1 ? 'producto' : 'productos'})</span>`}
+      </p>
+      <table class="tabla-estadisticas">
+        <thead><tr><th>Categoría</th><th>Unidades</th><th>Kcal</th></tr></thead>
+        <tbody>
+          ${e.porCategoria.map((c) => html`
+            <tr>
+              <td>${c.categoria}</td>
+              <td>${c.unidades}</td>
+              <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : `${c.kcal}`}</td>
+            </tr>`)}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 export function PantallaStock({ datos, config, onAbrirProducto }) {
   const [categoria, setCategoria] = useState('');
   const [ubicacion, setUbicacion] = useState('');
@@ -64,6 +90,8 @@ export function PantallaStock({ datos, config, onAbrirProducto }) {
   return html`
     <section class="pantalla">
       <h2>Stock</h2>
+      <${Estadisticas} datos=${datos} />
+
       <div class="fila">
         <${Campo} etiqueta="Categoría">
           <select value=${categoria} onChange=${(e) => setCategoria(e.currentTarget.value)}>

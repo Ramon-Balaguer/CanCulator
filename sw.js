@@ -24,6 +24,7 @@ const PRECARGA = [
   './js/logica/configuracion.js',
   './js/logica/copia.js',
   './js/logica/ean.js',
+  './js/logica/estadisticas.js',
   './js/logica/fechas.js',
   './js/logica/imagen.js',
   './js/logica/inventario.js',

@@ -404,3 +404,9 @@ textarea { min-height: 80px; }
   .codigo-barras { width: 110px; }
   .tabla-imprimir tr { break-inside: avoid; }
 }
+
+/* ---------- Stock: estadísticas ---------- */
+.estadisticas p { margin: 4px 0; }
+.tabla-estadisticas { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 6px; }
+.tabla-estadisticas th, .tabla-estadisticas td { padding: 4px 6px; border-bottom: 1px solid var(--borde); text-align: left; }
+.tabla-estadisticas th:not(:first-child), .tabla-estadisticas td:not(:first-child) { text-align: right; }

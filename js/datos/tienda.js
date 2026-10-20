@@ -273,6 +273,7 @@ export function cargarTodo(db) {
     lotes: await peticion(tx.objectStore(TABLAS.lotes).getAll()),
     configuracion: await peticion(tx.objectStore(TABLAS.configuracion).getAll()),
     operaciones: await peticion(tx.objectStore(TABLAS.operaciones).getAll()),
+    cacheOff: await peticion(tx.objectStore(TABLAS.cacheOff).getAll()),
   }));
 }
 

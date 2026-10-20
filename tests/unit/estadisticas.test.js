@@ -1,0 +1,55 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { estadisticasStock } from '../../js/logica/estadisticas.js';
+
+const fixture = (nombre) => JSON.parse(readFileSync(new URL(`../fixtures/off/${nombre}.json`, import.meta.url), 'utf8'));
+
+const productos = [
+  { id: 'p-muesli', nombre: 'Muesli', categoria: 'cereales', codigo_barras: '3229820129488', stock_minimo: 0, borrado: false },
+  { id: 'p-coca', nombre: 'Coca-Cola', categoria: 'agua y bebidas', codigo_barras: '5449000000996', stock_minimo: 0, borrado: false },
+  { id: 'p-sin-datos', nombre: 'Lentejas', categoria: 'legumbres', codigo_barras: '', stock_minimo: 0, borrado: false },
+  { id: 'p-vacio', nombre: 'Sin stock', categoria: 'otros', codigo_barras: '', stock_minimo: 0, borrado: false },
+];
+
+const lotes = [
+  { id: 'l1', producto_id: 'p-muesli', cantidad: 2, caducidad: '2027-03-01', borrado: false },
+  { id: 'l2', producto_id: 'p-muesli', cantidad: 1, caducidad: '2027-06-01', borrado: false },
+  { id: 'l3', producto_id: 'p-coca', cantidad: 3, caducidad: '2027-03-01', borrado: false },
+  { id: 'l4', producto_id: 'p-sin-datos', cantidad: 4, caducidad: '2027-03-01', borrado: false },
+  { id: 'l5', producto_id: 'p-vacio', cantidad: 0, caducidad: '2027-03-01', borrado: false },
+];
+
+const cacheOff = [
+  { codigo: '3229820129488', encontrado: true, producto: fixture('encontrado-muesli').cuerpo.product },
+  { codigo: '5449000000996', encontrado: true, producto: fixture('encontrado-coca-cola').cuerpo.product },
+];
+
+test('cuenta unidades en total y por categoría, sin lotes a cero', () => {
+  const e = estadisticasStock(productos, lotes, cacheOff);
+  assert.equal(e.totalUnidades, 10);
+  const porCat = Object.fromEntries(e.porCategoria.map((c) => [c.categoria, c.unidades]));
+  assert.deepEqual(porCat, { cereales: 3, 'agua y bebidas': 3, legumbres: 4 });
+  assert.ok(!e.porCategoria.some((c) => c.categoria === 'otros'));
+});
+
+test('calorías: muesli 3 ud. a 1320 kcal/bote y Coca-Cola 3 ud. a 139,9 kcal/bote', () => {
+  const e = estadisticasStock(productos, lotes, cacheOff);
+  assert.equal(e.totalKcal, 3 * 1320 + 3 * 139.9);
+  const cereales = e.porCategoria.find((c) => c.categoria === 'cereales');
+  assert.equal(cereales.kcal, 3960);
+  assert.equal(e.productosConKcal, 2);
+});
+
+test('los productos sin datos de energía no suman kcal y se cuentan aparte', () => {
+  const e = estadisticasStock(productos, lotes, cacheOff);
+  assert.equal(e.productosSinKcal, 1);
+  const legumbres = e.porCategoria.find((c) => c.categoria === 'legumbres');
+  assert.equal(legumbres.kcal, 0);
+  assert.equal(legumbres.productosSinKcal, 1);
+});
+
+test('sin stock ni caché, todo a cero', () => {
+  const e = estadisticasStock([], [], []);
+  assert.deepEqual(e, { totalUnidades: 0, totalKcal: 0, productosConKcal: 0, productosSinKcal: 0, porCategoria: [] });
+});
