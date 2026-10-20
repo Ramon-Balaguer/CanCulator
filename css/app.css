@@ -272,6 +272,8 @@ textarea { min-height: 80px; }
 .toast.error { background: #a33a1f; }
 
 /* Listas y tarjetas */
+/* Dentro de una lista, el espacio lo da el gap; la tarjeta no añade margen propio. */
+.lista .tarjeta { margin: 0; }
 /* La lista que va justo detrás de los filtros (Stock) necesita aire. */
 .fila + .lista { margin-top: 14px; }
 .lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
