@@ -37,12 +37,30 @@ export function formatearFecha(iso) {
   return `${d}/${m}/${a}`;
 }
 
+// Duración en años, meses y días (aproximada: año de 365 días, mes de 30).
+// Se muestran las dos unidades mayores que no sean cero: "2 años y 23 días", "3 meses y 10 días".
+export function duracionLegible(dias) {
+  const n = Math.abs(dias);
+  const anios = Math.floor(n / 365);
+  const resto = n % 365;
+  const meses = Math.floor(resto / 30);
+  const diasSueltos = resto % 30;
+  const p = (cifra, singular, plural) => `${cifra} ${cifra === 1 ? singular : plural}`;
+  const partes = [
+    anios > 0 ? p(anios, 'año', 'años') : null,
+    meses > 0 ? p(meses, 'mes', 'meses') : null,
+    diasSueltos > 0 ? p(diasSueltos, 'día', 'días') : null,
+  ].filter(Boolean);
+  if (partes.length === 0) return p(0, 'día', 'días');
+  return partes.slice(0, 2).join(' y ');
+}
+
 export function describirCaducidad(dias) {
-  if (dias < -1) return `Caducado hace ${-dias} días`;
+  if (dias < -1) return `Caducado hace ${duracionLegible(dias)}`;
   if (dias === -1) return 'Caducó ayer';
   if (dias === 0) return 'Caduca hoy';
   if (dias === 1) return 'Caduca mañana';
-  return `Caduca en ${dias} días`;
+  return `Caduca en ${duracionLegible(dias)}`;
 }
 
 // Fecha escrita a mano (teclado numérico). Mientras se escribe, pone las barras solas:
