@@ -410,3 +410,18 @@ textarea { min-height: 80px; }
 .tabla-estadisticas { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 6px; }
 .tabla-estadisticas th, .tabla-estadisticas td { padding: 4px 6px; border-bottom: 1px solid var(--borde); text-align: left; }
 .tabla-estadisticas th:not(:first-child), .tabla-estadisticas td:not(:first-child) { text-align: right; }
+
+/* Tabla de impresión en pantalla: se desplaza sola dentro de su contenedor, sin ensanchar la página. */
+.tabla-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabla-imprimir { min-width: 640px; font-size: 0.8rem; }
+.tabla-imprimir th, .tabla-imprimir td { padding: 4px 3px; }
+@media print {
+  .tabla-scroll { overflow: visible; }
+  .tabla-imprimir { min-width: 0; font-size: 0.9rem; }
+  .tabla-imprimir th, .tabla-imprimir td { padding: 6px 4px; }
+}
+
+/* Versión y conexión dentro de la cabecera (no al pie, para que no flote a mitad de pantalla). */
+.cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cabecera-estado { display: flex; gap: 8px; font-size: 0.75rem; opacity: 0.9; white-space: nowrap; }
+.cabecera .estado-conexion[data-estado="sin-conexion"] { color: #ffd2c2; font-weight: 600; }

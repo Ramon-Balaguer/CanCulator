@@ -162,6 +162,7 @@ export function PrintScreen({ db, datos: data }) {
         <${Button} onClick=${() => window.print()}>Imprimir<//>
       </div>
       <p class="solo-imprimir cabecera-impresion">Inventario de casa · ${formatDate(todayInMadrid())}</p>
+      <div class="tabla-scroll">
       <table class="tabla-imprimir">
         <thead>
           <tr><th>Foto</th><th>ID</th><th>Producto</th><th>Código</th><th>Ubicación</th><th>Caducidad</th><th>Cant.</th><th>Consumido</th></tr>
@@ -180,6 +181,7 @@ export function PrintScreen({ db, datos: data }) {
             </tr>`)}
         </tbody>
       </table>
+      </div>
     </section>
   `;
 }
