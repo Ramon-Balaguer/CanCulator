@@ -6,29 +6,54 @@ import { applyRemoteOps, hashToken } from '../logica/peer-sync.js';
 
 const PREFIJO_SALA = 'inventario-casa-';
 const MAX_IDS_APLICADOS = 5000;
+const ESPERA_REINTENTO_MS = 5000;
 
-// Crea una sala con el código dado. Devuelve { cerrar }.
+// Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
+// Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
 export function createRoom({ db, code, token, onOps, onStatus }) {
-  const peer = new window.Peer(PREFIJO_SALA + code);
-  peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onStatus }));
-  peer.on('error', (e) => onStatus(`Error de la sala: ${e.type}`));
-  onStatus('Sala creada. Esperando al otro móvil…');
-  return { cerrar: () => peer.destroy() };
+  let peer = null;
+  let timer = null;
+  let cerrada = false;
+
+  const abrir = () => {
+    if (cerrada) return;
+    peer = new window.Peer(PREFIJO_SALA + code);
+    peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onStatus }));
+    peer.on('error', (e) => {
+      if (e.type === 'unavailable-id') {
+        onStatus('La sala aún está activa en el servicio; reintentando…');
+        peer.destroy();
+        timer = setTimeout(abrir, ESPERA_REINTENTO_MS);
+      } else {
+        onStatus(`Error de la sala: ${e.type}`);
+      }
+    });
+    onStatus('Sala abierta. Esperando al otro móvil…');
+  };
+
+  abrir();
+  return {
+    cerrar: () => {
+      cerrada = true;
+      clearTimeout(timer);
+      peer?.destroy();
+    },
+  };
 }
 
-// Se une a la sala con ese código. Devuelve { cerrar }.
-export function joinRoom({ db, code, token, onOps, onStatus }) {
+// Se une a la sala con ese código. Si la conexión se cae, llama a onClosed (para reintentar).
+export function joinRoom({ db, code, token, onOps, onStatus, onClosed }) {
   const peer = new window.Peer();
   peer.on('open', () => {
     onStatus('Uniéndose a la sala…');
-    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onStatus });
+    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onStatus, onClosed });
   });
   peer.on('error', (e) => onStatus(`No se pudo unir: ${e.type}`));
   return { cerrar: () => peer.destroy() };
 }
 
 // Protocolo: saludo (huella del token). Si coincide, cada lado envía sus operaciones pendientes.
-function prepararConexion({ db, conexion, token, onOps, onStatus }) {
+function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
   const miHuellaPromesa = hashToken(token);
   let verificado = false;
 
@@ -51,7 +76,10 @@ function prepararConexion({ db, conexion, token, onOps, onStatus }) {
     }
   });
 
-  conexion.on('close', () => onStatus('La conexión se ha cerrado.'));
+  conexion.on('close', () => {
+    onStatus('La conexión se ha cerrado.');
+    onClosed?.();
+  });
   conexion.on('error', (e) => onStatus(`Error en la conexión: ${e.type}`));
 }
 

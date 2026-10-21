@@ -44,6 +44,7 @@ const PRECACHE = [
   './js/ui/forms.js',
   './js/ui/install.js',
   './js/ui/off-data.js',
+  './js/ui/peer-sync-view.js',
   './js/ui/root.js',
   './js/ui/scanner.js',
   './js/ui/screens.js',

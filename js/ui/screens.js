@@ -1,6 +1,6 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
-import { applyPeerOperations, createRoom, joinRoom } from '../datos/peer-link.js';
+import { PeerSyncBlock } from './peer-sync-view.js';
 import { Notice, Button, Field, Empty } from './components.js';
 import { ProductImage, Thumbnail } from './thumbnail.js';
 import { Barcode } from './barcode-view.js';
@@ -193,54 +193,6 @@ export function PrintScreen({ db, datos: data }) {
 }
 
 // ---------- Settings ----------
-// Sync between two phones on the same network (WebRTC). Needs the same token on both phones.
-function PeerSyncBlock({ db, deviceId, token, refresh }) {
-  const [code, setCode] = useState('');
-  const [typed, setTyped] = useState('');
-  const [status, setStatus] = useState('Sin conectar.');
-  const [room, setRoom] = useState(null);
-
-  const onStatus = (text) => setStatus(text);
-  const onOps = async (operations) => {
-    const n = await applyPeerOperations(db, deviceId, operations);
-    if (n > 0) refresh();
-    setStatus(`Conectado. Operaciones recibidas aplicadas: ${n}.`);
-  };
-  const closeRoom = () => { room?.cerrar(); setRoom(null); setStatus('Sin conectar.'); };
-
-  const create = () => {
-    if (!token) return setStatus('Primero configura el token (arriba).');
-    room?.cerrar();
-    const newCode = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
-    setCode(newCode);
-    setRoom(createRoom({ db, code: newCode, token, onOps, onStatus }));
-  };
-  const join = (event) => {
-    event.preventDefault();
-    if (!token) return setStatus('Primero configura el token (arriba).');
-    const clean = typed.trim().toUpperCase();
-    if (clean.length !== 6) return setStatus('El código tiene 6 caracteres.');
-    room?.cerrar();
-    setRoom(joinRoom({ db, code: clean, token, onOps, onStatus }));
-  };
-
-  return html`
-    <div class="bloque" data-testid="sincronizacion-casa">
-      <h3>Sincronizar entre móviles (misma Wi-Fi)</h3>
-      <p class="secundario">Los dos móviles tienen que tener el mismo token y estar en la misma red.</p>
-      <div class="acciones">
-        <${Button} tipo="secundario" onClick=${create}>Crear sala<//>
-        ${code && html`<span class="codigo" data-testid="codigo-sala">${code}</span>`}
-      </div>
-      <form class="fila" onSubmit=${join}>
-        <input value=${typed} maxlength="6" autocomplete="off" aria-label="Código de la sala" onInput=${(e) => setTyped(e.currentTarget.value)} />
-        <${Button} tipo="secundario" type="submit">Unirse<//>
-      </form>
-      <p class="secundario" data-testid="estado-casa" role="status">${status}</p>
-      ${room && html`<div class="acciones"><${Button} tipo="secundario" onClick=${closeRoom}>Cerrar sala<//></div>`}
-    </div>`;
-}
-
 // Install on the home screen: button on Android, instructions on iPhone.
 function InstallApp() {
   const [boton, setBoton] = useState(canInstallWithButton());

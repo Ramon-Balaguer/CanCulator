@@ -65,3 +65,54 @@ export function ScannerModal({ onCodigo, onCerrar }) {
     <//>
   `;
 }
+
+// Scanner for QR codes (the room code of the other phone). Any text is accepted.
+export function QrScannerModal({ onCodigo, onCerrar }) {
+  const video = useRef(null);
+  const [error, setError] = useState('');
+  const [manual, setManual] = useState('');
+
+  useEffect(() => {
+    let controls = null;
+    let closed = false;
+    const reader = window.ZXingBrowser?.BrowserQRCodeReader;
+    if (!reader) {
+      setError('El lector de QR no está disponible. Escribe el código a mano.');
+      return undefined;
+    }
+    new reader().decodeFromConstraints(CAMERA_CONSTRAINTS, video.current, (result) => {
+      if (!result || closed) return;
+      closed = true;
+      navigator.vibrate?.(80);
+      onCodigo(result.getText().trim().toUpperCase());
+    })
+      .then((c) => {
+        controls = c;
+        if (closed) c.stop();
+      })
+      .catch((e) => setError(cameraErrorMessage(e)));
+    return () => {
+      closed = true;
+      controls?.stop();
+    };
+  }, []);
+
+  function sendManual(event) {
+    event.preventDefault();
+    const code = manual.trim().toUpperCase();
+    if (code) onCodigo(code);
+  }
+
+  return html`
+    <${Modal} titulo="Escanear QR de la sala" onCerrar=${onCerrar}>
+      <video ref=${video} class="visor" playsinline muted autoplay></video>
+      <${Notice} tipo="error">${error}<//>
+      <form class="formulario" onSubmit=${sendManual}>
+        <${Field} etiqueta="O escribe el código de la sala">
+          <input autocomplete="off" maxlength="6" value=${manual} onInput=${(e) => setManual(e.currentTarget.value)} />
+        <//>
+        <${Button} type="submit">Unirse<//>
+      </form>
+    <//>
+  `;
+}
