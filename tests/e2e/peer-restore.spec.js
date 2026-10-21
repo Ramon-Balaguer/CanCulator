@@ -22,14 +22,34 @@ test('tras recargar, el anfitrión reabre la sala y el invitado reconecta', asyn
     await invitado.getByRole('button', { name: 'Entrar' }).click();
     await expect(invitado.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
 
-    // El anfitrión recarga la app: la sala debe reabrirse sola con el mismo código.
+    // El anfitrión recarga la app desde otra pantalla: la sala debe reabrirse sola, sin ir a Ajustes.
     await anfitrion.reload();
-    await anfitrion.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
-    await expect(anfitrion.getByTestId('codigo-sala')).toHaveText(codigo, { timeout: 60_000 });
+    await expect(anfitrion.locator('#estado-sync')).toContainText('Conectado', { timeout: 120_000 });
     // El invitado reconecta sin escribir nada.
     await expect(invitado.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 120_000 });
+    await anfitrion.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
+    await expect(anfitrion.getByTestId('codigo-sala')).toHaveText(codigo);
   } finally {
     await a.close();
     await b.close();
+  }
+});
+
+// Si el anfitrión aún no está en la sala (p. ej. recargando), el invitado no se rinde: reintenta solo.
+test('el invitado reintenta si la sala aún no existe', async ({ browser }) => {
+  test.skip(browser.browserType().name() !== 'chromium', 'WebRTC: solo Chromium en este entorno.');
+  test.setTimeout(120_000);
+  const context = await browser.newContext();
+  const invitado = await context.newPage();
+  try {
+    await invitado.goto('./');
+    await invitado.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
+    await invitado.getByLabel('Token').fill('token-de-prueba');
+    await invitado.getByRole('button', { name: 'Guardar token' }).click();
+    await invitado.getByLabel('Código de la sala').fill('ZZZZZZ');
+    await invitado.getByRole('button', { name: 'Entrar' }).click();
+    await expect(invitado.getByTestId('estado-casa')).toContainText('reintentando', { timeout: 60_000 });
+  } finally {
+    await context.close();
   }
 });

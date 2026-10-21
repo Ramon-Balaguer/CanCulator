@@ -57,13 +57,22 @@ export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
 }
 
 // Se une a la sala con ese código. Si la conexión se cae, llama a onClosed (para reintentar).
+// Si el anfitrión aún no está registrado (p. ej. tras recargar su app), también llama a onClosed.
 export function joinRoom({ db, code, token, onOps, onFotos, onStatus, onClosed }) {
   const peer = new window.Peer();
   peer.on('open', () => {
     onStatus('Uniéndose a la sala…');
     prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onFotos, onStatus, onClosed });
   });
-  peer.on('error', (e) => onStatus(`No se pudo unir: ${e.type}`));
+  peer.on('error', (e) => {
+    if (e.type === 'peer-unavailable') {
+      onStatus('La sala aún no está disponible; reintentando…');
+      peer.destroy();
+      onClosed?.();
+    } else {
+      onStatus(`No se pudo unir: ${e.type}`);
+    }
+  });
   return { cerrar: () => peer.destroy() };
 }
 

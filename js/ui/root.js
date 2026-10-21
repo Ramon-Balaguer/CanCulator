@@ -6,6 +6,7 @@ import { SettingsScreen, ExpiryScreen, StatisticsScreen, PrintScreen, RestockScr
 import { removeLot, removeProduct, loadAll, deviceId, readMeta } from '../datos/store.js';
 import { syncAll, Offline } from '../datos/sync.js';
 import { enviarCambiosPendientes } from '../datos/peer-link.js';
+import { restaurarSala } from './sync-block.js';
 import { effectiveSettings } from '../logica/settings.js';
 
 const TABS = [
@@ -145,6 +146,11 @@ export function Root({ db }) {
       if (config.url && config.token) setTimeout(() => syncNow(config, id), 0);
     }).catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
   }, [db, loadData]);
+
+  // Al abrir la app, vuelve a abrir la sala guardada aunque la pestaña de Ajustes no esté visible.
+  useEffect(() => {
+    if (device) restaurarSala({ db, deviceId: device, token: syncLogic.token, refresh });
+  }, [db, device, syncLogic.token, refresh]);
 
   // When the connection comes back, sync what is pending.
   useEffect(() => {

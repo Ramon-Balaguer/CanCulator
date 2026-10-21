@@ -76,6 +76,18 @@ function Qr({ text }) {
   return html`<div class="qr" ref=${ref} role="img" aria-label="Código QR para entrar en la sala"></div>`;
 }
 
+// Al arrancar la app (no al abrir Ajustes), vuelve a abrir o unir la sala guardada. Solo una vez.
+export function restaurarSala({ db, deviceId, token, refresh }) {
+  contexto = { db, deviceId, refresh };
+  if (!token || restaurada) return;
+  restaurada = true;
+  readMeta(db, CLAVE_SALA).then((guardada) => {
+    if (!guardada?.codigo) return;
+    if (guardada.rol === 'anfitrion') crearSala(guardada.codigo, token);
+    else unirseSala(guardada.codigo, token);
+  });
+}
+
 // Sincronización entre dos móviles en la misma red, en tres pasos:
 // 1) guardar el token, 2) crear sala (anfitrión), 3) entrar en sala (con QR o código).
 export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
@@ -92,17 +104,6 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
     oyentes.add(setVista);
     return () => oyentes.delete(setVista);
   }, []);
-
-  // Al abrir la app con token guardado, volver a abrir o unir la sala guardada (una sola vez).
-  useEffect(() => {
-    if (!token || restaurada) return;
-    restaurada = true;
-    readMeta(db, CLAVE_SALA).then((guardada) => {
-      if (!guardada?.codigo) return;
-      if (guardada.rol === 'anfitrion') crearSala(guardada.codigo, token);
-      else unirseSala(guardada.codigo, token);
-    });
-  }, [token]);
 
   const guardarToken = async (nuevo) => {
     const limpio = nuevo.trim();
