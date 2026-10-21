@@ -42,6 +42,13 @@ test('todo lo que precarga el service worker se publica', async () => {
   }
 });
 
+test('el service worker no repite ficheros en PRECACHE (cache.addAll rechaza duplicados y no se instala)', async () => {
+  const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
+  const list = sw.match(/const PRECACHE = \[([\s\S]*?)\];/)[1];
+  const routes = [...list.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]);
+  assert.deepEqual(routes.filter((route, i) => routes.indexOf(route) !== i), []);
+});
+
 test('el service worker precarga todos los ficheros de la app (sin conexión, todo debe estar)', async () => {
   const { readdir } = await import('node:fs/promises');
   const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');

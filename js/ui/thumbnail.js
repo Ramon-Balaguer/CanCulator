@@ -5,6 +5,17 @@ import { readPhoto } from '../datos/store.js';
 // Thumbnail of a lot's photo. Without a photo it takes no space.
 export function Thumbnail({ db, fotoId }) {
   const [url, setUrl] = useState(null);
+  const [version, setVersion] = useState(0);
+
+  // The photo can arrive from another phone after the lot is already on screen.
+  useEffect(() => {
+    if (!fotoId) return undefined;
+    const alLlegar = (event) => {
+      if (event.detail === fotoId) setVersion((v) => v + 1);
+    };
+    globalThis.addEventListener('foto-recibida', alLlegar);
+    return () => globalThis.removeEventListener('foto-recibida', alLlegar);
+  }, [fotoId]);
 
   useEffect(() => {
     if (!fotoId) return undefined;
@@ -21,7 +32,7 @@ export function Thumbnail({ db, fotoId }) {
       valid = false;
       if (object) URL.revokeObjectURL(object);
     };
-  }, [db, fotoId]);
+  }, [db, fotoId, version]);
 
   if (!fotoId) return null;
   return url

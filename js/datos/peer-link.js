@@ -111,7 +111,11 @@ function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClo
     } else if (mensaje?.tipo === 'pedir-fotos' && verificado) {
       await enviarFotos(db, conexion, mensaje.ids ?? []);
     } else if (mensaje?.tipo === 'foto' && verificado) {
-      if (await guardarFotoRecibida(db, mensaje.foto)) onFotos?.();
+      if (await guardarFotoRecibida(db, mensaje.foto)) {
+        onFotos?.();
+        // Las miniaturas que ya están en pantalla leen la foto al enterarse.
+        globalThis.dispatchEvent(new CustomEvent('foto-recibida', { detail: mensaje.foto.id }));
+      }
     }
   });
 

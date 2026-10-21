@@ -32,7 +32,6 @@ const PRECACHE = [
   './js/logica/nutrition.js',
   './js/logica/off-category.js',
   './js/logica/off-presentation.js',
-  './js/logica/off-category.js',
   './js/logica/openfoodfacts.js',
   './js/logica/peer-sync.js',
   './js/logica/settings.js',
