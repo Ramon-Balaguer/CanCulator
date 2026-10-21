@@ -7,7 +7,7 @@ import { readMeta, saveMeta } from '../datos/store.js';
 import { decodeInvite, encodeInvite } from '../logica/peer-sync.js';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const ESPERA_REUNION_MS = 2000;
+const ESPERA_REUNION_MS = 1000;
 const CLAVE_TOKEN = 'sync_token';
 const CLAVE_SALA = 'sala_casa';
 
