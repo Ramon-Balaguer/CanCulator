@@ -409,6 +409,8 @@ textarea { min-height: 80px; }
   transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .fila-boton:hover { border-color: var(--verde-hover); background: var(--superficie-2); }
+.fila-boton { display: flex; align-items: center; gap: 12px; }
+.fila-texto { display: grid; gap: 2px; min-width: 0; flex: 1; }
 .fila-titulo { font-weight: 500; color: var(--texto-fuerte); overflow-wrap: anywhere; }
 .fila-dato { font-size: 0.9rem; }
 
