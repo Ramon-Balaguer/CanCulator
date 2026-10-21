@@ -1,6 +1,6 @@
 // Estadísticas del stock: unidades y calorías, en total y por categoría. Sin DOM ni red.
 import { activo, lotesVisibles } from './inventario.js';
-import { kcalDeUnidades } from './nutricion.js';
+import { kcalDeUnidadesDelProducto } from './nutricion.js';
 
 const redondear1 = (n) => Math.round(n * 10) / 10;
 
@@ -24,7 +24,7 @@ export function estadisticasStock(productos, lotes, cacheOff = []) {
       .reduce((suma, l) => suma + l.cantidad, 0);
     if (unidades === 0) continue;
 
-    const kcal = kcalDeUnidades(offPorCodigo.get(producto.codigo_barras), unidades);
+    const kcal = kcalDeUnidadesDelProducto(producto, offPorCodigo.get(producto.codigo_barras), unidades);
     const categoria = producto.categoria || 'otros';
     if (!categorias.has(categoria)) {
       categorias.set(categoria, { categoria, unidades: 0, kcal: 0, productosSinKcal: 0 });

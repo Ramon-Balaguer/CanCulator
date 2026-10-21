@@ -10,7 +10,7 @@ import { hoyEnMadrid, formatearFecha, diasEntre, describirCaducidad, formatearEn
 import { Miniatura } from './miniatura.js';
 import { consultarOFF, ESTADOS, leerCacheOFF } from '../datos/off.js';
 import { DatosOFF } from './datos-off.js';
-import { kcalDeUnidades, kcalPorBote } from '../logica/nutricion.js';
+import { datosNutricionDesdeOFF, kcalPorBote, kcalPorBoteGuardado } from '../logica/nutricion.js';
 
 const CAMPOS_VACIOS = () => ({
   codigo: '',
@@ -116,6 +116,8 @@ export function AltaLote({ db, dispositivo, datos, config, productoInicial, onHe
         categoria: campos.categoria,
         codigo_barras: campos.codigo,
         stock_minimo: 0,
+        // Si Open Food Facts trajo energía, las calorías se guardan con el producto.
+        ...datosNutricionDesdeOFF(ofProducto ?? {}),
       });
       let foto_id = '';
       let avisoFoto = '';
@@ -239,7 +241,19 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
     if (!producto.codigo_barras) { setProductoOFF(null); return; }
     leerCacheOFF(db, producto.codigo_barras).then(setProductoOFF).catch(() => setProductoOFF(null));
   }, [db, producto.codigo_barras]);
+
+  // Producto anterior a guardar calorías: si la caché de OFF las tiene, se copian al producto (una vez).
+  useEffect(() => {
+    if (!productoOFF) return;
+    const datos = datosNutricionDesdeOFF(productoOFF);
+    if (!('kcal_100g' in datos)) return;
+    if (producto.kcal_100g !== undefined && producto.kcal_100g !== '') return;
+    editarProducto(db, dispositivo, producto.id, datos).then(refrescar).catch(() => {});
+  }, [productoOFF, producto.id]);
   const lotes = lotesParaConsumir(producto.id, datos.lotes);
+  const unidadesProducto = lotes.reduce((s, l) => s + l.cantidad, 0);
+  // Calorías por bote: primero el dato guardado en el producto; si no, la caché de OFF.
+  const porBote = kcalPorBoteGuardado(producto) ?? (productoOFF ? kcalPorBote(productoOFF) : null);
   const hoy = hoyEnMadrid();
 
   const cantidadDe = (id) => Math.max(1, Number(cantidades[id] ?? 1) || 1);
@@ -285,7 +299,7 @@ export function DetalleProducto({ db, dispositivo, datos, config, producto, onCe
   return html`
     <${Modal} titulo=${producto.nombre} onCerrar=${onCerrar}>
       <p class="secundario">${producto.categoria} · mínimo ${producto.stock_minimo}</p>
-      ${productoOFF && kcalPorBote(productoOFF) !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${kcalPorBote(productoOFF)} kcal por bote · ${kcalDeUnidades(productoOFF, lotes.reduce((s, l) => s + l.cantidad, 0))} kcal en el stock (${lotes.reduce((s, l) => s + l.cantidad, 0)} ud.)</p>`}
+      ${porBote !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${porBote} kcal por bote · ${Math.round(porBote * unidadesProducto * 10) / 10} kcal en el stock (${unidadesProducto} ud.)</p>`}
       ${lotes.length === 0 && html`<p class="vacio">No quedan unidades de este producto.</p>`}
       <ul class="lista-lotes">
         ${lotes.map((lote) => html`

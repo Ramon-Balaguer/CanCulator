@@ -13,6 +13,7 @@ export function crearEntornoApps(libro = new Map()) {
     getName() { return this.nombre; }
     getMaxRows() { return this.maxFilas; }
     getLastRow() { return this.filas.length; }
+    getLastColumn() { return this.filas.reduce((m, f) => Math.max(m, f.length), 0); }
     getDataRange() {
       const filas = this.filas;
       const columnas = filas.reduce((m, f) => Math.max(m, f.length), 0);
@@ -24,6 +25,7 @@ export function crearEntornoApps(libro = new Map()) {
       const hoja = this;
       return {
         setNumberFormat() { return this; },
+        setValue(valor) { return this.setValues([[valor]]); },
         getValues() {
           return Array.from({ length: numFilas }, (_, i) =>
             Array.from({ length: numColumnas }, (_, j) => (hoja.filas[fila - 1 + i]?.[columna - 1 + j] ?? '')));

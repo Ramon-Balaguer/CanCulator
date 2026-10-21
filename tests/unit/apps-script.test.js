@@ -133,3 +133,27 @@ test('las fechas que Sheets convierte en Date vuelven como texto YYYY-MM-DD', ()
   s.sim.libro.get('Lotes').filas[1][3] = new Date('2026-11-15T00:00:00Z');
   assert.equal(filasLote(s).caducidad, '2026-11-15');
 });
+
+test('una hoja con la cabecera antigua recibe las columnas nuevas sin perder filas', () => {
+  const s = cargarServidor();
+  // Hoja creada antes de la columna de calorías: cabecera de 7 columnas y una fila.
+  const libro = s.sim.libro;
+  const antigua = new s.sim.Hoja('Productos');
+  antigua.filas = [
+    ['id', 'nombre', 'categoria', 'codigo_barras', 'stock_minimo', 'actualizado', 'borrado'],
+    ['p-viejo', 'Garbanzos', 'legumbres', '', '0', '2026-10-01T00:00:00Z', 'no'],
+  ];
+  libro.set('Productos', antigua);
+  sync(s, []);
+  assert.deepEqual(antigua.filas[0].slice(7, 9), ['kcal_100g', 'peso_bote_g']);
+  assert.equal(antigua.filas[1][1], 'Garbanzos');
+});
+
+test('un producto con calorías guardadas las devuelve al resto de móviles', () => {
+  const s = cargarServidor();
+  sync(s, [op('o-kcal', 'crear', 'producto', 'p-muesli', { nombre: 'Muesli', categoria: 'cereales', codigo_barras: '3229820129488', stock_minimo: 0, kcal_100g: 352, peso_bote_g: 375 }, '2026-10-01T10:00:00Z')]);
+  const r = sync(s, [], { desde: '' });
+  const p = r.cambios.productos.find((x) => x.id === 'p-muesli');
+  assert.equal(p.kcal_100g, '352');
+  assert.equal(p.peso_bote_g, '375');
+});

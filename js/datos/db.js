@@ -49,7 +49,16 @@ export function abrirBD(nombre = NOMBRE_BD, indexedDB = globalThis.indexedDB) {
         MIGRACIONES[v](db, tx);
       }
     };
-    peticion.onsuccess = () => resolver(peticion.result);
+    peticion.onsuccess = () => {
+      const db = peticion.result;
+      // Si otra versión de la app (más nueva) quiere actualizar la base de datos, esta conexión
+      // se cierra para no bloquearla. La app avisa de que hay que recargar.
+      db.onversionchange = () => {
+        db.close();
+        globalThis.dispatchEvent?.(new Event('bd-version-nueva'));
+      };
+      resolver(db);
+    };
     peticion.onerror = () => rechazar(peticion.error);
     peticion.onblocked = () => rechazar(new Error('La base de datos está abierta en otra pestaña. Ciérrala y recarga.'));
   });

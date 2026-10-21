@@ -47,7 +47,12 @@ export function idsConfirmados(respuesta) {
 function desdeHoja(registro, tabla) {
   const r = { ...registro };
   if (tabla === 'lotes') r.cantidad = Number(r.cantidad);
-  if (tabla === 'productos') r.stock_minimo = Number(r.stock_minimo);
+  if (tabla === 'productos') {
+    r.stock_minimo = Number(r.stock_minimo);
+    // Calorías: vacío en la hoja significa "sin dato", no cero.
+    r.kcal_100g = r.kcal_100g === undefined || r.kcal_100g === '' ? '' : Number(r.kcal_100g);
+    r.peso_bote_g = r.peso_bote_g === undefined || r.peso_bote_g === '' ? '' : Number(r.peso_bote_g);
+  }
   if (tabla === 'configuracion') r.valor = JSON.parse(r.valor);
   if (typeof r.borrado !== 'boolean') r.borrado = r.borrado === 'sí' || r.borrado === true;
   return r;

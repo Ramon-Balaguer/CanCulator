@@ -10,7 +10,7 @@ const CARPETA_FOTOS = 'inventario-fotos';
 const ZONA = 'Europe/Madrid';
 
 const COLUMNAS = {
-  Productos: ['id', 'nombre', 'categoria', 'codigo_barras', 'stock_minimo', 'actualizado', 'borrado'],
+  Productos: ['id', 'nombre', 'categoria', 'codigo_barras', 'stock_minimo', 'actualizado', 'borrado', 'kcal_100g', 'peso_bote_g'],
   Lotes: ['id', 'producto_id', 'cantidad', 'caducidad', 'ubicacion', 'observaciones', 'foto_id', 'revisar', 'actualizado', 'borrado'],
   Configuracion: ['clave', 'valor', 'actualizado'],
   Dispositivos: ['dispositivo', 'ultima_sincronizacion'],
@@ -202,6 +202,8 @@ function abrirHojas() {
       // Todo como texto: si no, Sheets convierte "2026-11-15" y las marcas de tiempo en fechas.
       hoja.getRange(1, 1, hoja.getMaxRows(), COLUMNAS[nombre].length).setNumberFormat('@');
       hoja.appendRow(COLUMNAS[nombre]);
+    } else {
+      anadirCabecerasQueFaltan(hoja, COLUMNAS[nombre]);
     }
     hojas[nombre] = hoja;
   }
@@ -256,4 +258,16 @@ function sinIndice(fila) {
   delete copia._fila;
   if (copia.borrado !== undefined) copia.borrado = copia.borrado === 'sí';
   return copia;
+}
+
+// Una hoja creada antes puede no tener columnas nuevas: se añaden al final de la cabecera.
+// Las filas existentes quedan con esas celdas vacías; no se borra ni se mueve nada.
+function anadirCabecerasQueFaltan(hoja, columnas) {
+  const actuales = hoja.getRange(1, 1, 1, Math.max(hoja.getLastColumn(), 1)).getValues()[0].map(String);
+  columnas.forEach((nombre) => {
+    if (actuales.indexOf(nombre) !== -1) return;
+    const columna = actuales.filter((c) => c !== '').length + 1;
+    hoja.getRange(1, columna).setNumberFormat('@').setValue(nombre);
+    actuales.push(nombre);
+  });
 }

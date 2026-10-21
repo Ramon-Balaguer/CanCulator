@@ -149,6 +149,13 @@ export function Raiz({ db }) {
     return () => window.removeEventListener('online', alConectar);
   }, [sincronizarAhora]);
 
+  // Otra versión de la app ha actualizado la base de datos: esta pestaña ya no puede guardar.
+  useEffect(() => {
+    const alCambiarVersion = () => setError('Hay una versión nueva de la app. Recarga la página para seguir (no se pierde nada guardado).');
+    globalThis.addEventListener('bd-version-nueva', alCambiarVersion);
+    return () => globalThis.removeEventListener('bd-version-nueva', alCambiarVersion);
+  }, []);
+
   useEffect(() => {
     if (!aviso) return undefined;
     const t = setTimeout(() => setAviso(null), aviso.accion ? ESPERA_DESHACER_MS : 3000);

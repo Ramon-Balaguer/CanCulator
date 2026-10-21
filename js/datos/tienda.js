@@ -37,12 +37,23 @@ function validarProducto(datos) {
   if (!nombre) throw new Error('El producto necesita un nombre');
   const minimo = Number(datos.stock_minimo ?? 0);
   if (!Number.isInteger(minimo) || minimo < 0) throw new Error('El stock mínimo debe ser un entero de 0 o más');
-  return {
+  const limpio = {
     nombre,
     categoria: String(datos.categoria ?? 'otros'),
     codigo_barras: String(datos.codigo_barras ?? '').trim(),
     stock_minimo: minimo,
   };
+  // Calorías del producto: solo se tocan si vienen en los datos (vacío = sin dato).
+  if (datos.kcal_100g !== undefined) limpio.kcal_100g = numeroOpcional(datos.kcal_100g, 'Calorías por 100 g');
+  if (datos.peso_bote_g !== undefined) limpio.peso_bote_g = numeroOpcional(datos.peso_bote_g, 'Peso del bote');
+  return limpio;
+}
+
+function numeroOpcional(valor, nombre) {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) throw new Error(`${nombre} debe ser un número de 0 o más`);
+  return n;
 }
 
 function validarLote(datos) {
