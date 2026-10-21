@@ -460,6 +460,11 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
     onHecho();
   }
 
+  // The arrows add or take one unit, never going below 0.
+  function ajustarCantidad(delta) {
+    setCantidad(String(Math.max(0, (Number(quantity) || 0) + delta)));
+  }
+
   return html`
     <${Modal} titulo=${`Editar lote de ${product.nombre}`} onCerrar=${onCerrar}>
       <form class="formulario" onSubmit=${save}>
@@ -474,7 +479,11 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
         <//>
         <${Field} etiqueta="Observaciones"><input value=${observaciones} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} /><//>
         <${Field} etiqueta="Cantidad" ayuda="Escribe cuántas unidades hay. 0 oculta el lote, no lo borra.">
-          <input type="number" inputmode="numeric" min="0" step="1" required value=${quantity} onInput=${(e) => setCantidad(e.currentTarget.value)} />
+          <div class="cantidad-control">
+            <input type="number" inputmode="numeric" min="0" step="1" required aria-label="Cantidad" value=${quantity} onInput=${(e) => setCantidad(e.currentTarget.value)} />
+            <button type="button" aria-label="Aumentar una unidad" onClick=${() => ajustarCantidad(1)}>▲</button>
+            <button type="button" aria-label="Reducir una unidad" onClick=${() => ajustarCantidad(-1)}>▼</button>
+          </div>
         <//>
         <div class="campo">
           <span class="campo-etiqueta">Foto del lote</span>
