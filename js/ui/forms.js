@@ -10,6 +10,7 @@ import { todayInMadrid, formatDate, daysBetween, describeExpiry, formatDateInput
 import { Thumbnail } from './thumbnail.js';
 import { queryOFF, STATES, readCacheOFF } from '../datos/off.js';
 import { OFFData } from './off-data.js';
+import { guessCategory, frontImageUrl } from '../logica/off-category.js';
 import { nutritionDataFromOFF, kcalPerContainer, storedKcalPerContainer } from '../logica/nutrition.js';
 
 const EMPTY_FIELDS = () => ({
@@ -79,9 +80,16 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       const r = await queryOFF(db, code);
       if (r.estado === STATES.ENCONTRADO) {
         setOfProducto(r.producto ?? null);
-        setCampos((c) => ({ ...c, nombre: c.nombre.trim() ? c.nombre : r.nombre }));
+        const guessed = guessCategory(r.producto, config.categorias);
+        setCampos((c) => ({
+          ...c,
+          nombre: c.nombre.trim() ? c.nombre : r.nombre,
+          categoria: guessed || c.categoria,
+        }));
         const brand = r.marca && r.marca !== r.nombre ? ` (${r.marca})` : '';
-        setAviso({ tipo: 'info', texto: `Open Food Facts: ${r.nombre}${brand}. Revisa el nombre antes de guardar.` });
+        const category = guessed ? ` Categoría sugerida: ${guessed}.` : '';
+        setAviso({ tipo: 'info', texto: `Open Food Facts: ${r.nombre}${brand}.${category} Revisa los datos antes de guardar.` });
+        downloadFrontPhoto(r.producto);
       } else if (r.estado === STATES.NO_ENCONTRADO) {
         setAviso({ tipo: 'info', texto: 'No está en Open Food Facts. Escribe el nombre a mano.' });
       } else if (r.estado === STATES.SIN_CONEXION) {
@@ -91,6 +99,22 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       }
     } finally {
       setConsultando(false);
+    }
+  }
+
+  // The front photo of the product becomes the lot photo, unless the user already chose one.
+  // A failure (offline, CORS, timeout) is silent: the photo is optional.
+  async function downloadFrontPhoto(product) {
+    const url = frontImageUrl(product);
+    if (!url) return;
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) return;
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) return;
+      setCampos((c) => (c.foto ? c : { ...c, foto: blob }));
+    } catch {
+      // Without the photo the lot is saved the same.
     }
   }
 
@@ -212,9 +236,10 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
 
         <${Field} etiqueta="Foto del lote (opcional)">
           <input type="file" accept="image/*" capture="environment"
-            onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? null })} />
+            onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? fields.foto })} />
         <//>
         ${previa && html`<img class="previa" src=${previa} alt="Foto del lote" />`}
+        ${previa && html`<p class="secundario">Si prefieres otra foto, elígela arriba y sustituirá a esta.</p>`}
 
         ${sameLot && html`<${Notice} tipo="info">Ya tienes ${sameLot.cantidad} ud. de ${currentProduct.nombre} con esta caducidad y ubicación. Si guardas, se suman a ese lote.<//>`}
         <${Notice} tipo="error">${error}<//>
