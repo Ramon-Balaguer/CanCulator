@@ -72,7 +72,7 @@ jobs:
         run: npm run vendor
 
       - name: Preparar _site e inyectar el hash del commit en sw.js
-        run: node scripts/construir.mjs "$GITHUB_SHA"
+        run: node scripts/build.mjs "$GITHUB_SHA"
 
       - uses: actions/configure-pages@v5
 

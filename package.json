@@ -4,9 +4,9 @@
   "type": "module",
   "description": "Inventario de casa: PWA para la comida no perecedera",
   "scripts": {
-    "vendor": "node scripts/copiar-vendor.mjs",
-    "servir": "npm run vendor && node scripts/servir.mjs",
-    "construir": "node scripts/construir.mjs",
+    "vendor": "node scripts/copy-vendor.mjs",
+    "servir": "npm run vendor && node scripts/serve.mjs",
+    "construir": "node scripts/build.mjs",
     "test": "npm run test:unit && npm run test:e2e",
     "pretest:unit": "npm run vendor",
     "test:unit": "node --test \"tests/unit/**/*.test.js\"",

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { TEST_CODE, y4mEan13 } from './tests/fixtures/codigo-barras.js';
+import { TEST_CODE, y4mEan13 } from './tests/fixtures/barcode.js';
 
 const PORT = 4173;
 const BASE = '/inventario/';
@@ -45,7 +45,7 @@ export default defineConfig({
     { name: 'webkit-movil', use: { ...devices['iPhone 15'] } },
   ],
   webServer: {
-    command: 'node scripts/servir.mjs',
+    command: 'node scripts/serve.mjs',
     url: `http://localhost:${PORT}${BASE}`,
     env: { PUERTO: String(PORT), BASE },
     reuseExistingServer: !process.env.CI,

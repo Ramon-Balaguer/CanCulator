@@ -2,8 +2,8 @@ import { html, render } from 'htm/preact';
 import { VERSION } from './version.js';
 import { versionText } from './logica/version.js';
 import { openDatabase } from './datos/db.js';
-import { Root } from './ui/raiz.js';
-import { startInstallCapture } from './ui/instalacion.js';
+import { Root } from './ui/root.js';
+import { startInstallCapture } from './ui/install.js';
 
 startInstallCapture();
 

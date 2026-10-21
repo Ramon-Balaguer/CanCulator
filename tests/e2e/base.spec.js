@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ownServer } from './servidor-propio.js';
+import { ownServer } from './own-server.js';
 
 test('la página muestra el nombre de la app', async ({ page }) => {
   await page.goto('./');

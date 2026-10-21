@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadServer } from '../fixtures/cargar-code-gs.js';
+import { loadServer } from '../fixtures/load-code-gs.js';
 
 const T = 'secreto-de-prueba';
 const op = (id, type, entity, entityId, change, date) => ({ id, dispositivo: 'movil-A', fecha: date, tipo: type, entidad: entity, entidad_id: entityId, cambio: change });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { modulesOfCode } from '../../js/logica/ean.js';
-import { modulesEan13 } from '../fixtures/codigo-barras.js';
+import { modulesEan13 } from '../fixtures/barcode.js';
 
 test('EAN-13: 95 módulos, con guardas de inicio, centro y fin', () => {
   const m = modulesOfCode('3229820129488');

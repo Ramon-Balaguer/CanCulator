@@ -1,6 +1,6 @@
 // Dibujo de códigos de barras EAN-13, EAN-8 y UPC-A (12 dígitos, como EAN-13 con un 0 delante).
 // Solo calcula los módulos (barras y espacios); el SVG lo pone la interfaz.
-import { isValidGtin } from './codigo-barras.js';
+import { isValidGtin } from './barcode.js';
 
 const L = ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'];
 const G = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'];
