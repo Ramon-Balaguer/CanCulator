@@ -26,3 +26,4 @@ fotos/
 # Sistema
 .DS_Store
 Thumbs.db
+tests/.generados/
