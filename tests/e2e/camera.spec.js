@@ -15,7 +15,7 @@ test('la página de prueba de cámara carga Preact, htm y ZXing', async ({ page 
 });
 
 test('lee un código EAN-13 desde una foto', async ({ page }) => {
-  await page.goto('prueba-camara.html');
+  await page.goto('camera-test.html');
   await page.getByTestId('foto').setInputFiles({
     name: 'lata.png',
     mimeType: 'image/png',
@@ -26,7 +26,7 @@ test('lee un código EAN-13 desde una foto', async ({ page }) => {
 });
 
 test('una foto sin código muestra un aviso y no rompe la página', async ({ page }) => {
-  await page.goto('prueba-camara.html');
+  await page.goto('camera-test.html');
   await page.getByTestId('foto').setInputFiles({
     name: 'blanco.png',
     mimeType: 'image/png',
@@ -38,7 +38,7 @@ test('una foto sin código muestra un aviso y no rompe la página', async ({ pag
 
 test('lee un código EAN-13 con la cámara en vivo', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'Solo Chromium permite una cámara simulada con un vídeo propio. En iPhone se prueba a mano.');
-  await page.goto('prueba-camara.html');
+  await page.goto('camera-test.html');
   await page.getByRole('button', { name: 'Abrir cámara' }).click();
   await expect(page.getByTestId('codigo-leido')).toHaveText(TEST_CODE, { timeout: 15_000 });
   await expect(page.getByTestId('codigo-detalle')).toContainText('desde cámara');

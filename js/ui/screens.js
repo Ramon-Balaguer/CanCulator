@@ -333,7 +333,7 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
 
       <div class="bloque">
         <h3>Diagnóstico</h3>
-        <p><a href="prueba-camara.html">Prueba de cámara y código de barras</a></p>
+        <p><a href="camera-test.html">Prueba de cámara y código de barras</a></p>
       </div>
 
       <div class="bloque">

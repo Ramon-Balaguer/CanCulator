@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // A database created with version 1 (phase 2) must open with the current version
 // { tipo, ... } for modals and forms
 test('la base de datos de la versión 1 pasa a la actual sin perder datos', async ({ page }) => {
-  await page.goto('./prueba-camara.html');
+  await page.goto('./camera-test.html');
   await page.evaluate(async () => {
     const open = indexedDB.open('inventario-casa', 1);
     await new Promise((resolve, reject) => {

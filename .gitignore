@@ -5,7 +5,7 @@ vendor/
 test-results/
 playwright-report/
 playwright/.cache/
-tests/.generados/
+tests/.generated/
 
 # Datos personales: nunca al repositorio
 *.export.json

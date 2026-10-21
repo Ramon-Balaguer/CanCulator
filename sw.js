@@ -46,7 +46,7 @@ const PRECACHE = [
   './js/ui/root.js',
   './js/version.js',
   './manifest.webmanifest',
-  './prueba-camara.html',
+  './camera-test.html',
   './vendor/htm-preact.module.js',
   './vendor/htm.module.js',
   './vendor/preact-hooks.module.js',

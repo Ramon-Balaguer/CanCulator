@@ -32,7 +32,7 @@ Cada vez que cambies `Code.gs`, hay que hacer **Implementar → Gestionar implem
 
 ## 4. Comprobar la conexión
 
-1. Abre `prueba-sync.html` en el móvil (la URL de la app, seguida de `prueba-sync.html`).
+1. Abre `sync-test.html` en el móvil (la URL de la app, seguida de `sync-test.html`).
 2. Pega la URL `/exec` y el token.
 3. Pulsa **Enviar ping**. Debe salir `OK · servidor versión 1`.
 

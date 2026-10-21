@@ -41,7 +41,7 @@ URL pública: https://ramon-balaguer.github.io/survivor-resources/
 
 ## Fin de fase 4: sincronización
 
-- [ ] Antes de nada, en el móvil, abrir `prueba-sync.html` (en la misma web) y «Enviar ping» con la URL y el token: sale «OK · servidor versión 1». Si no, ver `docs/apps-script.md`.
+- [ ] Antes de nada, en el móvil, abrir `sync-test.html` (en la misma web) y «Enviar ping» con la URL y el token: sale «OK · servidor versión 1». Si no, ver `docs/apps-script.md`.
 - [ ] Pegar en Ajustes la URL de Apps Script y el token, y pulsar «Sincronizar ahora»: el estado dice que se ha sincronizado.
 - [ ] Dar de alta un lote en un móvil y sincronizar los dos: aparece en el otro y en la Google Sheet.
 - [ ] Los dos móviles en modo avión consumen 1 unidad del mismo lote; quitar el modo avión y sincronizar los dos: el lote ha bajado 2.

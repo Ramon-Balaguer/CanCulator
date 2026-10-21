@@ -8,9 +8,9 @@ const BASE = '/inventario/';
 
 // Video with a barcode that Chromium uses as the simulated camera.
 // It is generated only in the main process; the workers reuse it.
-const CAMERA_VIDEO = fileURLToPath(new URL('./tests/.generados/camara.y4m', import.meta.url));
+const CAMERA_VIDEO = fileURLToPath(new URL('./tests/.generated/camara.y4m', import.meta.url));
 if (process.env.TEST_WORKER_INDEX === undefined) {
-  mkdirSync(new URL('./tests/.generados/', import.meta.url), { recursive: true });
+  mkdirSync(new URL('./tests/.generated/', import.meta.url), { recursive: true });
   writeFileSync(CAMERA_VIDEO, y4mEan13(TEST_CODE));
 }
 

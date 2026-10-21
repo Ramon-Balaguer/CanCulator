@@ -11,13 +11,13 @@ const destino = join(raiz, 'vendor');
 // [origin in node_modules, destination in vendor/]
 export const FICHEROS = [
   ['@zxing/browser/umd/zxing-browser.min.js', 'zxing-browser.min.js'],
-  ['@zxing/browser/LICENSE', 'licencias/zxing-browser.txt'],
+  ['@zxing/browser/LICENSE', 'licenses/zxing-browser.txt'],
   ['preact/dist/preact.module.js', 'preact.module.js'],
   ['preact/hooks/dist/hooks.module.js', 'preact-hooks.module.js'],
-  ['preact/LICENSE', 'licencias/preact.txt'],
+  ['preact/LICENSE', 'licenses/preact.txt'],
   ['htm/dist/htm.module.js', 'htm.module.js'],
   ['htm/preact/index.module.js', 'htm-preact.module.js'],
-  ['htm/LICENSE', 'licencias/htm.txt'],
+  ['htm/LICENSE', 'licenses/htm.txt'],
 ];
 
 export async function copiarVendor() {
