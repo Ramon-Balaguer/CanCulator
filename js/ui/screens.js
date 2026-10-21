@@ -12,7 +12,7 @@ import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logic
 import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary } from '../logica/inventory.js';
 import { stockStatistics } from '../logica/statistics.js';
 
-// ---------- Caducidad ----------
+// ---------- Expiry ----------
 export function ExpiryScreen({ db, dispositivo: device, datos: data, config, notificar: notifyUser, refrescar: refresh, onEditarLote }) {
   const today = todayInMadrid();
   const byId = mapById(data.productos);
@@ -57,7 +57,7 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
 }
 
 // ---------- Stock ----------
-// Pantalla de estadísticas: aquí se añaden las nuevas. Cuentan todo el stock, sin filtros.
+// Statistics screen: new ones are added here. They count the whole stock, without filters.
 export function StatisticsScreen({ datos: data }) {
   const e = stockStatistics(data.productos, data.lotes, data.cacheOff ?? []);
   return html`
@@ -126,7 +126,7 @@ export function StockScreen({ datos: data, config, onAbrirProducto }) {
   `;
 }
 
-// ---------- A reponer ----------
+// ---------- Restock ----------
 export function RestockScreen({ datos: data, onComprado }) {
   const pending = toRestock(data.productos, data.lotes);
   if (pending.length === 0) {
@@ -151,7 +151,7 @@ export function RestockScreen({ datos: data, onComprado }) {
   `;
 }
 
-// ---------- Imprimir ----------
+// ---------- Print ----------
 export function PrintScreen({ db, datos: data }) {
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
@@ -184,8 +184,8 @@ export function PrintScreen({ db, datos: data }) {
   `;
 }
 
-// ---------- Ajustes ----------
-// Instalar en la pantalla de inicio: botón en Android, instrucciones en iPhone.
+// ---------- Settings ----------
+// Install on the home screen: button on Android, instructions on iPhone.
 function InstallApp() {
   const [boton, setBoton] = useState(canInstallWithButton());
   const [mensaje, setMensaje] = useState('');
@@ -213,7 +213,7 @@ function InstallApp() {
 }
 function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUser }) {
   const [newItem, setNuevo] = useState('');
-  // Quitar una categoría o ubicación pide confirmación.
+  // Removing a category or location asks for confirmation.
   const removeItem = (value) => {
     if (!window.confirm(`¿Quitar «${value}»?`)) return;
     const previous = values;

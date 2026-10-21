@@ -1,7 +1,7 @@
-// Convierte un producto de Open Food Facts en algo que se puede leer en pantalla.
-// Sin DOM: todo son textos y listas. La interfaz lo pinta con textContent.
+// Turns a product from Open Food Facts into something that can be read on screen.
+// No DOM: everything is text and lists. The interface paints it with textContent.
 
-// Campos con nombre legible, agrupados. Lo que no tenga valor no se muestra.
+// Readable product fields, grouped. Anything without a value is not shown.
 const SECTIONS = [
   {
     titulo: 'Producto',
@@ -37,7 +37,7 @@ const SECTIONS = [
   },
 ];
 
-// Texto de un valor cualquiera de la API. Listas se unen con comas; objetos, como JSON.
+// Text of any API value. Lists are joined with commas; objects, as JSON.
 export function readableValue(value) {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value.trim();
@@ -57,7 +57,7 @@ export function sections(product) {
     .filter((s) => s.filas.length > 0);
 }
 
-// Nutrientes por 100 g: claves "<nombre>_100g" con su unidad "<nombre>_unit".
+// Nutrients per 100 g: keys "<name>_100g" with their unit "<name>_unit".
 export function nutrients(product) {
   const n = product.nutriments ?? {};
   return Object.keys(n)
@@ -69,7 +69,7 @@ export function nutrients(product) {
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
 
-// Fotos del producto: solo las de tamaño normal (no miniaturas).
+// Product photos: only the normal size (not thumbnails).
 const IMAGE_LABELS = {
   image_front_url: 'Frontal',
   image_ingredients_url: 'Ingredientes',
@@ -82,7 +82,7 @@ export function images(product) {
     .map(([key, etiqueta]) => ({ etiqueta, url: product[key] }));
 }
 
-// Todos los campos de la respuesta, en orden alfabético. Es lo que hace "toda la información".
+// All response fields, in alphabetical order. This is what makes "all the information".
 export function allFields(product) {
   return Object.keys(product)
     .sort((a, b) => a.localeCompare(b, 'en'))

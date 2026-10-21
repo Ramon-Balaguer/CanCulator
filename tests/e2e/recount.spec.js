@@ -19,20 +19,20 @@ test('editar un lote fija la cantidad que se escribe (recuento)', async ({ page 
   const card = page.locator('li.tarjeta', { hasText: 'Garbanzos recuento' });
   await expect(card).toContainText('5 ud.');
 
-  // Recuento: en la estantería hay 3, no 4.
+  // Recount: there are 3 on the shelf, not 4.
   await card.getByRole('button', { name: 'Editar' }).click();
   const edit = page.getByRole('dialog', { name: /Editar lote de Garbanzos recuento/ });
   await edit.getByLabel('Cantidad').fill('3');
   await edit.getByRole('button', { name: 'Guardar' }).click();
   await expect(card).toContainText('3 ud.');
 
-  // Recuento a cero: el lote deja de verse en Caducidad, pero sigue existiendo.
+  // Recount at zero: the lot stops being seen in Caducidad, but it still exists.
   await card.getByRole('button', { name: 'Editar' }).click();
   await page.getByRole('dialog', { name: /Editar lote de Garbanzos recuento/ }).getByLabel('Cantidad').fill('0');
   await page.getByRole('dialog', { name: /Editar lote de Garbanzos recuento/ }).getByRole('button', { name: 'Guardar' }).click();
   await expect(page.locator('li.tarjeta', { hasText: 'Garbanzos recuento' })).toHaveCount(0);
 
-  // Y en Stock el producto aparece con 0 unidades.
+  // And in Stock the product appears with 0 units.
   await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
   await expect(page.locator('button.fila-boton', { hasText: 'Garbanzos recuento' })).toContainText('0 ud.');
 });

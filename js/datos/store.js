@@ -1,5 +1,5 @@
-// Acciones sobre el inventario. Cada una escribe el registro y su operación en la misma
-// transacción, así nunca queda un cambio sin su entrada en la cola de sincronización.
+// Actions on the inventory. Each one writes the record and its operation in the same
+// v2: Open Food Facts cache (phase 3).
 import { TABLES, request, transaction } from './db.js';
 import { isActive, findSameLot } from '../logica/inventory.js';
 import { isISODate } from '../logica/dates.js';
@@ -8,7 +8,7 @@ export const OPERATION_TYPES = Object.freeze(['crear', 'editar', 'consumir', 're
 
 const now = () => new Date().toISOString();
 
-// Sin crypto.randomUUID (navegadores antiguos) no hay forma segura de generar ids: se avisa.
+// Without crypto.randomUUID (old browsers) there is no safe way to generate ids: it warns.
 export function newId() {
   if (!globalThis.crypto?.randomUUID) throw new Error('Este navegador no puede generar identificadores');
   return crypto.randomUUID();
@@ -19,8 +19,8 @@ export function newOperation({ dispositivo: device, tipo: type, entidad: entity,
   return { id, dispositivo: device, fecha: date, tipo: type, entidad: entity, entidad_id: entityId, cambio: change };
 }
 
-// Lee el id del dispositivo; si no existe, lo crea. Vive en Meta, no en Configuracion,
-// para que no viaje en las copias JSON ni en la sincronización.
+// Reads the device id; if it does not exist, it creates it. It lives in Meta, not in Configuracion,
+// stopping it. It is more faithful than context.setOffline(), which in WebKit cuts the requests
 export async function deviceId(db) {
   return transaction(db, [TABLES.meta], 'readwrite', async (tx) => {
     const objectStore = tx.objectStore(TABLES.meta);
@@ -43,7 +43,7 @@ function validateProduct(data) {
     codigo_barras: String(data.codigo_barras ?? '').trim(),
     stock_minimo: minimum,
   };
-  // Calorías del producto: solo se tocan si vienen en los datos (vacío = sin dato).
+  // Product calories: only touched if they come in the data (empty = no data).
   if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, 'Calorías por 100 g');
   if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, 'Peso del bote');
   return cleanData;
@@ -64,7 +64,7 @@ function validateLot(data) {
   return quantity;
 }
 
-// Crea un producto. Si ya hay uno con ese código de barras, devuelve ese.
+// Creates a product. If there is already one with that barcode, it returns it.
 export function createProduct(db, device, data) {
   const cleanData = validateProduct(data);
   return transaction(db, [TABLES.productos, TABLES.operaciones], 'readwrite', async (tx) => {
@@ -99,8 +99,8 @@ export function editProduct(db, device, id, changes) {
   });
 }
 
-// Alta de unidades. Si ya existe un lote del mismo producto, caducidad y ubicación,
-// se suman a ese lote (reposición) en lugar de crear otro.
+// Stock in. If a lot already exists with the same product, expiry and location,
+// service worker do not go through Playwright's interception and would go to the real network.
 export function addLot(db, device, data) {
   const quantity = validateLot(data);
   return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
@@ -113,7 +113,7 @@ export function addLot(db, device, data) {
       operations.put(newOperation({
         dispositivo: device, tipo: 'reponer', entidad: 'lote', entidad_id: lot.id, cambio: { cantidad: quantity },
       }));
-      // Ya había un lote con esa caducidad y ubicación: se suman las unidades y se avisa.
+      // There was already a lot with that expiry and location: the units are added and it is reported.
       return { lote: lot, fusionado: true, anterior: same.cantidad, sumadas: quantity };
     }
     const lot = {
@@ -144,7 +144,7 @@ export function addLot(db, device, data) {
   });
 }
 
-// Consumir o reponer unidades de un lote: siempre incrementos, nunca un valor fijo.
+// Consumes or restocks units of a lot: always increments, never a fixed value.
 export function adjustLot(db, device, lotId, delta) {
   if (!Number.isInteger(delta) || delta === 0) throw new Error('El cambio debe ser un entero distinto de 0');
   return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
@@ -179,7 +179,7 @@ export function editLot(db, device, id, changes) {
     };
     if (!isISODate(fields.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
     if (!fields.ubicacion) throw new Error('Elige una ubicación');
-    // "cantidad" es el número final que cuenta la persona (recuento), no un ajuste.
+    // "quantity" is the final number the person counts (recount), not an adjustment.
     const newQuantity = changes.cantidad === undefined ? current.cantidad : Number(changes.cantidad);
     if (!Number.isInteger(newQuantity) || newQuantity < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
     const newItem = {
@@ -199,7 +199,7 @@ export function editLot(db, device, id, changes) {
         dispositivo: device, tipo: 'editar', entidad: 'lote', entidad_id: id, cambio: change,
       }));
     }
-    // La diferencia viaja como incremento (reponer o consumir), igual que el resto de cambios de stock.
+    // The difference travels as an increment (restock or consume), like the rest of the stock changes.
     if (delta !== 0) {
       operations.put(newOperation({
         dispositivo: device, tipo: delta > 0 ? 'reponer' : 'consumir', entidad: 'lote', entidad_id: id, cambio: { cantidad: delta },
@@ -209,7 +209,7 @@ export function editLot(db, device, id, changes) {
   });
 }
 
-// Borrado lógico: nunca se elimina el registro.
+// Logical delete: the record is never removed.
 export function removeLot(db, device, id) {
   return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
     const objectStore = tx.objectStore(TABLES.lotes);
@@ -224,7 +224,7 @@ export function removeLot(db, device, id) {
   });
 }
 
-// Borra un producto y sus lotes activos, cada uno con su operación.
+// Deletes a product and its active lots, each one with its own operation.
 export function removeProduct(db, device, id) {
   return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
     const products = tx.objectStore(TABLES.productos);
@@ -243,9 +243,9 @@ export function removeProduct(db, device, id) {
   });
 }
 
-// Configuración: valores por clave. No genera operaciones (la sincronización de ajustes
-// se decide en la fase 4).
-// Guarda un ajuste con su fecha, para que la sincronización gane el más reciente.
+// Settings: values by key. They generate no operations (settings sync
+// they are added to that lot (restock) instead of creating another.
+// Stores a setting with its date, so the sync keeps the most recent one.
 export function saveSetting(db, key, value) {
   return transaction(db, [TABLES.configuracion], 'readwrite', (tx) => {
     tx.objectStore(TABLES.configuracion).put({ clave: key, valor: value, actualizado: now() });
@@ -253,8 +253,8 @@ export function saveSetting(db, key, value) {
   });
 }
 
-// Las fotos se guardan como bytes y no como Blob: WebKit (Safari) no puede guardar en
-// IndexedDB un Blob creado con canvas.toBlob ("Error preparing Blob/File data").
+// Photos are stored as bytes and not as a Blob: WebKit (Safari) cannot store in
+// IndexedDB a Blob created with canvas.toBlob ("Error preparing Blob/File data").
 export async function savePhoto(db, blob) {
   const id = newId();
   const bytes = await blob.arrayBuffer();
@@ -264,7 +264,7 @@ export async function savePhoto(db, blob) {
   });
 }
 
-// Un lote puede llevar el id local de la foto o, tras subirla a Drive, el id de Drive.
+// A lot can carry the local photo id or, after uploading it to Drive, the Drive id.
 export async function readPhoto(db, id) {
   if (!id) return null;
   const photo = await transaction(db, [TABLES.fotos], 'readonly', async (tx) => {
@@ -277,7 +277,7 @@ export async function readPhoto(db, id) {
   return { id: photo.id, creada: photo.creada, blob: new Blob([photo.bytes], { type: photo.tipo }) };
 }
 
-// Lee todo lo que necesita la interfaz de una vez.
+// Reads everything the interface needs at once.
 export function loadAll(db) {
   return transaction(db, Object.values(TABLES), 'readonly', async (tx) => ({
     productos: await request(tx.objectStore(TABLES.productos).getAll()),
@@ -288,7 +288,7 @@ export function loadAll(db) {
   }));
 }
 
-// Ajustes locales del móvil (no se exportan ni se sincronizan), como la URL y el token.
+// Local app settings (not exported or synced), such as the URL and token.
 export function saveMeta(db, key, value) {
   return transaction(db, [TABLES.meta], 'readwrite', (tx) => {
     tx.objectStore(TABLES.meta).put({ clave: key, valor: value });

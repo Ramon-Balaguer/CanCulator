@@ -2,8 +2,8 @@ import { html } from 'htm/preact';
 import { Modal } from './components.js';
 import { images, nutrients, sections, allFields } from '../logica/off-presentation.js';
 
-// Toda la información de un producto de Open Food Facts: resumen, secciones, nutrientes,
-// fotos y la lista completa de campos. Todo el texto entra con textContent (Preact escapa).
+// Full product information from Open Food Facts: summary, sections, nutrients, photos,
+// front, back, and details. All the text enters with textContent (Preact escapes it).
 export function OFFData({ codigo: code, producto: product, onCerrar }) {
   const groups = sections(product);
   const table = nutrients(product);

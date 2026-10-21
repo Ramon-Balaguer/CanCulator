@@ -1,5 +1,5 @@
-// Genera los iconos PNG de la app (una lata sobre fondo verde) sin dependencias.
-// Uso: node scripts/generate-icons.mjs
+// Generates the app PNG icons (a can on a green background) without dependencies.
+// Usage: node scripts/generate-icons.mjs
 import { encodePng } from './png.mjs';
 import { writeFileSync } from 'node:fs';
 
@@ -12,7 +12,7 @@ function insideEllipse(x, y, cx, cy, rx, ry) {
   return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 }
 
-// Color en coordenadas normalizadas (0..1).
+// Color in normalized coordinates (0..1).
 function colorAt(x, y) {
   const left = 0.32, right = 0.68, up = 0.27, down = 0.75;
   const cx = 0.5, rx = (right - left) / 2, ry = 0.055;

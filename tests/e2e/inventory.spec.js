@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { pngEan13, TEST_CODE } from '../fixtures/barcode.js';
 import { ownServer } from './own-server.js';
 
-// Fecha ISO a N días de hoy (la zona horaria de las pruebas es Madrid).
+// Date 2026-11-15 style test helper, N days from today (the test timezone is Madrid).
 function insideDays(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -64,7 +64,7 @@ test.describe('alta, consumo y orden', () => {
     await openApp(page);
     await newLot(page, { nombre: 'Tomate', caducidad: insideDays(200), cantidad: 1 });
     await newLot(page, { nombre: 'Atún', caducidad: insideDays(10), cantidad: 1 });
-    // Espera a que la lista se actualice (reintenta) en vez de leerla al instante.
+    // Waits for the list to update (retries) instead of reading it immediately.
     await expect(page.locator('li.tarjeta strong')).toHaveText(['Atún', 'Tomate']);
   });
 
@@ -108,7 +108,7 @@ test.describe('stock, reponer e imprimir', () => {
     await page.getByRole('dialog', { name: 'Atún' }).getByRole('button', { name: 'Editar producto' }).click();
     await page.getByLabel('Stock mínimo').fill('4');
     await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-    // Tras guardar se vuelve al detalle del producto; se cierra antes de cambiar de pantalla.
+    // After saving it goes back to the product detail; it closes before changing screen.
     await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
 
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'A reponer' }).click();

@@ -1,16 +1,16 @@
-// Reglas de sincronización del móvil. Sin acceso a red ni a IndexedDB.
-// El servidor (apps-script/Code.gs) aplica las mismas reglas sobre la hoja.
+// Sync rules of the phone. No network or IndexedDB access.
+// The server (apps-script/Code.gs) applies the same rules on the sheet.
 
 export const ACTIONS = Object.freeze({ SINCRONIZAR: 'sincronizar', FOTO: 'foto', PING: 'ping' });
 
-// Clave de una entidad para saber si tiene operaciones sin confirmar.
+// Key of an entity to know if it has operations not yet confirmed.
 const entityKey = (entity, id) => `${entity}:${id}`;
 
 export function pendingEntities(operations) {
   return new Set(operations.map((o) => entityKey(o.entidad, o.entidad_id)));
 }
 
-// Qué se envía en una sincronización. "desde" es la última sincronización confirmada.
+// What is sent in a sync. "since" is the last confirmed sync.
 export function buildSyncRequest({ token, dispositivo: device, operaciones: operations, desde: since = '', configuracion: configuration = [] }) {
   return {
     accion: ACTIONS.SINCRONIZAR,
@@ -26,7 +26,7 @@ export function buildSyncRequest({ token, dispositivo: device, operaciones: oper
   };
 }
 
-// Valida la respuesta del servidor. Lanza con un mensaje para el usuario si no es válida.
+// Validates the server response. Throws with a message for the user if it is not valid.
 export function parseSyncResponse(response) {
   if (!response || typeof response !== 'object') throw new Error('Respuesta del servidor no válida');
   if (response.ok !== true) throw new Error(response.error || 'El servidor no pudo sincronizar');
@@ -37,19 +37,19 @@ export function parseSyncResponse(response) {
   return response;
 }
 
-// Operaciones que el servidor ya tiene: se pueden borrar del móvil.
-// Las duplicadas también cuentan: el servidor ya las aplicó antes.
+// Operations the server already has: they can be deleted from the phone.
+// Duplicates count too: the server already applied them before.
 export function confirmedIds(response) {
   return new Set([...response.aplicadas, ...response.duplicadas]);
 }
 
-// Convierte un registro de la hoja al formato del móvil.
+// Converts a sheet record to the phone format.
 function fromSheet(record, table) {
   const r = { ...record };
   if (table === 'lotes') r.cantidad = Number(r.cantidad);
   if (table === 'productos') {
     r.stock_minimo = Number(r.stock_minimo);
-    // Calorías: vacío en la hoja significa "sin dato", no cero.
+    // Calories: an empty value in the sheet means "no data", not zero.
     r.kcal_100g = r.kcal_100g === undefined || r.kcal_100g === '' ? '' : Number(r.kcal_100g);
     r.peso_bote_g = r.peso_bote_g === undefined || r.peso_bote_g === '' ? '' : Number(r.peso_bote_g);
   }
@@ -58,9 +58,9 @@ function fromSheet(record, table) {
   return r;
 }
 
-// Aplica los cambios del servidor al estado local.
-// - Si una entidad tiene operaciones sin confirmar, se deja como está: se sincronizará después.
-// - Si no, gana el registro con "actualizado" más reciente (en empate, el del servidor).
+// Applies the server changes to the local state.
+// - If an entity has operations not yet confirmed, it is left as is: it will be synced later.
+// - If not, the record with the most recent "updated" wins (on a tie, the server's).
 export function applyServerChanges(local, changes, pending) {
   const result = {};
   for (const table of ['productos', 'lotes', 'configuracion']) {

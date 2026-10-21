@@ -1,7 +1,7 @@
-// Dibuja códigos EAN-13 para las pruebas: como PNG (foto) y como vídeo Y4M (cámara simulada de Chromium).
+// Draws EAN-13 codes for the tests: as PNG (photo) and as Y4M video (simulated Chromium camera).
 import { encodePng } from '../../scripts/png.mjs';
 
-// Código de ejemplo con dígito de control válido.
+// Example code with a valid check digit.
 export const TEST_CODE = '4006381333931';
 
 const L = ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'];
@@ -9,7 +9,7 @@ const G = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '00
 const R = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
 const PARITY = ['LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG', 'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL'];
 
-// Devuelve los 95 módulos del EAN-13 como texto de 0 y 1 (1 = barra).
+// Returns the 95 modules of the EAN-13 as text of 0 and 1 (1 = bar).
 export function modulesEan13(code) {
   if (!/^\d{13}$/.test(code)) throw new Error(`EAN-13 no válido: ${code}`);
   const d = [...code].map(Number);
@@ -21,7 +21,7 @@ export function modulesEan13(code) {
   return modules + '101';
 }
 
-// Imagen en escala de grises (0 negro, 255 blanco) con el código centrado.
+// Grayscale image (0 black, 255 white) with the code centered.
 export function ean13Image(code, { ancho: width = 640, alto: height = 480, anchoModulo = 4, altoBarras = 300 } = {}) {
   const modules = modulesEan13(code);
   const gray = new Uint8Array(width * height).fill(255);
@@ -43,7 +43,7 @@ export function pngEan13(code, options) {
   return encodePng(width, height, rgb);
 }
 
-// Vídeo Y4M (YUV 4:2:0) con unos fotogramas iguales. Chromium lo repite en bucle.
+// Y4M video (YUV 4:2:0) with some identical frames. Chromium loops it.
 export function y4mEan13(code, { fotogramas = 5, ...options } = {}) {
   const { ancho: width, alto: height, gris: gray } = ean13Image(code, options);
   const chroma = Buffer.alloc((width / 2) * (height / 2) * 2, 128);

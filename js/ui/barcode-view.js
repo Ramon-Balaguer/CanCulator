@@ -1,12 +1,12 @@
 import { html } from 'htm/preact';
 import { modulesOfCode } from '../logica/ean.js';
 
-const QUIET_ZONE = 7; // módulos en blanco a cada lado, como exige el estándar
+const QUIET_ZONE = 7; // blank modules on each side, as the standard requires.
 const BAR_HEIGHT = 60;
 const TEXT_HEIGHT = 12;
 
-// Código de barras como SVG vectorial (se imprime nítido). Si el código no se puede
-// dibujar, se muestra solo el número.
+// Barcode as a vector SVG (prints sharply). If the code cannot be
+// draw, only the number is shown.
 export function Barcode({ codigo: code }) {
   let modules;
   try {
@@ -15,7 +15,7 @@ export function Barcode({ codigo: code }) {
     return html`<span class="secundario">${code || '—'}</span>`;
   }
 
-  // Un solo trazo con un rectángulo por cada tramo de barras seguidas.
+  // A single stroke with a rectangle for each run of consecutive bars.
   let path = '';
   let x = QUIET_ZONE;
   for (let i = 0; i < modules.length; i++) {

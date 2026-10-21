@@ -1,12 +1,12 @@
-// Open Food Facts: consulta de productos por código de barras. Sin acceso a red aquí.
-// Comprobado contra la API real (fixtures en tests/fixtures/off/):
-//  - producto encontrado: HTTP 200, status 1, y el producto completo en "product"
-//  - producto no encontrado: HTTP 404 con status 0 (no es un error de red)
-// Se pide el producto completo (sin filtro de campos): la app muestra toda la información.
+// Open Food Facts: query of products by barcode. No network access here.
+// Checked against the real API (fixtures in tests/fixtures/off/):
+//  - product found: HTTP 200, status 1, and the full product in "product"
+//  - product not found: HTTP 404 with status 0 (not a network error)
+// The full product is requested (without field filter): the app shows all the information.
 
 export const API_BASE = 'https://world.openfoodfacts.org/api/v2/product/';
 
-// Un "no encontrado" se guarda en caché una semana; uno encontrado, siempre.
+// A "not found" is cached for a week; a found one, always.
 export const NOT_FOUND_CACHE_DAYS = 7;
 
 export function productUrl(code) {
@@ -16,21 +16,21 @@ export function productUrl(code) {
 
 const cleanText = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
-// Devuelve { encontrado, nombre, marca, producto }. Lanza error si la respuesta no es una de las conocidas.
+// Returns { encontrado, nombre, marca, producto }. Throws if the response is not a known one.
 export function parseResponse(http, body) {
   if (http === 404 && body?.status === 0) return { encontrado: false };
   if (http === 200 && body?.status === 0) return { encontrado: false };
   if (http === 200 && body?.status === 1 && body.product && typeof body.product === 'object') {
     const name = cleanText(body.product.product_name);
     const brand = cleanText(body.product.brands);
-    // Sin nombre, la marca es mejor que nada; el usuario lo corrige si hace falta.
+    // Without a name, the brand is better than nothing; the user corrects it if needed.
     return { encontrado: true, nombre: name || brand, marca: brand, producto: body.product };
   }
   throw new Error(`Respuesta inesperada de Open Food Facts (HTTP ${http})`);
 }
 
-// ¿Sirve todavía una entrada de caché? "ahora" se pasa para poder probarlo.
-// Las entradas antiguas, sin el producto completo, se consideran caducadas.
+// 
+// Old entries, without the full product, are considered expired.
 export function isCacheValid(entry, now = new Date()) {
   if (!entry?.consultado) return false;
   if (entry.encontrado) return Boolean(entry.producto);

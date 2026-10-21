@@ -1,6 +1,6 @@
-// Service worker: red primero y caché si no hay conexión.
-// El despliegue sustituye el marcador por el hash del commit, así cada versión
-// tiene su propia caché y los móviles reciben la nueva.
+// Service worker: network first and cache if there is no connection.
+// The deploy replaces the marker with the commit hash, so each version
+// transaction, so a change never remains without its entry in the sync queue.
 const VERSION = '__COMMIT__';
 const PREFIX = 'inventario-';
 const CACHE = `${PREFIX}${VERSION}`;
@@ -76,16 +76,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  // Solo se cachean GET del propio origen. La sincronización (POST a Apps Script)
-  // y Open Food Facts pasan directos.
+  // Only same-origin GETs are cached. The sync (POST to Apps Script)
+  // and keep all their data.
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   const network = fromNetwork(request);
   event.waitUntil(network.catch(() => {}));
   event.respondWith(networkFirst(request, network));
 });
 
-// Con cobertura mala la red puede tardar mucho sin llegar a fallar. Pasado este
-// tiempo se usa la copia en caché si la hay; si no la hay, se sigue esperando a la red.
+// With poor coverage the network can take a long time without failing. After this
+// has its own cache and the phones receive the new one.
 const NETWORK_WAIT_MS = 4000;
 
 async function fromNetwork(request) {

@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 import { startFakeSheet } from './fake-sheet.js';
 import { ownServer } from './own-server.js';
 
-// Dos móviles = dos contextos de navegador independientes (cada uno con su propia IndexedDB).
+// Two phones = two independent browser contexts (each with its own IndexedDB).
 test.describe('sincronización entre dos móviles', () => {
-  // Dos móviles, configuración, varias sincronizaciones: más margen que el de por defecto.
+  // Two phones, configuration, several syncs: more margin than the default.
   test.setTimeout(120_000);
 
   let sheet;
@@ -29,8 +29,8 @@ test.describe('sincronización entre dos móviles', () => {
     await expect(page.getByTestId('estado-sync')).toContainText('Sincronizado', { timeout: 20_000 });
   }
 
-  // Espera a que el servidor confirme: las operaciones pendientes deben quedar en 0.
-  // (El texto "Sincronizado" de una sincronización anterior seguiría visible y no sirve de señal.)
+  // Waits until the server confirms: the pending operations must reach 0.
+  // (The text "Sincronizado" from a previous sync would still be visible and is not a signal.)
   async function sync(page) {
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
     await page.getByRole('button', { name: 'Sincronizar ahora' }).click();
@@ -62,7 +62,7 @@ test.describe('sincronización entre dos móviles', () => {
     const phoneA = await contextA.newPage();
     const phoneB = await contextB.newPage();
     try {
-      // 1) Móvil A da de alta el lote y sincroniza; B se configura y recibe el lote.
+      // 1) Phone A adds the lot and syncs; B is configured and receives the lot.
       await configure(phoneA);
       await view(phoneA, 'Caducidad');
       await addLot(phoneA, { nombre: 'Lentejas', cantidad: 5, caducidad: '2027-03-01' });
@@ -72,7 +72,7 @@ test.describe('sincronización entre dos móviles', () => {
       await view(phoneB, 'Caducidad');
       await expect(phoneB.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('5 ud.', { timeout: 20_000 });
 
-      // 2) Ambos sin conexión: cada uno consume del mismo lote.
+      // 2) Both offline: each one consumes from the same lot.
       await contextA.setOffline(true);
       await contextB.setOffline(true);
       await view(phoneA, 'Caducidad');
@@ -83,7 +83,7 @@ test.describe('sincronización entre dos móviles', () => {
       await expect(phoneA.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('4 ud.');
       await expect(phoneB.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('3 ud.');
 
-      // 3) Vuelve la conexión: los dos sincronizan y el total cuadra (5 − 1 − 2 = 2).
+      // 3) Connection returns: both sync and the total matches (5 − 1 − 2 = 2).
       await contextA.setOffline(false);
       await contextB.setOffline(false);
       await sync(phoneA);
@@ -95,10 +95,10 @@ test.describe('sincronización entre dos móviles', () => {
       await expect(phoneA.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('2 ud.');
       await expect(phoneB.locator('li.tarjeta', { hasText: 'Lentejas' })).toContainText('2 ud.');
 
-      // La hoja tiene exactamente ese total, y ninguna operación se quedó sin enviar.
+      // The sheet has exactly that total, and no operation was left unsent.
       const lotRows = sheet.hojas.get('Lotes').filas.slice(1);
       expect(lotRows.map((r) => r[2])).toEqual(['2']);
-      // Ninguna operación se quedó sin enviar en ninguno de los dos móviles.
+      // No operation was left unsent on either phone.
       for (const phone of [phoneA, phoneB]) {
         await settings(phone);
         await expect(phone.getByTestId('pendientes-sync')).toHaveText('0');

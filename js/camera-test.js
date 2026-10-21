@@ -1,4 +1,4 @@
-// Página de diagnóstico: comprueba en el móvil que la cámara abre y que ZXing lee un código real.
+// Diagnostic page: checks on the phone that the camera opens and that ZXing reads a real code.
 import { html, render } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { isValidGtin, normalizeCode, codeType } from './logica/barcode.js';
@@ -82,7 +82,7 @@ function CameraTest() {
         navigator.vibrate?.(80);
         stop();
       });
-      // Si ya se leyó un código mientras arrancaba, no volver a "leyendo".
+      // If a code was already read while starting, do not go back to "reading".
       if (controls.current) setEstado('leyendo');
     } catch (e) {
       setError(cameraErrorMessage(e));

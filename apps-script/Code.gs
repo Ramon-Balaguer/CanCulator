@@ -1,9 +1,9 @@
-// Inventario de casa: servidor de sincronización (Google Apps Script).
-// Se pega en el proyecto de Apps Script ligado a la hoja compartida y se despliega como
-// aplicación web (ejecutar como: yo; acceso: cualquier usuario). Ver docs/apps-script.md.
+// Inventory of the house: synchronization server (Google Apps Script).
+// Pasted into the Apps Script project bound to the shared sheet and deployed as
+// web application (run as: me; access: anyone). See docs/apps-script.md.
 //
-// Pestañas de la hoja: Productos, Lotes, Configuracion, Dispositivos, Aplicadas.
-// Las operaciones (Operaciones) solo existen en el móvil.
+// Sheet tabs: Productos, Lotes, Configuracion, Dispositivos, Aplicadas.
+// The operations (Operaciones) exist only on the phone.
 
 const SERVER_VERSION = '1';
 const PHOTOS_FOLDER = 'inventario-fotos';
@@ -17,7 +17,7 @@ const COLUMNS = {
   Aplicadas: ['id', 'dispositivo', 'aplicada'],
 };
 
-// ---------- Entrada HTTP ----------
+// ---------- HTTP entry ----------
 
 function doPost(e) {
   try {
@@ -49,7 +49,7 @@ function verifyToken(token) {
   if (token !== esperado) throw new Error('Token no válido');
 }
 
-// ---------- Sincronización ----------
+// ---------- Sync ----------
 
 function sync(request) {
   const lock = LockService.getScriptLock();
@@ -79,11 +79,11 @@ function sync(request) {
 
     applySettings(sheets, request.configuracion || []);
 
-    // Se devuelven todas las filas, no solo las posteriores a "desde": "actualizado" guarda la
-    // fecha del móvil que hizo el cambio (sirve para resolver conflictos), y un cambio hecho
-    // sin conexión puede tener una fecha anterior a la última sincronización de otro móvil.
-    // Filtrar por ella dejaría a ese otro móvil sin el cambio. El volumen de una casa es pequeño.
-    // "desde" queda en la petición por si más adelante se separa la fecha de servidor.
+    // All rows are returned, not only those after "since": "updated" stores the
+    // date of the phone that made the change (it resolves conflicts), and a change made
+    // without filter
+    // Filtering by it would leave that other phone without the change. A household's volume is small.
+    // "since" stays in the request in case the server date is separated later.
     const changes = {
       productos: readRows(sheets.Productos).map(withoutIndex),
       lotes: readRows(sheets.Lotes).map(withoutIndex),
@@ -98,7 +98,7 @@ function sync(request) {
   }
 }
 
-// Aplica una operación a la hoja. Devuelve un texto de aviso si no se pudo aplicar del todo.
+// Applies an operation to the sheet. Returns a warning text if it could not be fully applied.
 function applyOperation(sheets, op) {
   const date = op.fecha;
   switch (op.tipo) {
@@ -116,7 +116,7 @@ function applyOperation(sheets, op) {
   }
 }
 
-// Alta: si ya existe el id, no se duplica (la operación se considera aplicada igualmente).
+// Creation: if the id already exists, it is not duplicated (the operation still counts as applied).
 function createIfMissing(sheet, op) {
   const existing = readRows(sheet).find((f) => f.id === op.entidad_id);
   if (existing) return null;
@@ -126,7 +126,7 @@ function createIfMissing(sheet, op) {
   return null;
 }
 
-// Edición de campos: gana el registro con "actualizado" más reciente. Un borrado no se revierte.
+// Field edit: the record with the most recent "updated" wins. A delete is not reverted.
 function editFields(sheet, id, change, date, options) {
   const row = findRow(sheet, id);
   if (!row) return 'no existe en la hoja';
@@ -138,7 +138,7 @@ function editFields(sheet, id, change, date, options) {
   return null;
 }
 
-// Consumo y reposición son incrementos: se suman. Si queda negativo, se fija a 0 y se marca para revisar.
+// Consumption and restock are increments: they add up. If it becomes negative, it is set to 0 and marked for review.
 function incrementQuantity(sheet, id, delta, date) {
   const row = findRow(sheet, id);
   if (!row) return 'lote no existe en la hoja';
@@ -153,7 +153,7 @@ function incrementQuantity(sheet, id, delta, date) {
   return null;
 }
 
-// La configuración no tiene operaciones: gana el valor con "actualizado" más reciente.
+// Settings have no operations: the value with the most recent "updated" wins.
 function applySettings(sheets, rows) {
   for (const incoming of rows) {
     const row = findRow(sheets.Configuracion, incoming.clave);
@@ -172,9 +172,9 @@ function registerDevice(sheets, device, now) {
   else sheets.Dispositivos.appendRow(rowFrom(COLUMNS.Dispositivos, data));
 }
 
-// ---------- Fotos ----------
+// ---------- Photos ----------
 
-// Guarda la foto en Drive. Si ya existe un fichero con ese nombre, devuelve su id (idempotente).
+// Stores the photo in Drive. If a file with that name already exists, it returns its id (idempotent).
 function uploadPhoto(request) {
   const name = String(request.nombre || '').replace(/[^\w.-]/g, '_');
   if (!name) throw new Error('Falta el nombre de la foto');
@@ -190,7 +190,7 @@ function photoFolder() {
   return folders.hasNext() ? folders.next() : DriveApp.createFolder(PHOTOS_FOLDER);
 }
 
-// ---------- Hojas ----------
+// ---------- Sheets ----------
 
 function openSheets() {
   const book = SpreadsheetApp.getActiveSpreadsheet();
@@ -199,7 +199,7 @@ function openSheets() {
     let sheet = book.getSheetByName(name);
     if (!sheet) {
       sheet = book.insertSheet(name);
-      // Todo como texto: si no, Sheets convierte "2026-11-15" y las marcas de tiempo en fechas.
+      // Everything as text: otherwise Sheets converts "2026-11-15" and timestamps into dates.
       sheet.getRange(1, 1, sheet.getMaxRows(), COLUMNS[name].length).setNumberFormat('@');
       sheet.appendRow(COLUMNS[name]);
     } else {
@@ -210,7 +210,7 @@ function openSheets() {
   return sheets;
 }
 
-// Devuelve las filas como objetos. _fila es el número de fila real en la hoja.
+// Returns the rows as objects. _fila is the real row number in the sheet.
 function readRows(sheet) {
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return [];
@@ -260,8 +260,8 @@ function withoutIndex(row) {
   return backup;
 }
 
-// Una hoja creada antes puede no tener columnas nuevas: se añaden al final de la cabecera.
-// Las filas existentes quedan con esas celdas vacías; no se borra ni se mueve nada.
+// A sheet created before may not have new columns: they are added at the end of the header.
+// Existing rows keep those cells empty; nothing is deleted or moved.
 function addMissingHeaders(sheet, columns) {
   const actuales = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0].map(String);
   columns.forEach((name) => {

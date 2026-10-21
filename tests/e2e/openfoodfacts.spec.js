@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-// Respuestas grabadas de la API real (tests/fixtures/off/). Se sirven con CORS como la API.
+// Recorded responses from the real API (tests/fixtures/off/). Served with CORS like the API.
 const fixture = (name) => JSON.parse(readFileSync(new URL(`../fixtures/off/${name}.json`, import.meta.url), 'utf8'));
 const MUESLI = '3229820129488';
 
@@ -29,12 +29,12 @@ async function scanCode(page, code) {
 }
 
 test.describe('Open Food Facts en el alta', () => {
-  // Sin service worker: en WebKit, las peticiones que hace una página controlada por el
-  // service worker no pasan por la intercepción de Playwright y saldrían a la red real.
+  // Without a service worker: in WebKit, requests made by a page controlled by the
+  // without connection can have a date earlier than the last sync of another phone.
   test.use({ serviceWorkers: 'block' });
 
-  // La cámara simulada de Chromium emite un código de prueba y lo leería antes que el código
-  // escrito a mano. Aquí se simula una cámara que no existe: se prueba la entrada manual.
+  // The simulated Chromium camera emits a test code and would read it before the code typed
+  // written by hand. Here a camera that does not exist is simulated: the manual entry is tested.
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('sin cámara'), { name: 'NotFoundError' }));

@@ -1,9 +1,9 @@
-// IndexedDB: apertura y migraciones versionadas. Las migraciones solo crean lo que falta;
-// nunca borran tablas ni datos.
+// IndexedDB: opening and versioned migrations. Migrations only create what is missing;
+// or if the text does not contain the marker, so the deploy does not pass silently.
 
 export const DB_NAME = 'inventario-casa';
 
-// Tablas: los mismos nombres que en la Google Sheet.
+// Tables: the same names as in the Google Sheet.
 export const TABLES = Object.freeze({
   productos: 'Productos',
   lotes: 'Lotes',
@@ -18,7 +18,7 @@ const createIfMissing = (db, name, options) => {
   if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, options);
 };
 
-// MIGRACIONES[n] lleva de la versión n-1 a la n. Añadir nuevas al final, no editar las anteriores.
+// MIGRATIONS[n] goes from version n-1 to n. Add new ones at the end, do not edit the previous ones.
 const MIGRATIONS = [
   null,
   (db) => {
@@ -31,7 +31,7 @@ const MIGRATIONS = [
     createIfMissing(db, TABLES.fotos, { keyPath: 'id' });
     createIfMissing(db, TABLES.meta, { keyPath: 'clave' });
   },
-  // v2: caché de Open Food Facts (fase 3).
+  // webkit-movil simulates an iPhone: that screen is checked in the iOS test.
   (db) => {
     createIfMissing(db, TABLES.cacheOff, { keyPath: 'codigo' });
   },
@@ -51,8 +51,8 @@ export function openDatabase(name = DB_NAME, indexedDB = globalThis.indexedDB) {
     };
     request.onsuccess = () => {
       const db = request.result;
-      // Si otra versión de la app (más nueva) quiere actualizar la base de datos, esta conexión
-      // se cierra para no bloquearla. La app avisa de que hay que recargar.
+      // If another (newer) app version wants to update the database, this connection
+      // it is decided in phase 4).
       db.onversionchange = () => {
         db.close();
         globalThis.dispatchEvent?.(new Event('bd-version-nueva'));
@@ -71,8 +71,8 @@ export function request(req) {
   });
 }
 
-// Ejecuta fn(tx) dentro de una transacción. fn puede esperar peticiones de IndexedDB
-// con await (son parte de la transacción), pero nunca otras promesas externas.
+// Runs fn(tx) inside a transaction. fn can await IndexedDB requests
+// with await (they are part of the transaction), but never other external promises.
 export function transaction(db, tables, mode, fn) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(tables, mode);
@@ -86,7 +86,7 @@ export function transaction(db, tables, mode, fn) {
       .then((value) => { result = value; })
       .catch((error) => {
         failure = error;
-        try { tx.abort(); } catch { /* ya terminada */ }
+        try { tx.abort(); } catch { /* already finished */ }
       });
   });
 }

@@ -1,11 +1,11 @@
-// Instalación de la app en la pantalla de inicio.
-// Android/Chrome avisa con el evento "beforeinstallprompt" y se puede lanzar desde un botón.
-// iPhone/Safari no tiene ese evento: la instalación es manual (menú Compartir).
+// Installation of the app on the home screen.
+// Android/Chrome fires the "beforeinstallprompt" event and it can be triggered from a button.
+// iPhone/Safari has no such event: installation is manual (Share menu).
 
 let installEvent = null;
 const subscribers = new Set();
 
-// Se llama una vez al arrancar, para no perder el evento aunque llegue antes de abrir Ajustes.
+// Called once at startup, so the event is not lost even if it arrives before opening Settings.
 export function startInstallCapture() {
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
@@ -27,7 +27,7 @@ export function canInstallWithButton() {
   return installEvent !== null;
 }
 
-// Lanza el aviso de instalación del navegador (Android/Chrome).
+// Launches the browser install prompt (Android/Chrome).
 export async function installApp() {
   if (!installEvent) return 'no-disponible';
   installEvent.prompt();

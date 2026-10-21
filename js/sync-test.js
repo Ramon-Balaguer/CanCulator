@@ -1,6 +1,6 @@
-// Prueba aislada del envío POST a Apps Script. Igual que la sincronización real:
-// text/plain (sin preflight CORS), cuerpo JSON, redirecciones seguidas.
-// No guarda datos. Muestra el resultado tal cual para diagnosticar problemas de despliegue.
+// Isolated POST test to Apps Script. Same as the real sync:
+// time the cache copy is used if there is one; if not, it keeps waiting for the network.
+// Does not save data. Shows the result as it is to diagnose deployment problems.
 
 const form = document.getElementById('formulario');
 const output = document.getElementById('resultado');
@@ -12,7 +12,7 @@ const SAVED_URL_KEY = 'prueba-sync-url';
 try {
   urlField.value = localStorage.getItem(SAVED_URL_KEY) ?? '';
 } catch {
-  // Sin almacenamiento disponible, se escribe la URL a mano.
+  // No storage available: the URL is written by hand.
 }
 
 function write(lines) {
@@ -26,7 +26,7 @@ form.addEventListener('submit', async (event) => {
   try {
     localStorage.setItem(SAVED_URL_KEY, url);
   } catch {
-    // Sin almacenamiento, no se recuerda la URL.
+    // No storage, the URL is not remembered.
   }
   write(['Enviando…']);
   const start = performance.now();
@@ -43,7 +43,7 @@ form.addEventListener('submit', async (event) => {
     try {
       json = JSON.parse(text);
     } catch {
-      // No es JSON: se muestra el inicio de la respuesta para ver qué devolvió el servidor.
+      // Not JSON: shows the start of the response to see what the server returned.
     }
     write([
       `HTTP ${response.status} (${elapsed} ms)`,

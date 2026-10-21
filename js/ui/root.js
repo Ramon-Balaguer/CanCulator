@@ -16,12 +16,12 @@ const TABS = [
   { id: 'ajustes', texto: 'Ajustes' },
 ];
 
-// Espera tras un cambio local antes de sincronizar: agrupa varios cambios seguidos en un envío.
+// Wait after a local change before syncing: groups several changes in a row into one send.
 const WAIT_AFTER_CHANGE_MS = 3000;
-// Tiempo para pulsar «Deshacer» tras un borrado. Solo después se escribe el borrado de verdad.
+// Time to press "Undo" after a delete. Only then is the real delete written.
 const UNDO_WAIT_MS = 5000;
 
-// Estado de la app: carga todo desde IndexedDB y lo vuelve a leer después de cada cambio.
+// App state: loads everything from IndexedDB and reads it again after each change.
 export function Root({ db }) {
   const [data, setDatos] = useState(null);
   const [device, setDispositivo] = useState('');
@@ -29,16 +29,16 @@ export function Root({ db }) {
   const [estadoSync, setEstadoSync] = useState({ estado: 'inactiva', mensaje: '' });
   const [ultimaSync, setUltimaSync] = useState('');
   const [pestana, setPestana] = useState('caducidad');
-  const [view2, setVista] = useState(null); // { tipo, ... } para modales y formularios
+  const [view2, setVista] = useState(null); // Is a cache entry still valid? "ahora" is passed to be able to test it.
   const [notice, setAviso] = useState(null);
   const [error, setError] = useState('');
-  // Ids de lotes y productos con un borrado pendiente: se ocultan hasta que se confirma o se deshace.
+  // Ids of lots and products with a pending delete: they are hidden until confirmed or undone.
   const [ocultos, setOcultos] = useState(() => new Set());
   const timer = useRef(null);
   const syncRunning = useRef(false);
   const pendingDeletes = useRef(new Map());
 
-  // accion opcional: { etiqueta, onClick } para mostrar un botón en el aviso (p. ej. «Deshacer»).
+  // optional action: { etiqueta, onClick } to show a button in the notice (e.g. «Undo»).
   const notifyUser = useCallback((text, type = 'info', accion = null) => {
     setAviso({ texto: text, tipo: type, id: Date.now(), accion });
   }, []);
@@ -51,7 +51,7 @@ export function Root({ db }) {
     }
   }, [db]);
 
-  // Sincronización: una a la vez, y solo si hay URL y token guardados.
+  // Sync: one at a time, and only if a URL and token are saved.
   const syncNow = useCallback(async (config = syncLogic, id = device) => {
     if (!config.url || !config.token || !id) {
       setEstadoSync({ estado: 'inactiva', mensaje: 'Sin configurar: pega la URL y el token de Apps Script.' });
@@ -86,14 +86,14 @@ export function Root({ db }) {
     }
   }, [db, device, syncLogic, loadData, notifyUser]);
 
-  // Tras un cambio local: recargar y programar una sincronización dentro de unos segundos.
+  // After a local change: reload and schedule a sync within a few seconds.
   const refresh = useCallback(() => {
     loadData();
     clearTimeout(timer.current);
     timer.current = setTimeout(() => syncNow(), WAIT_AFTER_CHANGE_MS);
   }, [loadData, syncNow]);
 
-  // Borrado con «Deshacer»: se oculta enseguida y, si pasan unos segundos sin deshacer, se escribe.
+  // Delete with "Undo": it is hidden right away and, if a few seconds pass without undoing, it is written.
   const requestDelete = useCallback(({ tipo: type, id, texto: text }) => {
     setOcultos((previousSet) => new Set(previousSet).add(id));
     const show = () => setOcultos((previousSet) => {
@@ -138,19 +138,19 @@ export function Root({ db }) {
       await loadData();
       return { config, id };
     })().then(({ config, id }) => {
-      // Al abrir la app, si hay conexión y configuración, se sincroniza.
+      // When the app opens, if there is connection and configuration, it syncs.
       if (config.url && config.token) setTimeout(() => syncNow(config, id), 0);
     }).catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
   }, [db, loadData]);
 
-  // Al recuperar la conexión, sincronizar lo pendiente.
+  // When the connection comes back, sync what is pending.
   useEffect(() => {
     const onOnline = () => syncNow();
     window.addEventListener('online', onOnline);
     return () => window.removeEventListener('online', onOnline);
   }, [syncNow]);
 
-  // Otra versión de la app ha actualizado la base de datos: esta pestaña ya no puede guardar.
+  // Another app version has updated the database: this tab can no longer save.
   useEffect(() => {
     const onVersionChange = () => setError('Hay una versión nueva de la app. Recarga la página para seguir (no se pierde nada guardado).');
     globalThis.addEventListener('bd-version-nueva', onVersionChange);
@@ -171,7 +171,7 @@ export function Root({ db }) {
   const onDone = () => { close(); refresh(); };
   const pending = data.operaciones.length;
 
-  // Lo que se ve: sin los lotes y productos con un borrado pendiente (ni los lotes de un producto oculto).
+  // What is seen: without the lots and products with a pending delete (nor the lots of a hidden product).
   const visible = {
     ...data,
     productos: data.productos.filter((p) => !ocultos.has(p.id)),

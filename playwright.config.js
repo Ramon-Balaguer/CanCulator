@@ -6,8 +6,8 @@ import { TEST_CODE, y4mEan13 } from './tests/fixtures/barcode.js';
 const PORT = 4173;
 const BASE = '/inventario/';
 
-// Vídeo con un código de barras que Chromium usa como cámara simulada.
-// Se genera solo en el proceso principal; los workers lo reutilizan.
+// Video with a barcode that Chromium uses as the simulated camera.
+// It is generated only in the main process; the workers reuse it.
 const CAMERA_VIDEO = fileURLToPath(new URL('./tests/.generados/camara.y4m', import.meta.url));
 if (process.env.TEST_WORKER_INDEX === undefined) {
   mkdirSync(new URL('./tests/.generados/', import.meta.url), { recursive: true });

@@ -1,13 +1,13 @@
-// Códigos de barras de productos (GTIN: EAN-13, EAN-8, UPC-A, GTIN-14).
+// Product barcodes (GTIN: EAN-13, EAN-8, UPC-A, GTIN-14).
 
 const GTIN_TYPES = { 8: 'EAN-8', 12: 'UPC-A', 13: 'EAN-13', 14: 'GTIN-14' };
 
-// Quita espacios y guiones que a veces se cuelan al teclear o leer.
+// Removes spaces and dashes that sometimes slip in when typing or reading.
 export function normalizeCode(text) {
   return String(text ?? '').trim().replace(/[\s-]/g, '');
 }
 
-// Dígito de control GTIN: pesos 3 y 1 alternos empezando por la derecha.
+// GTIN check digit: weights 3 and 1 alternating starting from the right.
 export function checkDigit(noCheck) {
   let sum = 0;
   for (let i = 0; i < noCheck.length; i++) {

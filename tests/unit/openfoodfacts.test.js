@@ -26,7 +26,7 @@ test('fixture real: producto encontrado (Coca-Cola)', () => {
   assert.equal(r.encontrado, true);
   assert.equal(r.nombre, 'Coca-Cola Original');
   assert.equal(r.marca, 'COCA-COLA SERVICES SA/NV');
-  // El producto completo viaja con el resultado: se guarda en caché y se muestra entero.
+  // The full product travels with the result: it is stored in the cache and shown whole.
   assert.equal(r.producto.code, '5449000000996');
   assert.ok(Object.keys(r.producto).length > 300);
 });

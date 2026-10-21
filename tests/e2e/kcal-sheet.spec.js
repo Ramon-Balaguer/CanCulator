@@ -8,7 +8,7 @@ const MUESLI = '3229820129488';
 
 test.describe('calorías guardadas en la hoja y vistas desde otro móvil', () => {
   test.use({ serviceWorkers: 'block' });
-  // Dos móviles y sincronizaciones: más margen que el de por defecto.
+  // Two phones and syncs: more margin than the default.
   test.setTimeout(120_000);
   let sheet;
   let app;
@@ -43,7 +43,7 @@ test.describe('calorías guardadas en la hoja y vistas desde otro móvil', () =>
     const phoneA = await contextA.newPage();
     const phoneB = await contextB.newPage();
     try {
-      // Móvil A: escanea el muesli con Open Food Facts (simulado) y lo da de alta.
+      // Phone A: scans the muesli with Open Food Facts (simulated) and adds it.
       await phoneA.route('https://world.openfoodfacts.org/**', (route) => route.fulfill({
         status: 200,
         contentType: 'application/json; charset=utf-8',
@@ -66,14 +66,14 @@ test.describe('calorías guardadas en la hoja y vistas desde otro móvil', () =>
       await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
       await sync(phoneA);
 
-      // La hoja tiene las calorías del producto.
+      // The sheet has the product's calories.
       const products = sheet.hojas.get('Productos');
       const header = products.filas[0];
       const row = products.filas.find((r) => r[header.indexOf('codigo_barras')] === MUESLI);
       expect(row[header.indexOf('kcal_100g')]).toBe('352');
       expect(row[header.indexOf('peso_bote_g')]).toBe('375');
 
-      // Móvil B: no ha escaneado nada ni tiene caché de OFF. Solo sincroniza.
+      // Phone B: has not scanned anything and has no OFF cache. It only syncs.
       await configure(phoneB);
       await phoneB.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
       await expect(phoneB.getByTestId('kcal-total')).toHaveText('2640 kcal', { timeout: 20_000 });

@@ -1,5 +1,5 @@
-// Simulación en memoria de las APIs de Google Apps Script que usa apps-script/Code.gs.
-// Sirve para ejecutar el servidor real en Node (tests unitarios y servidor de pruebas E2E).
+// In-memory simulation of the Google Apps Script APIs used by apps-script/Code.gs.
+// It serves to run the real server in Node (unit tests and the E2E test server).
 
 export function createAppsEnv(book = new Map()) {
   const locks = { activos: 0 };
@@ -31,7 +31,7 @@ export function createAppsEnv(book = new Map()) {
             Array.from({ length: numColumnas }, (_, j) => (sheet.filas[row - 1 + i]?.[column - 1 + j] ?? '')));
         },
         setValues(values) {
-          // "fila" aquí es el número de fila del rango (como en Sheets), no la fila de valores.
+          // "row" here is the row number of the range (as in Sheets), not the row of values.
           values.forEach((rowValues, i) => {
             while (sheet.filas.length < row + i) sheet.filas.push([]);
             const destination = sheet.filas[row - 1 + i];

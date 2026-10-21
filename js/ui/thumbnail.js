@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
 import { readPhoto } from '../datos/store.js';
 
-// Miniatura de la foto de un lote. Sin foto no ocupa sitio.
+// Thumbnail of a lot's photo. Without a photo it takes no space.
 export function Thumbnail({ db, fotoId }) {
   const [url, setUrl] = useState(null);
 

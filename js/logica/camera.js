@@ -1,4 +1,4 @@
-// Restricciones y mensajes de la cámara, sin tocar el navegador.
+// Camera constraints and messages, without touching the browser.
 
 export const CAMERA_CONSTRAINTS = Object.freeze({
   audio: false,
@@ -25,6 +25,6 @@ export function cameraErrorMessage(error) {
   }
 }
 
-// Al leer una foto, cualquier fallo significa que no se ha sacado un código: la build
-// minificada de ZXing renombra sus excepciones, así que no se distinguen por nombre.
+// When reading a photo, any failure means no code was captured: the build
+// minified ZXing renames its exceptions, so they are not told apart by name.
 export const PHOTO_NO_CODE_MESSAGE = 'No se ha encontrado ningún código de barras en la imagen.';

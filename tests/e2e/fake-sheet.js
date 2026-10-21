@@ -1,5 +1,5 @@
-// Servidor HTTP de pruebas que ejecuta el Code.gs real sobre una hoja simulada.
-// Hace de "Apps Script" en las pruebas E2E: el móvil le envía POST como lo haría en Google.
+// Test HTTP server that runs the real Code.gs over a simulated sheet.
+// Acts as "Apps Script" in the E2E tests: the phone sends it POST as it would to Google.
 import { createServer } from 'node:http';
 import { loadServer } from '../fixtures/load-code-gs.js';
 

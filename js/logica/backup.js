@@ -1,5 +1,5 @@
-// Copia JSON del inventario: construir, validar y fusionar. Sin acceso a IndexedDB.
-// La fusión sigue la misma regla que la sincronización: gana el registro con "actualizado" más reciente.
+// JSON backup of the inventory: build, validate and merge. No IndexedDB access.
+// The merge follows the same rule as the sync: the record with the most recent "updated" wins.
 
 export const BACKUP_VERSION = 1;
 
@@ -12,7 +12,7 @@ export function buildBackup({ dispositivo: device, productos: products, lotes: l
     productos: products,
     lotes: lots,
     configuracion: configuration,
-    // Las fotos van en base64 para que el JSON sea autocontenido.
+    // Photos go in base64 so the JSON is self-contained.
     fotos: photos,
   };
 }
@@ -40,8 +40,8 @@ export function validateBackup(backup) {
   return backup;
 }
 
-// Fusiona un registro local con uno de la copia. Por id; si ambos existen, gana el más reciente.
-// Empate: el local, para no cambiar nada sin motivo.
+// Merges a local record with one from the backup. By id; if both exist, the most recent wins.
+// Tie: the local one, so nothing changes without a reason.
 function mergeList(local, incoming) {
   const map = new Map(local.map((r) => [r.id, r]));
   let newItems = 0;
@@ -59,8 +59,8 @@ function mergeList(local, incoming) {
   return { registros: [...map.values()], nuevos: newItems, actualizados: updatedItems };
 }
 
-// Devuelve el resultado de fusionar sin tocar nada. "configuracion" no tiene fecha: la copia
-// sobrescribe las claves que trae.
+// Returns the result of merging without touching anything. "settings" has no date: the backup
+// text/plain (no CORS preflight), JSON body, redirects followed.
 export function mergeBackup(local, backup) {
   const products = mergeList(local.productos, backup.productos ?? []);
   const lots = mergeList(local.lotes, backup.lotes ?? []);

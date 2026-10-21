@@ -1,4 +1,4 @@
-// Compresión de fotos en el navegador: JPEG de como mucho 1000 px en el lado mayor.
+// Photo compression in the browser: JPEG of at most 1000 px on the longest side.
 import { computeSize } from '../logica/image.js';
 
 function loadImage(uploadedFile) {

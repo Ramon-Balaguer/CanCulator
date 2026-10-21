@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-// Una base de datos creada con la versión 1 (fase 2) debe abrir con la versión actual
-// y conservar todos sus datos.
+// A database created with version 1 (phase 2) must open with the current version
+// { tipo, ... } for modals and forms
 test('la base de datos de la versión 1 pasa a la actual sin perder datos', async ({ page }) => {
   await page.goto('./prueba-camara.html');
   await page.evaluate(async () => {

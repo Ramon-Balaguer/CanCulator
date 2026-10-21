@@ -1,11 +1,11 @@
-// Consulta de nombres a Open Food Facts con caché local (store cache_off).
-// Nunca lanza por falta de red: devuelve un estado y el alta sigue con el nombre a mano.
+// Query of names from Open Food Facts with a local cache (store cache_off).
+// It never throws for lack of network: it returns a state and the entry goes on with the name by hand.
 import { TABLES, request, transaction } from './db.js';
 import { isCacheValid, parseResponse, productUrl } from '../logica/openfoodfacts.js';
 
 export const OFF_TIMEOUT_MS = 8000;
 
-// Lee el producto guardado en caché, sin ir a la red. Null si no hay nada guardado.
+// Reads the product stored in the cache, without going to the network. Null if nothing is stored.
 export async function readCacheOFF(db, code) {
   const entry = await transaction(db, [TABLES.cacheOff], 'readonly', (tx) => request(tx.objectStore(TABLES.cacheOff).get(code)));
   return entry?.encontrado ? entry.producto ?? null : null;
@@ -27,7 +27,7 @@ async function requestOFF(code, fetchFn) {
     try {
       body = await response.json();
     } catch {
-      // Un cuerpo que no es JSON se trata como respuesta inesperada más abajo.
+      // A body that is not JSON is treated as an unexpected response further down.
     }
     return parseResponse(response.status, body);
   } finally {
@@ -35,7 +35,7 @@ async function requestOFF(code, fetchFn) {
   }
 }
 
-// Devuelve { estado, nombre?, marca? }. El origen (caché o red) va en "origen" para depurar.
+// Returns { estado, nombre?, marca? }. The origin (cache or network) goes in "origen" for debugging.
 export async function queryOFF(db, code, { fetchFn = globalThis.fetch.bind(globalThis), ahora: now = new Date() } = {}) {
   const saved = await transaction(db, [TABLES.cacheOff], 'readonly', (tx) => request(tx.objectStore(TABLES.cacheOff).get(code)));
   if (isCacheValid(saved, now)) {
@@ -48,7 +48,7 @@ export async function queryOFF(db, code, { fetchFn = globalThis.fetch.bind(globa
   try {
     result = await requestOFF(code, fetchFn);
   } catch (error) {
-    // Un fallo de red (fetch rechazado o timeout) no se guarda: se reintenta la próxima vez.
+    // A network failure (rejected fetch or timeout) is not stored: it is retried next time.
     if (error.name === 'AbortError' || error instanceof TypeError) {
       return { estado: STATES.SIN_CONEXION, origen: 'red' };
     }

@@ -1,4 +1,4 @@
-// Fechas de caducidad: texto YYYY-MM-DD. "Hoy" es el día en Madrid.
+// Expiry dates: YYYY-MM-DD text. "Today" is the day in Madrid.
 
 export const TIME_ZONE = 'Europe/Madrid';
 const DAY_MS = 86_400_000;
@@ -26,7 +26,7 @@ export function isISODate(text) {
   return date.toISOString().slice(0, 10) === text;
 }
 
-// Días de "desde" a "hasta" (negativo si "hasta" es anterior).
+// Days from "since" to "until" (negative if "until" is earlier).
 export function daysBetween(since, until) {
   return Math.round((toUTC(until) - toUTC(since)) / DAY_MS);
 }
@@ -37,8 +37,8 @@ export function formatDate(iso) {
   return `${d}/${m}/${a}`;
 }
 
-// Duración en años, meses y días (aproximada: año de 365 días, mes de 30).
-// Se muestran las dos unidades mayores que no sean cero: "2 años y 23 días", "3 meses y 10 días".
+// Length in years, months and days (approximate: a year of 365 days, a month of 30).
+// The two largest units that are not zero are shown: "2 years and 23 days", "3 months and 10 days".
 export function readableDuration(days) {
   const n = Math.abs(days);
   const years = Math.floor(n / 365);
@@ -63,8 +63,8 @@ export function describeExpiry(days) {
   return `Caduca en ${readableDuration(days)}`;
 }
 
-// Fecha escrita a mano (teclado numérico). Mientras se escribe, pone las barras solas:
-// "01032027" → "01/03/2027". Si se escribe con guiones (AAAA-MM-DD), se deja tal cual.
+// Date typed by hand (number keypad). While typing, the slashes are added by themselves:
+// "01032027" → "01/03/2027". If written with dashes (YYYY-MM-DD), it is kept as is.
 export function formatDateInput(text) {
   const original = String(text ?? '');
   if (original.includes('-')) return original.slice(0, 10);
@@ -74,8 +74,8 @@ export function formatDateInput(text) {
   return digits;
 }
 
-// Convierte lo escrito a YYYY-MM-DD. Acepta DD/MM/AAAA, DD/MM/AA, DDMMAAAA y AAAA-MM-DD.
-// Devuelve null si no es una fecha real (p. ej. 31/02).
+// Converts what was typed to YYYY-MM-DD. Accepts DD/MM/AAAA, DD/MM/AA, DDMMAAAA and AAAA-MM-DD.
+// Returns null if it is not a real date (e.g. 31/02).
 export function parseTypedDate(text) {
   const t = String(text ?? '').trim();
   let year;

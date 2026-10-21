@@ -1,4 +1,4 @@
-// Carga apps-script/Code.gs en un contexto de Node con las APIs simuladas.
+// Loads apps-script/Code.gs into a Node context with the simulated APIs.
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { createAppsEnv } from './simulated-sheet.js';

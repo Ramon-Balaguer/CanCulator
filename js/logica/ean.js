@@ -1,14 +1,14 @@
-// Dibujo de códigos de barras EAN-13, EAN-8 y UPC-A (12 dígitos, como EAN-13 con un 0 delante).
-// Solo calcula los módulos (barras y espacios); el SVG lo pone la interfaz.
+// Drawing of EAN-13, EAN-8 and UPC-A barcodes (12 digits, like EAN-13 with a leading 0).
+// It only computes the modules (bars and spaces); the SVG is drawn by the interface.
 import { isValidGtin } from './barcode.js';
 
 const L = ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'];
 const G = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'];
 const R = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
-// Patrón de paridad del primer dígito del EAN-13 (L = izquierda, G = derecha).
+// Parity pattern of the first digit of the EAN-13 (L = left, G = right).
 const PARITY = ['LLLLLL', 'LLGLGG', 'LLGGLG', 'LLGGGL', 'LGLLGG', 'LGGLLG', 'LGGGLL', 'LGLGLG', 'LGLGGL', 'LGGLGL'];
 
-// Devuelve los módulos como texto de 0 y 1 (1 = barra). Lanza si el código no es válido.
+// Returns the modules as text of 0 and 1 (1 = bar). Throws if the code is not valid.
 export function modulesOfCode(code) {
   const c = String(code ?? '');
   if (!/^\d+$/.test(c) || ![8, 12, 13].includes(c.length)) {

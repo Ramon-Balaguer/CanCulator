@@ -26,12 +26,12 @@ test('el manifest es válido y enlaza iconos que existen', async ({ page, reques
 });
 
 test('sin conexión: tras cortar la red y recargar, la app carga desde la caché', async ({ page }) => {
-  // WebKit en Windows tarda ~20 s en dar por fallidas las peticiones a un puerto cerrado.
+  // WebKit on Windows takes ~20 s to fail requests to a closed port.
   test.setTimeout(60_000);
   const server = await ownServer();
   try {
     await page.goto(server.url);
-    // Espera a que el service worker controle la página.
+    // Waits for the service worker to control the page.
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;
       if (!navigator.serviceWorker.controller) {
@@ -44,9 +44,9 @@ test('sin conexión: tras cortar la red y recargar, la app carga desde la caché
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inventario de casa');
     await expect(page.locator('#version')).toHaveText('desarrollo');
 
-    // La página de cámara (Preact, htm y ZXing en vendor/) también funciona sin red.
-    // Margen amplio: en Windows, WebKit tarda ~2 s en dar por fallida cada petición a un puerto
-    // cerrado, y los módulos se piden en cadena. En Linux el fallo es inmediato.
+    // The camera page (Preact, htm and ZXing in vendor/) also works offline.
+    // Wide margin: on Windows, WebKit takes ~2 s to fail each request to a closed port
+    // closed, and the modules are requested in a chain. On Linux the failure is immediate.
     await page.goto(new URL('prueba-camara.html', server.url).href);
     await expect(page.getByRole('button', { name: 'Abrir cámara' })).toBeVisible({ timeout: 20_000 });
   } finally {

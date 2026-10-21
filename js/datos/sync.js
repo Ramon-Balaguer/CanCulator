@@ -1,4 +1,4 @@
-// Sincronización con el servidor (Apps Script). La lógica de reglas está en js/logica/sync-logic.js.
+// Sync with the server (Apps Script). The rules logic is in js/logica/sync-logic.js.
 import { TABLES, request, transaction } from './db.js';
 import { ACTIONS, applyServerChanges, buildSyncRequest, pendingEntities, confirmedIds, parseSyncResponse } from '../logica/sync-logic.js';
 import { editLot, saveMeta, readMeta } from './store.js';
@@ -14,7 +14,7 @@ export class Offline extends Error {
   }
 }
 
-// Envía una petición POST como text/plain: así el navegador no pide un "preflight" CORS.
+// Sends a POST request as text/plain: this way the browser does not ask for a CORS "preflight".
 export async function sendRequest(url, body, fetchFn = globalThis.fetch.bind(globalThis)) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS);
@@ -43,7 +43,7 @@ export async function sendRequest(url, body, fetchFn = globalThis.fetch.bind(glo
 
 let running = null;
 
-// Una sincronización a la vez: si ya hay una en marcha, se devuelve esa.
+// One sync at a time: if one is already running, that one is returned.
 export function syncData(db, options) {
   if (!running) {
     running = syncDataOnce(db, options).finally(() => { running = null; });
@@ -63,7 +63,7 @@ async function syncDataOnce(db, { url, token, dispositivo: device, fetchFn }) {
   const response = parseSyncResponse(await sendRequest(url, syncRequest, fetchFn));
   const confirmed = confirmedIds(response);
 
-  // Todo en una transacción: borrar lo confirmado y aplicar lo recibido.
+  // All in one transaction: delete what was confirmed and apply what was received.
   const summary = await transaction(db, [TABLES.productos, TABLES.lotes, TABLES.configuracion, TABLES.operaciones], 'readwrite', async (tx) => {
     const opsStore = tx.objectStore(TABLES.operaciones);
     for (const id of confirmed) opsStore.delete(id);
@@ -95,7 +95,7 @@ async function syncDataOnce(db, { url, token, dispositivo: device, fetchFn }) {
   return { ...summary, ahora: response.ahora, avisos: response.avisos ?? [] };
 }
 
-// Sube las fotos que aún no están en Drive. Un fallo en una foto no para las demás ni los datos.
+// Uploads the photos not yet in Drive. A failure on one photo does not stop the others or the data.
 export async function uploadPendingPhotos(db, { url, token, dispositivo: device, fetchFn }) {
   const [photos, lots] = await Promise.all([
     transaction(db, [TABLES.fotos], 'readonly', (tx) => request(tx.objectStore(TABLES.fotos).getAll())),
@@ -116,7 +116,7 @@ export async function uploadPendingPhotos(db, { url, token, dispositivo: device,
       await transaction(db, [TABLES.fotos], 'readwrite', (tx) => {
         tx.objectStore(TABLES.fotos).put({ ...photo, drive_id: r.id });
       });
-      // El lote pasa a llevar el id de Drive; el cambio viaja como una operación más.
+      // The lot now carries the Drive id; the change travels as one more operation.
       await editLot(db, device, referenced.get(photo.id).id, { foto_id: r.id });
       uploaded.push(photo.id);
     } catch (error) {
@@ -135,7 +135,7 @@ function encodeBytesSync(buffer) {
   return btoa(binary);
 }
 
-// Ciclo completo: datos, luego fotos, y si hubo fotos subidas, otra vuelta de datos.
+// Final step of the upload: data, then photos, and if photos were uploaded, another data round.
 export async function syncAll(db, options) {
   const data = await syncData(db, options);
   const photos = await uploadPendingPhotos(db, options);

@@ -1,13 +1,13 @@
 export const VERSION_MARKER = '__COMMIT__';
 
-// Texto que se enseña al usuario: el hash corto, o "desarrollo" si no se ha desplegado.
+// Text shown to the user: the short hash, or "desarrollo" if it has not been deployed.
 export function versionText(version) {
   if (!version || version === VERSION_MARKER) return 'desarrollo';
   return version.slice(0, 7);
 }
 
-// Sustituye el marcador por el hash del commit. Falla si el hash no es válido
-// o si el texto no contiene el marcador, para que el despliegue no pase en silencio.
+// Replaces the marker with the commit hash. Throws if the hash is not valid
+// to detect absolute paths that would fail when publishing.
 export function injectVersion(text, hash) {
   if (!/^[0-9a-f]{7,40}$/.test(hash)) {
     throw new Error(`Hash de commit no válido: ${hash}`);

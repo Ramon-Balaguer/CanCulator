@@ -1,4 +1,4 @@
-// Valores de Ajustes. Se guardan en la tabla Configuracion como {clave, valor, actualizado}.
+// Settings values. They are stored in the Configuracion table as {clave, valor, actualizado}.
 
 export const DEFAULT_CATEGORIES = Object.freeze([
   'legumbres',
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 
 export const KEYS = Object.freeze(Object.keys(DEFAULT_SETTINGS));
 
-// Valores por defecto con lo guardado encima.
+// Default values with what is stored on top.
 export function effectiveSettings(rows = []) {
   const result = { ...DEFAULT_SETTINGS };
   for (const { clave: key, valor: value } of rows) {
@@ -52,7 +52,7 @@ function textList(value, name) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Devuelve el valor normalizado o lanza un error con un mensaje para el usuario.
+// Returns the normalized value or throws an error with a message for the user.
 export function validateValue(key, value) {
   switch (key) {
     case 'categorias':

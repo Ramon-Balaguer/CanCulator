@@ -74,7 +74,7 @@ test('filtrarResumen por categoría y ubicación', () => {
 
 test('aReponer solo incluye productos con mínimo mayor que 0 y stock por debajo', () => {
   const pending = toRestock(products, lots);
-  // Atún tiene 5 de mínimo 4: no falta nada. Tomate tiene 0 de mínimo 2.
+  // Atún has 5 with a minimum of 4: nothing missing. Tomate has 0 with a minimum of 2.
   assert.deepEqual(pending.map((f) => [f.producto.id, f.stock, f.falta]), [['p-tomate', 0, 2]]);
   assert.equal(toRestock(products, []).length, 2);
   assert.equal(toRestock([{ ...products[1], stock_minimo: 0 }], []).length, 0);
@@ -83,7 +83,7 @@ test('aReponer solo incluye productos con mínimo mayor que 0 y stock por debajo
 test('estadoCaducidad: caducado, pronto y ok según el umbral', () => {
   assert.equal(expiryStatus('2026-10-19', TODAY, 90), 'caducado');
   assert.equal(expiryStatus(TODAY, TODAY, 90), 'pronto');
-  assert.equal(expiryStatus('2027-01-18', TODAY, 90), 'pronto'); // justo a 90 días
+  assert.equal(expiryStatus('2027-01-18', TODAY, 90), 'pronto'); // just at 90 days
   assert.equal(expiryStatus('2027-01-19', TODAY, 90), 'ok');
 });
 
@@ -123,9 +123,9 @@ test('fechas: validación, formato y días entre dos fechas', () => {
 });
 
 test('hoyEnMadrid usa la fecha de Madrid aunque en UTC aún sea el día anterior', () => {
-  // 2026-10-19 23:30 UTC = 2026-10-20 01:30 en Madrid (CEST, UTC+2).
+  // 2026-10-19 23:30 UTC = 2026-10-20 01:30 in Madrid (CEST, UTC+2).
   assert.equal(todayInMadrid(new Date('2026-10-19T23:30:00Z')), '2026-10-20');
-  // 2026-10-20 00:30 UTC = 2026-10-20 02:30 en Madrid.
+  // 2026-10-20 00:30 UTC = 2026-10-20 02:30 in Madrid.
   assert.equal(todayInMadrid(new Date('2026-10-20T00:30:00Z')), '2026-10-20');
 });
 

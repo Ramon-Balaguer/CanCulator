@@ -14,7 +14,7 @@ test('imprimir incluye la foto del lote y el código de barras del producto', as
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
   await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
-  // Código de barras del producto: se pone en Editar producto.
+  // Product barcode: it is set in Edit product.
   await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
   await page.locator('button.fila-boton', { hasText: 'Muesli imprimible' }).click();
   await page.getByRole('dialog', { name: 'Muesli imprimible' }).getByRole('button', { name: 'Editar producto' }).click();

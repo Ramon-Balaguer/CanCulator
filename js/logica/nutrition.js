@@ -1,10 +1,10 @@
-// Calorías a partir de los datos de Open Food Facts guardados en caché. Sin acceso a red.
-// Solo se calcula cuando la API tiene el valor por 100 g o ml y el peso/volumen del envase.
-// Los ml se tratan como g (densidad ~1), que es una aproximación para bebidas y líquidos.
+// Calories computed from the Open Food Facts data stored in the cache. No network access.
+// It is only computed when the API has the value per 100 g or ml and the package weight/volume.
+// The ml are treated as g (density ~1), an approximation for drinks and liquids.
 
 const VALID_UNITS = ['g', 'ml'];
 
-// Calorías de un bote entero, o null si no se puede calcular con los datos disponibles.
+// Calories of one whole container, or null if it cannot be computed with the available data.
 export function kcalPerContainer(product) {
   const kcal100 = product?.nutriments?.['energy-kcal_100g'];
   const quantity = Number(product?.product_quantity);
@@ -13,7 +13,7 @@ export function kcalPerContainer(product) {
   return Math.round((kcal100 * quantity) / 100 * 10) / 10;
 }
 
-// Calorías de varias unidades del mismo producto.
+// Calories of several units of the same product.
 export function kcalForUnits(product, units) {
   const perContainer = kcalPerContainer(product);
   return perContainer === null ? null : Math.round(perContainer * units * 10) / 10;
@@ -21,7 +21,7 @@ export function kcalForUnits(product, units) {
 
 const hasValue = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
 
-// Calorías de un bote a partir de los datos guardados en el producto (kcal_100g, peso_bote_g).
+// Calories of one container from the data stored in the product (kcal_100g, peso_bote_g).
 export function storedKcalPerContainer(product) {
   if (!hasValue(product?.kcal_100g) || !hasValue(product?.peso_bote_g)) return null;
   const weight = Number(product.peso_bote_g);
@@ -29,7 +29,7 @@ export function storedKcalPerContainer(product) {
   return Math.round((Number(product.kcal_100g) * weight) / 100 * 10) / 10;
 }
 
-// Datos a guardar en el producto a partir de Open Food Facts. Vacío si no hay energía utilizable.
+// Data to store in the product from Open Food Facts. Empty if there is no usable energy.
 export function nutritionDataFromOFF(product) {
   const kcal100 = product?.nutriments?.['energy-kcal_100g'];
   const weight = Number(product?.product_quantity);
@@ -38,7 +38,7 @@ export function nutritionDataFromOFF(product) {
   return { kcal_100g: kcal100, peso_bote_g: weight };
 }
 
-// Calorías de unas unidades: primero el dato guardado en el producto; si no hay, la caché de OFF.
+// Calories of several units: first the stored product data; if none, the OFF cache.
 export function kcalForUnitsOfProduct(product, offProduct, units) {
   const perContainer = storedKcalPerContainer(product) ?? kcalPerContainer(offProduct);
   return perContainer === null ? null : Math.round(perContainer * units * 10) / 10;

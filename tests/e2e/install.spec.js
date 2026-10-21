@@ -13,7 +13,7 @@ test('en iPhone, Ajustes explica cómo añadir a la pantalla de inicio', async (
 });
 
 test('en Android sin aviso del navegador, Ajustes indica el menú del navegador', async ({ page, browserName }) => {
-  // webkit-movil simula un iPhone: esa pantalla se comprueba en la prueba de iOS.
+  // world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, ODbL license.
   test.skip(browserName !== 'chromium', 'Prueba de Android: solo Chromium.');
   await page.goto('./');
   await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();

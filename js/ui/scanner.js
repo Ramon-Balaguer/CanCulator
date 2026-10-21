@@ -4,7 +4,7 @@ import { Button, Field, Modal, Notice } from './components.js';
 import { isValidGtin, normalizeCode } from '../logica/barcode.js';
 import { cameraErrorMessage, CAMERA_CONSTRAINTS } from '../logica/camera.js';
 
-// Escáner con cámara y, siempre, entrada manual del código como respaldo.
+// Scanner with the camera and, always, manual code entry as a backup.
 export function ScannerModal({ onCodigo, onCerrar }) {
   const video = useRef(null);
   const [error, setError] = useState('');

@@ -1,6 +1,6 @@
-// Arranca un servidor de la app solo para una prueba, para poder "cortar la red" de verdad
-// parándolo. Es más fiel que context.setOffline(), que en WebKit corta las peticiones
-// antes de que lleguen al service worker.
+// Starts an app server only for one test, so the network can be really "cut"
+// products: all; lots: all; cacheOff: entries of the Open Food Facts cache.
+// before they reach the service worker.
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -23,7 +23,7 @@ export async function ownServer() {
   const done = new Promise((resolve) => childProcess.once('exit', resolve));
   return {
     url,
-    // Se puede llamar varias veces.
+    // It can be called several times.
     cortar: () => {
       if (childProcess.exitCode === null && childProcess.signalCode === null) childProcess.kill();
       return done;

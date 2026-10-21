@@ -42,6 +42,6 @@ test('lee un código EAN-13 con la cámara en vivo', async ({ page, browserName 
   await page.getByRole('button', { name: 'Abrir cámara' }).click();
   await expect(page.getByTestId('codigo-leido')).toHaveText(TEST_CODE, { timeout: 15_000 });
   await expect(page.getByTestId('codigo-detalle')).toContainText('desde cámara');
-  // Tras leer, la cámara se apaga para no gastar batería.
+  // After reading, the camera turns off to save battery.
   await expect(page.getByTestId('estado-camara')).toHaveText('Cámara parada');
 });

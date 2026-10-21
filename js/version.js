@@ -1,2 +1,2 @@
-// El despliegue sustituye el marcador por el hash del commit.
+// The deploy replaces the marker with the commit hash.
 export const VERSION = '__COMMIT__';

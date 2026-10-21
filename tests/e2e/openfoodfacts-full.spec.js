@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const fixture = (name) => JSON.parse(readFileSync(new URL(`../fixtures/off/${name}.json`, import.meta.url), 'utf8'));
 const MUESLI = '3229820129488';
 
-// Como en openfoodfacts.spec.js: sin service worker y sin cámara, para ejecutar solo la entrada manual.
+// As in openfoodfacts.spec.js: no service worker and no camera, to run only the manual entry.
 test.describe('información completa de Open Food Facts', () => {
   test.use({ serviceWorkers: 'block' });
 
@@ -47,7 +47,7 @@ test.describe('información completa de Open Food Facts', () => {
     await form.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
-    // Ahora sin red: solo queda la caché de IndexedDB.
+    // Now without network: only the IndexedDB cache is left.
     await page.unroute('https://world.openfoodfacts.org/**');
     await page.route('https://world.openfoodfacts.org/**', (route) => route.abort('internetdisconnected'));
 

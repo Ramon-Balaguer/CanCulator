@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-// Prueba contra la hoja de prueba REAL (Apps Script desplegado). Necesita dos variables de entorno:
-//   SHEET_URL    la URL de la aplicación web (termina en /exec)
-//   SHEET_TOKEN  el token de la propiedad TOKEN del script de prueba
-// Sin ellas, la prueba se salta. Nunca uses la hoja de la casa aquí.
+// Test against the REAL test sheet (deployed Apps Script). It needs two environment variables:
+//   SHEET_URL    the URL of the web application (ends in /exec)
+//   SHEET_TOKEN  the token of the TOKEN property of the test script
+// Without them, the test is skipped. Never use the house sheet here.
 const SHEET_URL = process.env.SHEET_URL;
 const SHEET_TOKEN = process.env.SHEET_TOKEN;
 const CONFIGURED = Boolean(SHEET_URL && SHEET_TOKEN);

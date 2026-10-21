@@ -34,7 +34,7 @@ test('sin pulsar «Deshacer», el borrado se hace al cabo de unos segundos', asy
   await createLot(page, 'Borrado definitivo');
   await removeLotConfirmed(page, 'Borrado definitivo');
   await expect(page.locator('li.tarjeta', { hasText: 'Borrado definitivo' })).toHaveCount(0);
-  // Pasa la ventana de deshacer: el lote sigue sin aparecer, y ya no hay aviso de deshacer.
+  // Goes back to the Undo window: the lot still does not appear, and there is no longer an undo notice.
   await page.waitForTimeout(5500);
   await page.reload();
   await expect(page.locator('li.tarjeta', { hasText: 'Borrado definitivo' })).toHaveCount(0);

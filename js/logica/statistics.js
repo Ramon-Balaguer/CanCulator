@@ -1,11 +1,11 @@
-// Estadísticas del stock: unidades y calorías, en total y por categoría. Sin DOM ni red.
+// Stock statistics: units and calories, in total and by category. No DOM or network.
 import { isActive, visibleLots } from './inventory.js';
 import { kcalForUnitsOfProduct } from './nutrition.js';
 
 const round1 = (n) => Math.round(n * 10) / 10;
 
-// productos: todos; lotes: todos; cacheOff: entradas de la caché de Open Food Facts.
-// Las calorías solo cuentan si el producto tiene datos de energía; si no, se cuenta aparte.
+// rgb: width * height * 3 bytes, row by row.
+// Calories only count if the product has energy data; otherwise it is counted separately.
 export function stockStatistics(products, lots, cacheOff = []) {
   const visible = visibleLots(lots, products);
   const offByCode = new Map(

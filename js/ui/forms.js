@@ -23,7 +23,7 @@ const EMPTY_FIELDS = () => ({
   foto: null,
 });
 
-// Alta de un lote. Si llega productoInicial (desde A reponer), va preseleccionado.
+// Lot form. If productoInicial arrives (from Restock), it is preselected.
 export function LotForm({ db, dispositivo: device, datos: data, config, productoInicial, onHecho, onCancelar, notificar: notifyUser }) {
   const [fields, setCampos] = useState(() => {
     const start = EMPTY_FIELDS();
@@ -54,8 +54,8 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
     return () => URL.revokeObjectURL(url);
   }, [fields.foto]);
 
-  // Tras escanear: si ya hay un producto, se usa; si no, se pregunta a Open Food Facts UNA vez.
-  // Un fallo nunca bloquea el alta: el nombre queda editable a mano.
+  // After scanning: if there is already a product, it is used; if not, Open Food Facts is asked ONCE.
+  // A failure never blocks the entry: the name stays editable by hand.
   async function onScanned(code) {
     setEscaneando(false);
     setAviso(null);
@@ -116,7 +116,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
         categoria: fields.categoria,
         codigo_barras: fields.codigo,
         stock_minimo: 0,
-        // Si Open Food Facts trajo energía, las calorías se guardan con el producto.
+        // If Open Food Facts brought energy, the calories are stored with the product.
         ...nutritionDataFromOFF(ofProducto ?? {}),
       });
       let photoId = '';
@@ -137,7 +137,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
         foto_id: photoId,
       });
       if (r.fusionado) {
-        // No se crea un lote nuevo: se suma al que ya existe, y se dice cuánto hay ahora.
+        // No new lot is created: it is added to the existing one, and it says how much there is now.
         notifyUser(`Ya había un lote de ${product.nombre} con esa caducidad (${r.anterior} ud.). Sumadas ${r.sumadas}: ahora hay ${r.lote.cantidad}.${photoNotice}`, 'info');
       } else {
         notifyUser(`Añadido: ${product.nombre}.${photoNotice}`, photoNotice ? 'error' : 'ok');
@@ -150,7 +150,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
     }
   }
 
-  // Aviso previo: si el producto ya tiene un lote con esa caducidad y ubicación, se suma a ese.
+  // Preview warning: if the product already has a lot with that expiry and location, it is added to that one.
   const currentProduct = productoInicial
     ?? findProductByCode(data.productos, fields.codigo)
     ?? findProductByName(data.productos, fields.nombre);
@@ -227,7 +227,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
   `;
 }
 
-// Detalle de un producto: sus lotes (el que caduca antes primero), consumir, editar y borrar.
+// Product detail: its lots (the one that expires first first), consume, edit and delete.
 export function ProductDetail({ db, dispositivo: device, datos: data, config, producto: product, onCerrar, onAnadirLote, onEditarLote, notificar: notifyUser, refrescar: refresh, solicitarBorrado: requestDelete }) {
   const [cantidades, setCantidades] = useState({});
   const [editando, setEditando] = useState(false);
@@ -236,13 +236,13 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
   const [buscandoOFF, setBuscandoOFF] = useState(false);
   const [productoOFF, setProductoOFF] = useState(null);
 
-  // Datos de Open Food Facts guardados en caché (sin red) para calcular las calorías.
+  // Open Food Facts data stored in the cache (no network) to compute the calories.
   useEffect(() => {
     if (!product.codigo_barras) { setProductoOFF(null); return; }
     readCacheOFF(db, product.codigo_barras).then(setProductoOFF).catch(() => setProductoOFF(null));
   }, [db, product.codigo_barras]);
 
-  // Producto anterior a guardar calorías: si la caché de OFF las tiene, se copian al producto (una vez).
+  // Product before saving calories: if the OFF cache has them, they are copied to the product (once).
   useEffect(() => {
     if (!productoOFF) return;
     const data = nutritionDataFromOFF(productoOFF);
@@ -252,7 +252,7 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
   }, [productoOFF, product.id]);
   const lots = lotsToConsume(product.id, data.lotes);
   const productUnits = lots.reduce((s, l) => s + l.cantidad, 0);
-  // Calorías por bote: primero el dato guardado en el producto; si no, la caché de OFF.
+  // Container calories: first the stored product data; if not, the OFF cache.
   const perContainer = storedKcalPerContainer(product) ?? (productoOFF ? kcalPerContainer(productoOFF) : null);
   const today = todayInMadrid();
 
@@ -269,7 +269,7 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
     }
   }
 
-  // Lee los datos de la caché (o de la red si no están). Sin conexión y sin caché, avisa.
+  // Reads the cached data (or the network if not present). No connection and no cache: it warns.
   async function viewOFFData() {
     setBuscandoOFF(true);
     try {
@@ -283,7 +283,7 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
     }
   }
 
-  // El borrado se escribe más tarde, salvo que se pulse «Deshacer» en el aviso.
+  // The delete is written later, unless "Undo" is pressed in the notice.
   function removeAll() {
     requestDelete({ tipo: 'producto', id: product.id, texto: `${product.nombre} borrado` });
     onCerrar();
@@ -388,10 +388,10 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
   const [expiry, setCaducidad] = useState(formatDate(lot.caducidad));
   const [location, setUbicacion] = useState(lot.ubicacion);
   const [observaciones, setObservaciones] = useState(lot.observaciones ?? '');
-  // Cantidad real del lote: se escribe el número final (útil en un recuento).
+  // Real quantity of the lot: the final number is typed (useful when recounting).
   const [quantity, setCantidad] = useState(String(lot.cantidad));
   const [error, setError] = useState('');
-  // Foto que se añade ahora a un lote que ya existe (o que sustituye a la anterior).
+  // Photo added now to an existing lot (or replacing the previous one).
   const [photo, setFoto] = useState(null);
   const [previa, setPrevia] = useState(null);
   const [confirmarBorradoLote, setConfirmarBorradoLote] = useState(false);
@@ -428,7 +428,7 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
     }
   }
 
-  // El borrado se confirma aquí y se escribe más tarde, salvo que se pulse «Deshacer».
+  // The delete is confirmed here and written later, unless "Undo" is pressed.
   function remove() {
     setConfirmarBorradoLote(false);
     requestDelete({ tipo: 'lote', id: lot.id, texto: `Lote de ${product.nombre} borrado` });

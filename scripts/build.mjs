@@ -1,7 +1,7 @@
-// Prepara la carpeta _site para GitHub Pages: copia los ficheros de la app
-// (sin pruebas ni node_modules) e inyecta el hash del commit.
-// No compila nada: lo publicado es el mismo código que se ejecuta en local.
-// Uso: node scripts/build.mjs <hash-del-commit>
+// Prepares the _site folder for GitHub Pages: copies the app files
+// (without tests or node_modules) and injects the commit hash.
+// It builds nothing: what is published is the same code that runs locally.
+// Usage: node scripts/build.mjs <commit-hash>
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

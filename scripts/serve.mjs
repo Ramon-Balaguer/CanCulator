@@ -1,7 +1,7 @@
-// Servidor estático para desarrollo y pruebas, sin dependencias.
-// Monta la app bajo una ruta base, igual que GitHub Pages (usuario.github.io/repositorio/),
-// para detectar rutas absolutas que fallarían al publicar.
-// Uso: node scripts/serve.mjs [carpeta]   Variables: PUERTO (4173), BASE (/inventario/)
+// Static server for development and tests, without dependencies.
+// Serves the app under a base path, like GitHub Pages (user.github.io/repository/),
+// so it does not travel in JSON copies or in the sync.
+// Usage: node scripts/serve.mjs [folder]   Variables: PUERTO (4173), BASE (/inventario/)
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -50,6 +50,6 @@ createServer(async (request, response) => {
     response.writeHead(404).end('No encontrado');
   }
 }).listen(port, function () {
-  // Con PUERTO=0 el sistema elige uno libre; se anuncia el real.
+  // With PUERTO=0 the system picks a free port; the real one is announced.
   console.log(`Sirviendo ${root} en http://localhost:${this.address().port}${base}`);
 });

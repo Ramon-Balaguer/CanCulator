@@ -19,7 +19,7 @@ test.describe('estadísticas del stock', () => {
     }));
 
     await page.goto('./');
-    // Muesli escaneado (2 ud., con calorías de OFF).
+    // Scanned muesli (2 units, with calories from OFF).
     await page.getByRole('button', { name: 'Añadir lote' }).click();
     await page.locator('.modal-pantalla').getByRole('button', { name: 'Escanear código' }).click();
     const scanner = page.getByRole('dialog', { name: 'Escanear código' });
@@ -31,7 +31,7 @@ test.describe('estadísticas del stock', () => {
     await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
-    // Lentejas sin código (2 ud., sin calorías).
+    // Lentejas without a code (2 units, no calories).
     await page.getByRole('button', { name: 'Añadir lote' }).click();
     const lentils = page.locator('.modal-pantalla');
     await lentils.getByLabel('Producto').fill('Lentejas sin código');

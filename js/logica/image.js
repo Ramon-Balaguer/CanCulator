@@ -1,4 +1,4 @@
-// Tamaño de salida al comprimir una foto: el lado mayor como mucho LADO_MAXIMO píxeles.
+// Output size when compressing a photo: the longest side at most LADO_MAXIMO pixels.
 
 export const MAX_SIDE = 1000;
 

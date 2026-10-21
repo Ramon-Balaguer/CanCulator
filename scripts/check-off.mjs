@@ -1,5 +1,5 @@
-// Consulta real a Open Food Facts con códigos conocidos. No corre en CI (depende de la red).
-// Uso: node scripts/check-off.mjs
+// Real query to Open Food Facts with known codes. It does not run in CI (depends on the network).
+// Usage: node scripts/check-off.mjs
 import { parseResponse, productUrl } from '../js/logica/openfoodfacts.js';
 
 const CASES = [

@@ -29,7 +29,7 @@ const container = document.getElementById('contenido');
 openDatabase()
   .then((db) => render(html`<${Root} db=${db} />`, container))
   .catch((error) => {
-    // Sin IndexedDB no hay forma de guardar nada: se avisa claro en lugar de una pantalla vacía.
+    // Without IndexedDB there is no way to save anything: it warns clearly instead of an empty screen.
     container.textContent = `No se puede guardar datos en este navegador: ${error.message}`;
     container.dataset.error = 'bd';
   });

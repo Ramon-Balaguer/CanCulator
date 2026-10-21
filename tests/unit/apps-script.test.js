@@ -15,7 +15,7 @@ function serverWithLot(quantity = 5) {
   return s;
 }
 
-// Lee el lote tal como está en la hoja, sin enviar cambios.
+// Reads the lot as it is in the sheet, without sending changes.
 const lotRow = (s, id = 'l1') => sync(s, [], { desde: '' }).cambios.lotes.find((l) => l.id === id);
 
 test('rechaza peticiones sin el token correcto', () => {
@@ -82,7 +82,7 @@ test('un borrado no se revierte por una edición posterior', () => {
 });
 
 test('devuelve todas las filas aunque "desde" sea posterior a su fecha', () => {
-  // Un cambio hecho sin conexión puede tener una fecha anterior a la última sincronización de otro móvil.
+  // A change made offline may have a date earlier than the last sync of another phone.
   const s = serverWithLot();
   sync(s, [op('o-r', 'reponer', 'lote', 'l1', { cantidad: 1 }, '2026-10-06T00:00:00Z')]);
   assert.equal(sync(s, [], { desde: '' }).cambios.lotes.length, 1);
@@ -92,7 +92,7 @@ test('devuelve todas las filas aunque "desde" sea posterior a su fecha', () => {
 
 test('un cambio offline de otro móvil, con fecha anterior a la última sincronización, sí llega', () => {
   const s = serverWithLot(5);
-  // A sincroniza a las 12:00; B había consumido a las 10:00 sin conexión y sincroniza después.
+  // A syncs at 12:00; B had consumed at 10:00 offline and syncs afterwards.
   const nowA = sync(s, [], { desde: '' }).ahora;
   sync(s, [op('o-b', 'consumir', 'lote', 'l1', { cantidad: -2 }, '2026-10-02T10:00:00Z')]);
   const r = sync(s, [], { desde: nowA });
@@ -136,7 +136,7 @@ test('las fechas que Sheets convierte en Date vuelven como texto YYYY-MM-DD', ()
 
 test('una hoja con la cabecera antigua recibe las columnas nuevas sin perder filas', () => {
   const s = loadServer();
-  // Hoja creada antes de la columna de calorías: cabecera de 7 columnas y una fila.
+  // Sheet created before the calories column: a 7-column header and one row.
   const book = s.sim.libro;
   const old = new s.sim.Hoja('Productos');
   old.filas = [

@@ -1,4 +1,4 @@
-// Entrada y salida de copias JSON en el navegador. La lógica está en js/logica/backup.js.
+// Entry and exit of JSON backups in the browser. The logic is in js/logica/backup.js.
 import { buildBackup, mergeBackup, validateBackup } from '../logica/backup.js';
 import { TABLES, request, transaction } from './db.js';
 
@@ -38,7 +38,7 @@ export async function exportBackup(db, device) {
     dato: encodeBytes(photo.bytes),
   }));
   const backup = buildBackup({ dispositivo: device, productos: products, lotes: lots, configuracion: configuration, fotos: photosBase64 });
-  // Las operaciones pendientes van también, para no perder la cola si se restaura en otro móvil.
+  // Pending operations are also included, so the queue is not lost if it is restored on another phone.
   backup.operaciones_pendientes = operations;
   return {
     nombre: `inventario-${backup.exportado.slice(0, 10)}.json`,
@@ -46,7 +46,7 @@ export async function exportBackup(db, device) {
   };
 }
 
-// Lee un fichero, lo valida y lo fusiona con lo que hay en el móvil. Devuelve el resumen.
+// Reads a file, validates it and merges it with what is on the phone. Returns the summary.
 export async function importBackupFile(db, uploadedFile) {
   const text = await uploadedFile.text();
   let backup;
