@@ -86,12 +86,21 @@ export function StatisticsScreen({ datos: data }) {
     </section>`;
 }
 
-export function StockScreen({ datos: data, config, onAbrirProducto }) {
+// Open Food Facts image by barcode (from the OFF cache).
+function offImagesByBarcode(cacheOff) {
+  return new Map(
+    cacheOff.filter((e) => e.encontrado && e.producto?.image_front_small_url)
+      .map((e) => [e.codigo, e.producto.image_front_small_url]),
+  );
+}
+
+export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
   const [category, setCategoria] = useState('');
   const [location, setUbicacion] = useState('');
   const today = todayInMadrid();
   const summary = filterSummary(stockSummary(data.productos, data.lotes), { categoria: category, ubicacion: location });
   const usedCategories = [...new Set(data.productos.filter((p) => !p.borrado).map((p) => p.categoria))];
+  const offImages = offImagesByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <h2>Stock</h2>
@@ -115,11 +124,14 @@ export function StockScreen({ datos: data, config, onAbrirProducto }) {
         ${summary.map((row) => html`
           <li>
             <button type="button" class="fila-boton" onClick=${() => onAbrirProducto(row.producto)}>
-              <span class="fila-titulo">${row.producto.nombre}</span>
-              <span class="secundario">${row.producto.categoria}</span>
-              <span class="fila-dato">${row.total} ud.${row.proximaCaducidad
-                ? html` · ${formatDate(row.proximaCaducidad)} (${describeExpiry(daysBetween(today, row.proximaCaducidad))})`
-                : ' · agotado'}</span>
+              <${ProductImage} db=${db} imageUrl=${offImages.get(row.producto.codigo_barras)} photoId=${row.fotoId} />
+              <span class="fila-texto">
+                <span class="fila-titulo">${row.producto.nombre}</span>
+                <span class="secundario">${row.producto.categoria}</span>
+                <span class="fila-dato">${row.total} ud.${row.proximaCaducidad
+                  ? html` · ${formatDate(row.proximaCaducidad)} (${describeExpiry(daysBetween(today, row.proximaCaducidad))})`
+                  : ' · agotado'}</span>
+              </span>
             </button>
           </li>`)}
       </ul>
@@ -156,11 +168,7 @@ export function RestockScreen({ datos: data, onComprado }) {
 export function PrintScreen({ db, datos: data }) {
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
-  // Imagen de Open Food Facts por código de barras (desde la caché de OFF).
-  const offImages = new Map(
-    (data.cacheOff ?? []).filter((e) => e.encontrado && e.producto?.image_front_small_url)
-      .map((e) => [e.codigo, e.producto.image_front_small_url]),
-  );
+  const offImages = offImagesByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
