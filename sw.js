@@ -40,6 +40,7 @@ const PRECARGA = [
   './js/ui/datos-off.js',
   './js/ui/escaner.js',
   './js/ui/formularios.js',
+  './js/ui/instalacion.js',
   './js/ui/miniatura.js',
   './js/ui/pantallas.js',
   './js/ui/raiz.js',

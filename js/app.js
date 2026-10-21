@@ -3,6 +3,9 @@ import { VERSION } from './version.js';
 import { textoVersion } from './logica/version.js';
 import { abrirBD } from './datos/db.js';
 import { Raiz } from './ui/raiz.js';
+import { iniciarCapturaInstalacion } from './ui/instalacion.js';
+
+iniciarCapturaInstalacion();
 
 document.getElementById('version').textContent = textoVersion(VERSION);
 

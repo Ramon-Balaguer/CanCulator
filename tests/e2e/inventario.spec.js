@@ -64,8 +64,8 @@ test.describe('alta, consumo y orden', () => {
     await abrirApp(page);
     await nuevoLote(page, { nombre: 'Tomate', caducidad: dentroDeDias(200), cantidad: 1 });
     await nuevoLote(page, { nombre: 'Atún', caducidad: dentroDeDias(10), cantidad: 1 });
-    const nombres = await page.locator('li.tarjeta strong').allTextContents();
-    expect(nombres).toEqual(['Atún', 'Tomate']);
+    // Espera a que la lista se actualice (reintenta) en vez de leerla al instante.
+    await expect(page.locator('li.tarjeta strong')).toHaveText(['Atún', 'Tomate']);
   });
 
   test('caducidad pronto y caducado llevan su clase de resaltado', async ({ page }) => {

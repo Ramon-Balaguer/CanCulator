@@ -1,11 +1,12 @@
 import { html } from 'htm/preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Aviso, Boton, Campo, Vacio } from './componentes.js';
 import { Miniatura } from './miniatura.js';
 import { CodigoBarras } from './codigo-barras.js';
 import { consumir, guardarConfiguracion, guardarMeta } from '../datos/tienda.js';
 import { descargarTexto, exportarCopia, importarCopia } from '../datos/copia-io.js';
 import { VERSION } from '../version.js';
+import { estaInstalada, esIOS, instalarApp, puedeInstalarConBoton, suscribirInstalacion } from './instalacion.js';
 import { validarValor } from '../logica/configuracion.js';
 import { describirCaducidad, diasEntre, formatearFecha, hoyEnMadrid } from '../logica/fechas.js';
 import { estadoCaducidad, filtrarResumen, idCorto, lotesVisibles, mapaPorId, aReponer, resumenStock } from '../logica/inventario.js';
@@ -184,6 +185,32 @@ export function PantallaImprimir({ db, datos }) {
 }
 
 // ---------- Ajustes ----------
+// Instalar en la pantalla de inicio: botón en Android, instrucciones en iPhone.
+function InstalarApp() {
+  const [boton, setBoton] = useState(puedeInstalarConBoton());
+  const [mensaje, setMensaje] = useState('');
+  useEffect(() => suscribirInstalacion(() => setBoton(puedeInstalarConBoton())), []);
+
+  if (estaInstalada()) {
+    return html`<div class="bloque"><h3>Instalar</h3><p class="secundario">La app ya está en la pantalla de inicio.</p></div>`;
+  }
+  if (esIOS()) {
+    return html`
+      <div class="bloque" data-testid="instalar-ios">
+        <h3>Instalar</h3>
+        <p>En iPhone se instala desde Safari: toca el botón <strong>Compartir</strong> (el cuadrado con una flecha hacia arriba) y luego <strong>«Añadir a pantalla de inicio»</strong>.</p>
+        <p class="secundario">Ábrela después desde ese icono: así funciona sin conexión.</p>
+      </div>`;
+  }
+  return html`
+    <div class="bloque" data-testid="instalar-android">
+      <h3>Instalar</h3>
+      ${boton
+        ? html`<div class="acciones"><${Boton} onClick=${async () => setMensaje(await instalarApp() === 'accepted' ? 'Instalada.' : '')}>Instalar en la pantalla de inicio<//></div>`
+        : html`<p class="secundario">Para instalarla, abre el menú del navegador y elige «Instalar aplicación» o «Añadir a pantalla de inicio».</p>`}
+      ${mensaje && html`<p class="secundario">${mensaje}</p>`}
+    </div>`;
+}
 function ListaEditable({ titulo, valores, onGuardar, notificar }) {
   const [nuevo, setNuevo] = useState('');
   // Quitar una categoría o ubicación pide confirmación.
@@ -295,6 +322,8 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
           <${Boton} disabled=${estadoSync.estado === 'sincronizando'} onClick=${onSincronizar}>Sincronizar ahora<//>
         </div>
       </div>
+
+      <${InstalarApp} />
 
       <div class="bloque">
         <h3>Versión</h3>
