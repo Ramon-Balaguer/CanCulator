@@ -5,7 +5,7 @@ import { TABLES, request, transaction } from './db.js';
 import { readMeta } from './store.js';
 import { applyRemoteOps, hashToken } from '../logica/peer-sync.js';
 
-const PREFIJO_SALA = 'inventario-casa-';
+const PREFIJO_SALA = 'canculator-';
 const MAX_IDS_APLICADOS = 5000;
 const ESPERA_REINTENTO_MS = 5000;
 
@@ -14,7 +14,7 @@ const conectadas = new Set();
 
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
-export function createRoom({ db, code, token, onOps, onStatus }) {
+export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
   let peer = null;
   let timer = null;
   let cerrada = false;
@@ -22,7 +22,7 @@ export function createRoom({ db, code, token, onOps, onStatus }) {
   const abrir = () => {
     if (cerrada) return;
     peer = new window.Peer(PREFIJO_SALA + code);
-    peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onStatus }));
+    peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onFotos, onStatus }));
     peer.on('error', (e) => {
       if (e.type === 'unavailable-id') {
         onStatus('La sala aún está activa en el servicio; reintentando…');
@@ -46,11 +46,11 @@ export function createRoom({ db, code, token, onOps, onStatus }) {
 }
 
 // Se une a la sala con ese código. Si la conexión se cae, llama a onClosed (para reintentar).
-export function joinRoom({ db, code, token, onOps, onStatus, onClosed }) {
+export function joinRoom({ db, code, token, onOps, onFotos, onStatus, onClosed }) {
   const peer = new window.Peer();
   peer.on('open', () => {
     onStatus('Uniéndose a la sala…');
-    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onStatus, onClosed });
+    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onFotos, onStatus, onClosed });
   });
   peer.on('error', (e) => onStatus(`No se pudo unir: ${e.type}`));
   return { cerrar: () => peer.destroy() };
@@ -71,7 +71,7 @@ export async function enviarCambiosPendientes() {
 
 // Protocolo: saludo (huella del token). Si coincide, se envían las operaciones pendientes
 // y, a partir de ahí, cada cambio local nuevo.
-function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
+function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClosed }) {
   const miHuellaPromesa = hashToken(token);
   const registro = { conexion, db, enviados: new Set() };
   let verificado = false;
@@ -94,7 +94,12 @@ function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
       pendientes.forEach((o) => registro.enviados.add(o.id));
       conexion.send({ tipo: 'operaciones', operaciones: pendientes });
     } else if (mensaje?.tipo === 'operaciones' && verificado) {
-      onOps(mensaje.operaciones ?? []);
+      await onOps(mensaje.operaciones ?? []);
+      await pedirFotosFaltantes(db, conexion);
+    } else if (mensaje?.tipo === 'pedir-fotos' && verificado) {
+      await enviarFotos(db, conexion, mensaje.ids ?? []);
+    } else if (mensaje?.tipo === 'foto' && verificado) {
+      if (await guardarFotoRecibida(db, mensaje.foto)) onFotos?.();
     }
   });
 
@@ -104,6 +109,43 @@ function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
     onClosed?.();
   });
   conexion.on('error', (e) => onStatus(`Error en la conexión: ${e.type}`));
+}
+
+// Las operaciones solo llevan el id de la foto: los bytes se piden aparte, una foto por mensaje.
+async function pedirFotosFaltantes(db, conexion) {
+  const { lotes, fotos } = await transaction(db, [TABLES.lotes, TABLES.fotos], 'readonly', async (tx) => ({
+    lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
+    fotos: await request(tx.objectStore(TABLES.fotos).getAll()),
+  }));
+  const tengo = new Set(fotos.flatMap((f) => [f.id, f.drive_id].filter(Boolean)));
+  const faltan = [...new Set(lotes.filter((l) => !l.borrado && l.foto_id && !tengo.has(l.foto_id)).map((l) => l.foto_id))];
+  if (faltan.length > 0 && conexion.open) conexion.send({ tipo: 'pedir-fotos', ids: faltan });
+}
+
+async function enviarFotos(db, conexion, ids) {
+  for (const id of ids) {
+    const foto = await readPhotoRecord(db, id);
+    if (foto && conexion.open) {
+      conexion.send({ tipo: 'foto', foto: { id, tipo: foto.tipo, creada: foto.creada, bytes: foto.bytes } });
+    }
+  }
+}
+
+function readPhotoRecord(db, id) {
+  return transaction(db, [TABLES.fotos], 'readonly', async (tx) => {
+    const almacen = tx.objectStore(TABLES.fotos);
+    return (await request(almacen.get(id))) ?? (await request(almacen.getAll())).find((f) => f.drive_id === id) ?? null;
+  });
+}
+
+async function guardarFotoRecibida(db, foto) {
+  if (!foto?.id || !foto.bytes) return false;
+  return transaction(db, [TABLES.fotos], 'readwrite', async (tx) => {
+    const almacen = tx.objectStore(TABLES.fotos);
+    if (await request(almacen.get(foto.id))) return false;
+    almacen.put({ id: foto.id, bytes: foto.bytes, tipo: foto.tipo || 'image/jpeg', creada: foto.creada });
+    return true;
+  });
 }
 
 async function operacionesPendientes(db) {

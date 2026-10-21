@@ -40,7 +40,7 @@ function cerrarSala() {
 
 function crearSala(codigo, token) {
   cerrarSala();
-  sala = createRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onStatus: alEstado });
+  sala = createRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onFotos: () => contexto.refresh(), onStatus: alEstado });
   emitir({ rol: 'anfitrion', codigo });
   saveMeta(contexto.db, CLAVE_SALA, { codigo, rol: 'anfitrion' });
 }
@@ -50,7 +50,7 @@ function unirseSala(codigo, token) {
   const reintentar = () => {
     reintento = setTimeout(() => unirseSala(codigo, token), ESPERA_REUNION_MS);
   };
-  sala = joinRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onStatus: alEstado, onClosed: reintentar });
+  sala = joinRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onFotos: () => contexto.refresh(), onStatus: alEstado, onClosed: reintentar });
   emitir({ rol: 'invitado', codigo });
   saveMeta(contexto.db, CLAVE_SALA, { codigo, rol: 'invitado' });
 }
