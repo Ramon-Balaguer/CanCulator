@@ -324,6 +324,7 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
   return html`
     <${Modal} titulo=${product.nombre} onCerrar=${onCerrar}>
       <p class="secundario">${product.categoria} · mínimo ${product.stock_minimo}</p>
+      ${product.codigo_barras && html`<div class="acciones"><${Button} tipo="secundario" disabled=${buscandoOFF} onClick=${viewOFFData}>${buscandoOFF ? 'Buscando…' : 'Datos de Open Food Facts'}<//></div>`}
       ${perContainer !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${perContainer} kcal por bote · ${Math.round(perContainer * productUnits * 10) / 10} kcal en el stock (${productUnits} ud.)</p>`}
       ${lots.length === 0 && html`<p class="vacio">No quedan unidades de este producto.</p>`}
       <ul class="lista-lotes">
@@ -347,7 +348,6 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
       <div class="acciones">
         <${Button} onClick=${() => onAnadirLote(product)}>Añadir lote<//>
         <${Button} tipo="secundario" onClick=${() => setEditando(true)}>Editar producto<//>
-        ${product.codigo_barras && html`<${Button} tipo="secundario" disabled=${buscandoOFF} onClick=${viewOFFData}>${buscandoOFF ? 'Buscando…' : 'Datos de Open Food Facts'}<//>`}
       </div>
       ${datosOFF && html`<${OFFData} codigo=${product.codigo_barras} producto=${datosOFF} onCerrar=${() => setDatosOFF(null)} />`}
       <div class="zona-peligro">
