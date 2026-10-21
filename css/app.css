@@ -62,10 +62,15 @@ body {
 
 .cabecera h1 {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--verde);
 }
+
+.cabecera-logo { width: 28px; height: 28px; flex: none; }
 
 .contenido {
   flex: 1;
