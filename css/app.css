@@ -267,6 +267,10 @@ textarea { min-height: 80px; }
 
 .previa { width: 100%; max-height: 220px; object-fit: contain; border-radius: var(--radio-grande); background: #000; }
 
+/* El QR siempre sobre blanco: los módulos son negros y el tema es oscuro. */
+.qr { width: fit-content; margin: 0 auto; padding: 12px; border-radius: var(--radio-grande); background: #fff; line-height: 0; }
+.qr svg { display: block; width: 180px; height: 180px; }
+
 /* Alertas con borde del color del tipo, como n-alert. */
 .aviso { margin: 0; padding: 10px 14px; border: 1px solid transparent; border-radius: var(--radio); font-size: 0.9rem; }
 .aviso.error { background: var(--peligro-suave); border-color: rgb(232 128 128 / 35%); color: var(--peligro); }
