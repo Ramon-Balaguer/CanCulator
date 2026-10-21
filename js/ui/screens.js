@@ -1,7 +1,7 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
 import { Notice, Button, Field, Empty } from './components.js';
-import { Thumbnail } from './thumbnail.js';
+import { ProductImage, Thumbnail } from './thumbnail.js';
 import { Barcode } from './barcode-view.js';
 import { consume, saveSetting, saveMeta } from '../datos/store.js';
 import { downloadText, exportBackup, importBackupFile } from '../datos/backup-io.js';
@@ -155,6 +155,11 @@ export function RestockScreen({ datos: data, onComprado }) {
 export function PrintScreen({ db, datos: data }) {
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
+  // Imagen de Open Food Facts por código de barras (desde la caché de OFF).
+  const offImages = new Map(
+    (data.cacheOff ?? []).filter((e) => e.encontrado && e.producto?.image_front_small_url)
+      .map((e) => [e.codigo, e.producto.image_front_small_url]),
+  );
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
@@ -170,7 +175,7 @@ export function PrintScreen({ db, datos: data }) {
         <tbody>
           ${lots.map((lot) => html`
             <tr>
-              <td class="celda-foto"><${Thumbnail} db=${db} fotoId=${lot.foto_id} /></td>
+              <td class="celda-foto"><${ProductImage} db=${db} imageUrl=${offImages.get(byId.get(lot.producto_id).codigo_barras)} photoId=${lot.foto_id} /></td>
               <td>${shortId(lot.id)}</td>
               <td>${byId.get(lot.producto_id).nombre}</td>
               <td class="celda-codigo"><${Barcode} codigo=${byId.get(lot.producto_id).codigo_barras} /></td>
