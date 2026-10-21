@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prueba de sala P2P · Inventario de casa</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script src="vendor/peerjs.min.js" defer></script>
+  <script type="module" src="js/peer-test.js"></script>
+</head>
+<body>
+  <header class="cabecera"><h1>Prueba de sala P2P</h1></header>
+  <main class="contenido">
+    <section class="tarjeta">
+      <h2>Crear sala</h2>
+      <div class="acciones">
+        <button id="crear" type="button" class="boton">Crear sala</button>
+        <span id="codigo" class="codigo"></span>
+      </div>
+    </section>
+    <section class="tarjeta">
+      <h2>Unirse a una sala</h2>
+      <form id="unirse" class="formulario">
+        <label class="campo"><span class="campo-etiqueta">Código de la sala</span>
+          <input id="codigo-sala" autocomplete="off" maxlength="6" style="text-transform: uppercase"></label>
+        <div class="acciones"><button type="submit" class="boton">Unirse</button></div>
+      </form>
+    </section>
+    <section class="tarjeta">
+      <h2>Estado</h2>
+      <p id="estado" role="status">Sin conexión.</p>
+      <form id="enviar" class="formulario">
+        <label class="campo"><span class="campo-etiqueta">Mensaje</span>
+          <input id="mensaje" autocomplete="off"></label>
+        <div class="acciones"><button type="submit" class="boton">Enviar</button></div>
+      </form>
+      <ul id="mensajes"></ul>
+    </section>
+  </main>
+</body>
+</html>

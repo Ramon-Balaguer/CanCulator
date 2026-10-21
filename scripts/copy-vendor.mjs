@@ -18,6 +18,8 @@ export const FICHEROS = [
   ['htm/dist/htm.module.js', 'htm.module.js'],
   ['htm/preact/index.module.js', 'htm-preact.module.js'],
   ['htm/LICENSE', 'licenses/htm.txt'],
+  ['peerjs/dist/peerjs.min.js', 'peerjs.min.js'],
+  ['peerjs/LICENSE', 'licenses/peerjs.txt'],
 ];
 
 export async function copiarVendor() {
