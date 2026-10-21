@@ -1,9 +1,9 @@
-# Inventario de casa
+# CanCulator
 
 App web instalable (PWA) para inventariar la comida no perecedera de casa: qué hay, cuándo caduca y qué falta.
 Funciona sin conexión y se sincroniza con una Google Sheet.
 
-Publicada en https://ramon-balaguer.github.io/survivor-resources/
+Publicada en https://ramon-balaguer.github.io/canculator/
 
 ## Desarrollo
 

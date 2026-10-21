@@ -11,6 +11,17 @@ const ESPERA_REINTENTO_MS = 5000;
 
 // Conexiones verificadas ahora mismo. Cada una lleva la cuenta de lo que ya ha enviado.
 const conectadas = new Set();
+const oyentesConectadas = new Set();
+
+function avisarConectadas() {
+  for (const avisar of oyentesConectadas) avisar(conectadas.size);
+}
+
+// Avisa con el número de móviles conectados cada vez que cambia. Devuelve la función para dejar de oír.
+export function alCambiarConectadas(avisar) {
+  oyentesConectadas.add(avisar);
+  return () => oyentesConectadas.delete(avisar);
+}
 
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
@@ -89,6 +100,7 @@ function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClo
       }
       verificado = true;
       conectadas.add(registro);
+      avisarConectadas();
       onStatus('Conectado. Sincronizando…');
       const pendientes = await operacionesPendientes(db);
       pendientes.forEach((o) => registro.enviados.add(o.id));
@@ -105,6 +117,7 @@ function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClo
 
   conexion.on('close', () => {
     conectadas.delete(registro);
+    avisarConectadas();
     onStatus('La conexión se ha cerrado.');
     onClosed?.();
   });

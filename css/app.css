@@ -425,3 +425,5 @@ textarea { min-height: 80px; }
 .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cabecera-estado { display: flex; gap: 8px; font-size: 0.75rem; opacity: 0.9; white-space: nowrap; }
 .cabecera .estado-conexion[data-estado="sin-conexion"] { color: #ffd2c2; font-weight: 600; }
+.cabecera .estado-sync[hidden] { display: none; }
+.cabecera .estado-sync[data-estado="conectado"] { color: #c8f2c8; font-weight: 600; }

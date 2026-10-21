@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Inventario de casa</title>
+  <title>CanCulator</title>
   <meta name="description" content="Inventario de la comida de casa: qué hay, cuándo caduca y qué falta.">
   <meta name="theme-color" content="#2f6b3a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Inventario">
+  <meta name="apple-mobile-web-app-title" content="CanCulator">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icono-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -30,9 +30,10 @@
 </head>
 <body>
   <header class="cabecera">
-    <h1>Inventario de casa</h1>
+    <h1>CanCulator</h1>
     <div class="cabecera-estado">
       <span>v<span id="version"></span></span>
+      <span id="estado-sync" class="estado-sync" data-estado="solo" hidden></span>
       <span id="estado-conexion" class="estado-conexion"></span>
     </div>
   </header>

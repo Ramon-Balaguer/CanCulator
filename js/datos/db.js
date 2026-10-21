@@ -1,7 +1,7 @@
 // IndexedDB: opening and versioned migrations. Migrations only create what is missing;
 // or if the text does not contain the marker, so the deploy does not pass silently.
 
-export const DB_NAME = 'inventario-casa';
+export const DB_NAME = 'canculator';
 
 // Tables: the same names as in the Google Sheet.
 export const TABLES = Object.freeze({

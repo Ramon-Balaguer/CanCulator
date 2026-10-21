@@ -5,7 +5,7 @@ export const BACKUP_VERSION = 1;
 
 export function buildBackup({ dispositivo: device, productos: products, lotes: lots, configuracion: configuration, fotos: photos = [], fecha: date = new Date().toISOString() }) {
   return {
-    formato: 'inventario-casa',
+    formato: 'canculator',
     version: BACKUP_VERSION,
     exportado: date,
     dispositivo: device,
@@ -21,7 +21,7 @@ const LISTS = ['productos', 'lotes', 'configuracion', 'fotos'];
 
 export function validateBackup(backup) {
   if (!backup || typeof backup !== 'object') throw new Error('El fichero no es una copia válida');
-  if (backup.formato !== 'inventario-casa') throw new Error('El fichero no es una copia de Inventario de casa');
+  if (backup.formato !== 'canculator') throw new Error('El fichero no es una copia de CanCulator');
   if (!Number.isInteger(backup.version) || backup.version > BACKUP_VERSION) {
     throw new Error(`La copia es de una versión más nueva (${backup.version}). Actualiza la app.`);
   }

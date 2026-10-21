@@ -9,8 +9,8 @@ test('la invitación lleva la sala y el token, y se lee de vuelta', () => {
 
 test('una invitación mal formada no se acepta', () => {
   assert.equal(decodeInvite('hola'), null);
-  assert.equal(decodeInvite('inventario-casa:ABC:token'), null);
-  assert.equal(decodeInvite('inventario-casa:ABC234:'), null);
-  assert.equal(decodeInvite('inventario-casa:ABC234'), null);
+  assert.equal(decodeInvite('canculator:ABC:token'), null);
+  assert.equal(decodeInvite('canculator:ABC234:'), null);
+  assert.equal(decodeInvite('canculator:ABC234'), null);
   assert.equal(decodeInvite(''), null);
 });

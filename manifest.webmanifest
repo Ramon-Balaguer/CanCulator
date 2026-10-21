@@ -1,6 +1,6 @@
 {
-  "name": "Inventario de casa",
-  "short_name": "Inventario",
+  "name": "CanCulator",
+  "short_name": "CanCulator",
   "description": "Inventario de la comida de casa: qué hay, cuándo caduca y qué falta.",
   "lang": "es",
   "id": "./",

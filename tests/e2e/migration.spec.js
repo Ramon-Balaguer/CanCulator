@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 test('la base de datos de la versión 1 pasa a la actual sin perder datos', async ({ page }) => {
   await page.goto('./camera-test.html');
   await page.evaluate(async () => {
-    const open = indexedDB.open('inventario-casa', 1);
+    const open = indexedDB.open('canculator', 1);
     await new Promise((resolve, reject) => {
       open.onupgradeneeded = () => {
         const db = open.result;
@@ -32,7 +32,7 @@ test('la base de datos de la versión 1 pasa a la actual sin perder datos', asyn
   await page.goto('./');
   await expect(page.locator('li.tarjeta', { hasText: 'Legado de la v1' })).toContainText('2 ud.');
   const version = await page.evaluate(() => new Promise((resolve) => {
-    const r = indexedDB.open('inventario-casa');
+    const r = indexedDB.open('canculator');
     r.onsuccess = () => { const v = r.result.version; const stores = [...r.result.objectStoreNames]; r.result.close(); resolve({ v, tiendas: stores }); };
   }));
   expect(version.v).toBe(2);

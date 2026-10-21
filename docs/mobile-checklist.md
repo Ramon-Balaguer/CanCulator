@@ -3,11 +3,11 @@
 Hazlas en un Android con Chrome y en un iPhone con Safari. Marca cada casilla en los dos.
 Si la cámara o el modo sin conexión fallan en el iPhone, avisa antes de empezar la fase siguiente.
 
-URL pública: https://ramon-balaguer.github.io/survivor-resources/
+URL pública: https://ramon-balaguer.github.io/canculator/
 
 ## Fin de fase 1: base
 
-- [ ] La URL pública abre y muestra «Inventario de casa» y, abajo, «Versión» con 7 caracteres (no «desarrollo»).
+- [ ] La URL pública abre y muestra «CanCulator» y, abajo, «Versión» con 7 caracteres (no «desarrollo»).
 - [ ] Android: menú de Chrome → «Instalar aplicación» o «Añadir a pantalla de inicio». El icono es una lata sobre fondo verde.
 - [ ] iPhone: en Safari, Compartir → «Añadir a pantalla de inicio». Al abrirla desde el icono, no se ve la barra de Safari.
 - [ ] Abre la app instalada, cierra la app del todo, activa el modo avión y vuelve a abrirla: carga y dice «Sin conexión».

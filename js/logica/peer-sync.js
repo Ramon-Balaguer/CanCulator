@@ -1,7 +1,7 @@
 // Sincronización directa entre móviles (WebRTC). Reglas puras, sin red ni IndexedDB.
 // Aplican los mismos criterios que el servidor (apps-script/Code.gs) a las operaciones recibidas.
 
-export const PROTOCOLO = 'inventario-casa/1';
+export const PROTOCOLO = 'canculator/1';
 
 // Huella del token para el saludo inicial: el token nunca viaja en claro por el canal.
 export async function hashToken(token, subtle = globalThis.crypto.subtle) {
@@ -72,7 +72,7 @@ export function applyRemoteOps(state, ops, appliedIds) {
 }
 
 // Invitación para el QR: código de la sala y token, en un solo texto.
-const PREFIJO_INVITACION = 'inventario-casa:';
+const PREFIJO_INVITACION = 'canculator:';
 const CODIGO_SALA = /^[A-Z2-9]{6}$/;
 
 export function encodeInvite({ code, token }) {

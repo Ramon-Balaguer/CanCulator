@@ -2,7 +2,7 @@
 // Seguridad de la prototipo: el código de sala es el único control de acceso. En la versión
 // real, el móvil que se une debe demostrar que conoce el token antes de recibir datos.
 
-const PREFIJO_SALA = 'inventario-casa-';
+const PREFIJO_SALA = 'canculator-';
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const $ = (id) => document.getElementById(id);

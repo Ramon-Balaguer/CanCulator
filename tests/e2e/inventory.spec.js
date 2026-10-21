@@ -154,7 +154,7 @@ test.describe('copia JSON y modo sin conexión', () => {
     const route = await descarga.path();
     const { readFile } = await import('node:fs/promises');
     const backup = JSON.parse(await readFile(route, 'utf8'));
-    expect(backup.formato).toBe('inventario-casa');
+    expect(backup.formato).toBe('canculator');
     expect(backup.lotes.map((l) => l.cantidad)).toEqual([2]);
     expect(backup.productos[0].nombre).toBe('Mejillones');
   });
@@ -162,7 +162,7 @@ test.describe('copia JSON y modo sin conexión', () => {
   test('importar una copia añade los datos que faltan', async ({ page }) => {
     await openApp(page);
     const backup = {
-      formato: 'inventario-casa',
+      formato: 'canculator',
       version: 1,
       productos: [{ id: 'p-importado', nombre: 'Garbanzos de la copia', categoria: 'legumbres', codigo_barras: '', stock_minimo: 0, actualizado: '2026-10-01T00:00:00Z', borrado: false }],
       lotes: [{ id: 'l-importado', producto_id: 'p-importado', cantidad: 7, caducidad: insideDays(60), ubicacion: 'Despensa', observaciones: '', foto_id: '', revisar: 'no', actualizado: '2026-10-01T00:00:00Z', borrado: false }],

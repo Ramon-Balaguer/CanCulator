@@ -10,11 +10,11 @@ const base = {
   fotos: [{ id: 'f1', dato: 'AAA' }],
 };
 
-const validBackup = () => ({ formato: 'inventario-casa', version: BACKUP_VERSION, ...structuredClone(base) });
+const validBackup = () => ({ formato: 'canculator', version: BACKUP_VERSION, ...structuredClone(base) });
 
 test('construirCopia crea el formato y la versión', () => {
   const backup = buildBackup({ dispositivo: 'd1', ...base, fecha: '2026-10-20T00:00:00Z' });
-  assert.equal(backup.formato, 'inventario-casa');
+  assert.equal(backup.formato, 'canculator');
   assert.equal(backup.version, BACKUP_VERSION);
   assert.equal(backup.dispositivo, 'd1');
   assert.equal(validateBackup(backup), backup);
@@ -22,7 +22,7 @@ test('construirCopia crea el formato y la versión', () => {
 
 test('validarCopia rechaza ficheros que no son copias o son de una versión futura', () => {
   assert.throws(() => validateBackup(null), /no es una copia válida/);
-  assert.throws(() => validateBackup({ formato: 'otra' }), /no es una copia de Inventario/);
+  assert.throws(() => validateBackup({ formato: 'otra' }), /no es una copia de CanCulator/);
   assert.throws(() => validateBackup({ ...validBackup(), version: BACKUP_VERSION + 1 }), /versión más nueva/);
   assert.throws(() => validateBackup({ ...validBackup(), lotes: {} }), /no es una lista/);
   assert.throws(() => validateBackup({ ...validBackup(), lotes: [{ id: 'x', producto_id: 'p1', cantidad: -1 }] }), /Cantidad no válida/);

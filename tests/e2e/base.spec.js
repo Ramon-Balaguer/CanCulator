@@ -3,8 +3,8 @@ import { ownServer } from './own-server.js';
 
 test('la página muestra el nombre de la app', async ({ page }) => {
   await page.goto('./');
-  await expect(page).toHaveTitle('Inventario de casa');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inventario de casa');
+  await expect(page).toHaveTitle('CanCulator');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('CanCulator');
   await expect(page.locator('#version')).toHaveText('desarrollo');
 });
 
@@ -15,7 +15,7 @@ test('el manifest es válido y enlaza iconos que existen', async ({ page, reques
   const response = await request.get(manifestUrl);
   expect(response.ok()).toBeTruthy();
   const manifest = await response.json();
-  expect(manifest.name).toBe('Inventario de casa');
+  expect(manifest.name).toBe('CanCulator');
   expect(manifest.display).toBe('standalone');
   expect(manifest.lang).toBe('es');
   for (const icon of manifest.icons) {
@@ -41,7 +41,7 @@ test('sin conexión: tras cortar la red y recargar, la app carga desde la caché
 
     await server.cortar();
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inventario de casa');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('CanCulator');
     await expect(page.locator('#version')).toHaveText('desarrollo');
 
     // The camera page (Preact, htm and ZXing in vendor/) also works offline.
