@@ -56,12 +56,14 @@ export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, r
 }
 
 // ---------- Stock ----------
-// Resumen del stock: unidades y calorías, en total y por categoría. Ignora los filtros de abajo.
-function Estadisticas({ datos }) {
+// Pantalla de estadísticas: aquí se añaden las nuevas. Cuentan todo el stock, sin filtros.
+export function PantallaEstadisticas({ datos }) {
   const e = estadisticasStock(datos.productos, datos.lotes, datos.cacheOff ?? []);
-  if (e.totalUnidades === 0) return null;
   return html`
+    <section class="pantalla">
+      <h2>Estadísticas</h2>
     <div class="estadisticas bloque" data-testid="estadisticas">
+      ${e.totalUnidades === 0 && html`<p class="vacio">Todavía no hay comida registrada.</p>`}
       <h3>Estadísticas</h3>
       <p>Unidades en total: <strong data-testid="unidades-total">${e.totalUnidades}</strong></p>
       <p>Calorías en total: <strong data-testid="kcal-total">${e.totalKcal} kcal</strong>
@@ -78,7 +80,8 @@ function Estadisticas({ datos }) {
             </tr>`)}
         </tbody>
       </table>
-    </div>`;
+    </div>
+    </section>`;
 }
 
 export function PantallaStock({ datos, config, onAbrirProducto }) {
@@ -90,7 +93,6 @@ export function PantallaStock({ datos, config, onAbrirProducto }) {
   return html`
     <section class="pantalla">
       <h2>Stock</h2>
-      <${Estadisticas} datos=${datos} />
 
       <div class="fila">
         <${Campo} etiqueta="Categoría">

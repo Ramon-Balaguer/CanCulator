@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Aviso } from './componentes.js';
 import { AltaLote, DetalleProducto, EditarLote } from './formularios.js';
-import { PantallaAjustes, PantallaCaducidad, PantallaImprimir, PantallaReponer, PantallaStock } from './pantallas.js';
+import { PantallaAjustes, PantallaCaducidad, PantallaEstadisticas, PantallaImprimir, PantallaReponer, PantallaStock } from './pantallas.js';
 import { borrarLote, borrarProducto, cargarTodo, dispositivoId, leerMeta } from '../datos/tienda.js';
 import { sincronizarTodo, SinConexion } from '../datos/sincro.js';
 import { configuracionEfectiva } from '../logica/configuracion.js';
@@ -12,6 +12,7 @@ const PESTANAS = [
   { id: 'stock', texto: 'Stock' },
   { id: 'reponer', texto: 'A reponer' },
   { id: 'imprimir', texto: 'Imprimir' },
+  { id: 'estadisticas', texto: 'Estadísticas' },
   { id: 'ajustes', texto: 'Ajustes' },
 ];
 
@@ -184,6 +185,7 @@ export function Raiz({ db }) {
       onAbrirProducto=${(producto) => setVista({ tipo: 'producto', producto })} />`,
     reponer: html`<${PantallaReponer} datos=${visibles} onComprado=${(producto) => setVista({ tipo: 'alta', producto })} />`,
     imprimir: html`<${PantallaImprimir} db=${db} datos=${visibles} />`,
+    estadisticas: html`<${PantallaEstadisticas} datos=${visibles} />`,
     ajustes: html`<${PantallaAjustes} db=${db} dispositivo=${dispositivo} config=${config}
       notificar=${notificar} refrescar=${refrescar} sincronizacion=${sincronizacion}
       estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pendientes}

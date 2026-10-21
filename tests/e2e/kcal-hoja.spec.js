@@ -75,7 +75,7 @@ test.describe('calorías guardadas en la hoja y vistas desde otro móvil', () =>
 
       // Móvil B: no ha escaneado nada ni tiene caché de OFF. Solo sincroniza.
       await configurar(movilB);
-      await movilB.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
+      await movilB.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
       await expect(movilB.getByTestId('kcal-total')).toHaveText('2640 kcal', { timeout: 20_000 });
       await expect(movilB.getByTestId('unidades-total')).toHaveText('2');
     } finally {

@@ -211,7 +211,7 @@ textarea { min-height: 80px; }
   bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   background: #fff;
   border-top: 1px solid var(--borde);

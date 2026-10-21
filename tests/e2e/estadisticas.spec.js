@@ -40,7 +40,7 @@ test.describe('estadísticas del stock', () => {
     await lentejas.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
-    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
     await expect(page.getByTestId('unidades-total')).toHaveText('4');
     await expect(page.getByTestId('kcal-total')).toHaveText('2640 kcal');
     await expect(page.getByTestId('estadisticas')).toContainText('faltan datos de 1 producto');
