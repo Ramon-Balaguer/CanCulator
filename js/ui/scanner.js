@@ -84,7 +84,7 @@ export function QrScannerModal({ onCodigo, onCerrar }) {
       if (!result || closed) return;
       closed = true;
       navigator.vibrate?.(80);
-      onCodigo(result.getText().trim().toUpperCase());
+      onCodigo(result.getText().trim());
     })
       .then((c) => {
         controls = c;

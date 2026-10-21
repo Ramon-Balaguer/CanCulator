@@ -1,5 +1,6 @@
 // Sincronización directa entre dos móviles en la misma red, por WebRTC (PeerJS).
-// Solo se conectan si conocen el mismo token; después intercambian sus operaciones pendientes.
+// Solo se conectan si conocen el mismo token; después intercambian sus operaciones pendientes,
+// y cada cambio local se envía al momento a los móviles conectados.
 import { TABLES, request, transaction } from './db.js';
 import { readMeta } from './store.js';
 import { applyRemoteOps, hashToken } from '../logica/peer-sync.js';
@@ -7,6 +8,9 @@ import { applyRemoteOps, hashToken } from '../logica/peer-sync.js';
 const PREFIJO_SALA = 'inventario-casa-';
 const MAX_IDS_APLICADOS = 5000;
 const ESPERA_REINTENTO_MS = 5000;
+
+// Conexiones verificadas ahora mismo. Cada una lleva la cuenta de lo que ya ha enviado.
+const conectadas = new Set();
 
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
@@ -52,9 +56,24 @@ export function joinRoom({ db, code, token, onOps, onStatus, onClosed }) {
   return { cerrar: () => peer.destroy() };
 }
 
-// Protocolo: saludo (huella del token). Si coincide, cada lado envía sus operaciones pendientes.
+// Envía a los móviles conectados las operaciones que aún no les han llegado.
+// Se llama después de cada cambio local.
+export async function enviarCambiosPendientes() {
+  for (const registro of conectadas) {
+    if (!registro.conexion.open) continue;
+    const pendientes = await operacionesPendientes(registro.db);
+    const nuevas = pendientes.filter((o) => !registro.enviados.has(o.id));
+    if (nuevas.length === 0) continue;
+    registro.conexion.send({ tipo: 'operaciones', operaciones: nuevas });
+    nuevas.forEach((o) => registro.enviados.add(o.id));
+  }
+}
+
+// Protocolo: saludo (huella del token). Si coincide, se envían las operaciones pendientes
+// y, a partir de ahí, cada cambio local nuevo.
 function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
   const miHuellaPromesa = hashToken(token);
+  const registro = { conexion, db, enviados: new Set() };
   let verificado = false;
 
   conexion.on('open', async () => {
@@ -69,14 +88,18 @@ function prepararConexion({ db, conexion, token, onOps, onStatus, onClosed }) {
         return;
       }
       verificado = true;
+      conectadas.add(registro);
       onStatus('Conectado. Sincronizando…');
-      conexion.send({ tipo: 'operaciones', operaciones: await operacionesPendientes(db) });
+      const pendientes = await operacionesPendientes(db);
+      pendientes.forEach((o) => registro.enviados.add(o.id));
+      conexion.send({ tipo: 'operaciones', operaciones: pendientes });
     } else if (mensaje?.tipo === 'operaciones' && verificado) {
       onOps(mensaje.operaciones ?? []);
     }
   });
 
   conexion.on('close', () => {
+    conectadas.delete(registro);
     onStatus('La conexión se ha cerrado.');
     onClosed?.();
   });

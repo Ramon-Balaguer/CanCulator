@@ -1,6 +1,6 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
-import { PeerSyncBlock } from './peer-sync-view.js';
+import { SyncBlock } from './sync-block.js';
 import { Notice, Button, Field, Empty } from './components.js';
 import { ProductImage, Thumbnail } from './thumbnail.js';
 import { Barcode } from './barcode-view.js';
@@ -250,8 +250,7 @@ function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUse
     </div>`;
 }
 
-export function SettingsScreen({ db, dispositivo: device, config, notificar: notifyUser, refrescar: refresh, sincronizacion: syncLogic, estadoSync, ultimaSync, pendientes: pending, onGuardarSincro, onSincronizar }) {
-  const [sincro, setSincro] = useState(syncLogic);
+export function SettingsScreen({ db, dispositivo: device, config, notificar: notifyUser, refrescar: refresh, sincronizacion: syncLogic, estadoSync, ultimaSync, pendientes: pending, onToken }) {
   const [importado, setImportado] = useState('');
   const save = async (key, value) => {
     const cleanData = validateValue(key, value);
@@ -282,13 +281,6 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
     }
   }
 
-  async function saveSyncSettings() {
-    const next = { url: sincro.url.trim(), token: sincro.token.trim() };
-    await saveMeta(db, 'sync_url', next.url);
-    await saveMeta(db, 'sync_token', next.token);
-    notifyUser('Datos de sincronización guardados', 'ok');
-    onGuardarSincro(next);
-  }
 
   return html`
     <section class="pantalla">
@@ -314,24 +306,7 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
         <//>
       </div>
 
-      <div class="bloque">
-        <h3>Sincronización</h3>
-        <p class="secundario" data-testid="estado-sync" role="status">${estadoSync.mensaje || 'Sin sincronizar.'}</p>
-        <p class="secundario">Operaciones pendientes de enviar: <strong data-testid="pendientes-sync">${pending}</strong>.
-          ${ultimaSync ? ' Última sincronización: ' + new Date(ultimaSync).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }) + '.' : ' Aún no se ha sincronizado.'}</p>
-        <${Field} etiqueta="URL de Apps Script">
-          <input type="url" value=${sincro.url} onInput=${(e) => setSincro({ ...sincro, url: e.currentTarget.value })} />
-        <//>
-        <${Field} etiqueta="Token">
-          <input type="password" autocomplete="off" value=${sincro.token} onInput=${(e) => setSincro({ ...sincro, token: e.currentTarget.value })} />
-        <//>
-        <div class="acciones">
-          <${Button} tipo="secundario" onClick=${saveSyncSettings}>Guardar<//>
-          <${Button} disabled=${estadoSync.estado === 'sincronizando'} onClick=${onSincronizar}>Sincronizar ahora<//>
-        </div>
-      </div>
-
-      <${PeerSyncBlock} db=${db} deviceId=${device} token=${syncLogic.token} refresh=${refresh} />
+      <${SyncBlock} db=${db} deviceId=${device} token=${syncLogic.token} onToken=${onToken} refresh=${refresh} />
 
       <${InstallApp} />
 

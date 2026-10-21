@@ -70,3 +70,24 @@ export function applyRemoteOps(state, ops, appliedIds) {
   }
   return { state: { productos, lotes }, applied };
 }
+
+// Invitación para el QR: código de la sala y token, en un solo texto.
+const PREFIJO_INVITACION = 'inventario-casa:';
+const CODIGO_SALA = /^[A-Z2-9]{6}$/;
+
+export function encodeInvite({ code, token }) {
+  return `${PREFIJO_INVITACION}${code}:${token}`;
+}
+
+// Devuelve { code, token } o null si el texto no es una invitación válida.
+export function decodeInvite(text) {
+  const t = String(text ?? '').trim();
+  if (!t.startsWith(PREFIJO_INVITACION)) return null;
+  const resto = t.slice(PREFIJO_INVITACION.length);
+  const separador = resto.indexOf(':');
+  if (separador < 0) return null;
+  const code = resto.slice(0, separador).toUpperCase();
+  const token = resto.slice(separador + 1);
+  if (!CODIGO_SALA.test(code) || token === '') return null;
+  return { code, token };
+}

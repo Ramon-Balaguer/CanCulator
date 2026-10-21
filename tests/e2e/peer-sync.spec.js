@@ -17,7 +17,7 @@ test('un lote añadido en un móvil aparece en el otro por la sala', async ({ br
     for (const movil of [movilA, movilB]) {
       await movil.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
       await movil.getByLabel('Token').fill('token-de-prueba');
-      await movil.getByRole('button', { name: 'Guardar', exact: true }).last().click();
+      await movil.getByRole('button', { name: 'Guardar token' }).click();
     }
 
     // El móvil A añade un lote y crea la sala.
@@ -37,7 +37,7 @@ test('un lote añadido en un móvil aparece en el otro por la sala', async ({ br
     // El móvil B se une con el código.
     await movilB.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
     await movilB.getByLabel('Código de la sala').fill(codigo);
-    await movilB.getByRole('button', { name: 'Unirse' }).click();
+    await movilB.getByRole('button', { name: 'Entrar' }).click();
     await expect(movilB.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
 
     // El lote llega al móvil B.

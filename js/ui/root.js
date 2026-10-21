@@ -5,6 +5,7 @@ import { LotForm, ProductDetail, EditLot } from './forms.js';
 import { SettingsScreen, ExpiryScreen, StatisticsScreen, PrintScreen, RestockScreen, StockScreen } from './screens.js';
 import { removeLot, removeProduct, loadAll, deviceId, readMeta } from '../datos/store.js';
 import { syncAll, Offline } from '../datos/sync.js';
+import { enviarCambiosPendientes } from '../datos/peer-link.js';
 import { effectiveSettings } from '../logica/settings.js';
 
 const TABS = [
@@ -89,6 +90,8 @@ export function Root({ db }) {
   // After a local change: reload and schedule a sync within a few seconds.
   const refresh = useCallback(() => {
     loadData();
+    // Con un móvil conectado por sala, el cambio llega al momento al otro.
+    enviarCambiosPendientes().catch(() => {});
     clearTimeout(timer.current);
     timer.current = setTimeout(() => syncNow(), WAIT_AFTER_CHANGE_MS);
   }, [loadData, syncNow]);
@@ -189,8 +192,7 @@ export function Root({ db }) {
     ajustes: html`<${SettingsScreen} db=${db} dispositivo=${device} config=${config}
       notificar=${notifyUser} refrescar=${refresh} sincronizacion=${syncLogic}
       estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pending}
-      onGuardarSincro=${(next) => { setSincronizacion(next); syncNow(next); }}
-      onSincronizar=${() => syncNow()} />`,
+      onToken=${(token) => setSincronizacion((prev) => ({ ...prev, token }))} />`,
   }[pestana];
 
   let modal = null;

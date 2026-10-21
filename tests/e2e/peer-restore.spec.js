@@ -14,12 +14,12 @@ test('tras recargar, el anfitrión reabre la sala y el invitado reconecta', asyn
       await p.goto('./');
       await p.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
       await p.getByLabel('Token').fill('token-de-prueba');
-      await p.getByRole('button', { name: 'Guardar', exact: true }).last().click();
+      await p.getByRole('button', { name: 'Guardar token' }).click();
     }
     await anfitrion.getByRole('button', { name: 'Crear sala' }).click();
     const codigo = await anfitrion.getByTestId('codigo-sala').textContent();
     await invitado.getByLabel('Código de la sala').fill(codigo);
-    await invitado.getByRole('button', { name: 'Unirse' }).click();
+    await invitado.getByRole('button', { name: 'Entrar' }).click();
     await expect(invitado.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
 
     // El anfitrión recarga la app: la sala debe reabrirse sola con el mismo código.
