@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // Prototipo manual: usa el servicio público de señalización de PeerJS, así que requiere internet.
 test('dos páginas se conectan por sala y se envían mensajes', async ({ browser }) => {
+  test.skip(browser.browserType().name() !== 'chromium', 'WebRTC: el WebKit de Playwright no conecta las salas en este entorno; se prueba en iPhone real.');
   test.setTimeout(120_000);
   const a = await browser.newContext();
   const b = await browser.newContext();
