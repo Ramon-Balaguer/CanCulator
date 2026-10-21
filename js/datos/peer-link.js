@@ -17,6 +17,12 @@ function avisarConectadas() {
   for (const avisar of oyentesConectadas) avisar(conectadas.size);
 }
 
+// Al recargar o cerrar la página, cierra las conexiones para que el otro móvil reintente enseguida
+// (si no, tarda lo que tarda WebRTC en darse cuenta de que el enlace murió).
+globalThis.addEventListener('pagehide', () => {
+  for (const registro of conectadas) registro.conexion.close();
+});
+
 // Avisa con el número de móviles conectados cada vez que cambia. Devuelve la función para dejar de oír.
 export function alCambiarConectadas(avisar) {
   oyentesConectadas.add(avisar);

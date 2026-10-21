@@ -21,7 +21,7 @@ test('el manifest es válido y enlaza iconos que existen', async ({ page, reques
   for (const icon of manifest.icons) {
     const r = await request.get(new URL(icon.src, manifestUrl).href);
     expect(r.ok(), icon.src).toBeTruthy();
-    expect(r.headers()['content-type']).toContain('image/png');
+    expect(r.headers()['content-type']).toMatch(/image\/(png|svg\+xml)/);
   }
 });
 

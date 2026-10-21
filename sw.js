@@ -11,6 +11,7 @@ const PRECACHE = [
   './camera-test.html',
   './css/app.css',
   './icons/apple-touch-icon.png',
+  './icons/logo.svg',
   './icons/icono-192.png',
   './icons/icono-512.png',
   './js/app.js',
