@@ -1,25 +1,25 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
-import { leerFoto } from '../datos/tienda.js';
+import { readPhoto } from '../datos/tienda.js';
 
 // Miniatura de la foto de un lote. Sin foto no ocupa sitio.
-export function Miniatura({ db, fotoId }) {
+export function Thumbnail({ db, fotoId }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
     if (!fotoId) return undefined;
-    let vigente = true;
-    let objeto = null;
-    leerFoto(db, fotoId)
-      .then((foto) => {
-        if (!foto || !vigente) return;
-        objeto = URL.createObjectURL(foto.blob);
-        setUrl(objeto);
+    let valid = true;
+    let object = null;
+    readPhoto(db, fotoId)
+      .then((photo) => {
+        if (!photo || !valid) return;
+        object = URL.createObjectURL(photo.blob);
+        setUrl(object);
       })
       .catch(() => {});
     return () => {
-      vigente = false;
-      if (objeto) URL.revokeObjectURL(objeto);
+      valid = false;
+      if (object) URL.revokeObjectURL(object);
     };
   }, [db, fotoId]);
 

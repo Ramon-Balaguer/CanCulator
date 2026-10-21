@@ -1,29 +1,29 @@
 // Códigos de barras de productos (GTIN: EAN-13, EAN-8, UPC-A, GTIN-14).
 
-const TIPOS = { 8: 'EAN-8', 12: 'UPC-A', 13: 'EAN-13', 14: 'GTIN-14' };
+const GTIN_TYPES = { 8: 'EAN-8', 12: 'UPC-A', 13: 'EAN-13', 14: 'GTIN-14' };
 
 // Quita espacios y guiones que a veces se cuelan al teclear o leer.
-export function normalizarCodigo(texto) {
-  return String(texto ?? '').trim().replace(/[\s-]/g, '');
+export function normalizeCode(text) {
+  return String(text ?? '').trim().replace(/[\s-]/g, '');
 }
 
 // Dígito de control GTIN: pesos 3 y 1 alternos empezando por la derecha.
-export function digitoControl(sinControl) {
-  let suma = 0;
-  for (let i = 0; i < sinControl.length; i++) {
-    const digito = Number(sinControl[sinControl.length - 1 - i]);
-    suma += digito * (i % 2 === 0 ? 3 : 1);
+export function checkDigit(noCheck) {
+  let sum = 0;
+  for (let i = 0; i < noCheck.length; i++) {
+    const digit = Number(noCheck[noCheck.length - 1 - i]);
+    sum += digit * (i % 2 === 0 ? 3 : 1);
   }
-  return (10 - (suma % 10)) % 10;
+  return (10 - (sum % 10)) % 10;
 }
 
-export function tipoCodigo(codigo) {
-  const limpio = normalizarCodigo(codigo);
-  return /^\d+$/.test(limpio) ? (TIPOS[limpio.length] ?? null) : null;
+export function codeType(code) {
+  const cleanData = normalizeCode(code);
+  return /^\d+$/.test(cleanData) ? (GTIN_TYPES[cleanData.length] ?? null) : null;
 }
 
-export function esGtinValido(codigo) {
-  const limpio = normalizarCodigo(codigo);
-  if (!tipoCodigo(limpio)) return false;
-  return digitoControl(limpio.slice(0, -1)) === Number(limpio.at(-1));
+export function isValidGtin(code) {
+  const cleanData = normalizeCode(code);
+  if (!codeType(cleanData)) return false;
+  return checkDigit(cleanData.slice(0, -1)) === Number(cleanData.at(-1));
 }

@@ -1,35 +1,35 @@
 // Servidor HTTP de pruebas que ejecuta el Code.gs real sobre una hoja simulada.
 // Hace de "Apps Script" en las pruebas E2E: el móvil le envía POST como lo haría en Google.
 import { createServer } from 'node:http';
-import { cargarServidor } from '../fixtures/cargar-code-gs.js';
+import { loadServer } from '../fixtures/cargar-code-gs.js';
 
-const CABECERAS = {
+const HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-export async function iniciarHojaFalsa({ token = 'secreto-e2e' } = {}) {
-  const servidor = cargarServidor({ token });
-  const http = createServer((peticion, respuesta) => {
-    if (peticion.method === 'OPTIONS') {
-      respuesta.writeHead(204, CABECERAS).end();
+export async function startFakeSheet({ token = 'secreto-e2e' } = {}) {
+  const server = loadServer({ token });
+  const http = createServer((request, response) => {
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204, HEADERS).end();
       return;
     }
-    let cuerpo = '';
-    peticion.on('data', (trozo) => { cuerpo += trozo; });
-    peticion.on('end', () => {
-      const salida = servidor.llamar(cuerpo);
-      respuesta.writeHead(200, { ...CABECERAS, 'Content-Type': 'application/json' });
-      respuesta.end(JSON.stringify(salida));
+    let body = '';
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      const output = server.llamar(body);
+      response.writeHead(200, { ...HEADERS, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify(output));
     });
   });
-  await new Promise((resolver) => http.listen(0, '127.0.0.1', resolver));
+  await new Promise((resolve) => http.listen(0, '127.0.0.1', resolve));
   return {
     url: `http://127.0.0.1:${http.address().port}/exec`,
     token,
-    hojas: servidor.sim.libro,
-    ficheros: servidor.sim.ficheros,
-    cerrar: () => new Promise((resolver) => http.close(resolver)),
+    hojas: server.sim.libro,
+    ficheros: server.sim.ficheros,
+    cerrar: () => new Promise((resolve) => http.close(resolve)),
   };
 }

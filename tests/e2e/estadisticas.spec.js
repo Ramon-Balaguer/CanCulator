@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const fixture = (nombre) => JSON.parse(readFileSync(new URL(`../fixtures/off/${nombre}.json`, import.meta.url), 'utf8'));
+const fixture = (name) => JSON.parse(readFileSync(new URL(`../fixtures/off/${name}.json`, import.meta.url), 'utf8'));
 const MUESLI = '3229820129488';
 
 test.describe('estadísticas del stock', () => {
@@ -11,7 +11,7 @@ test.describe('estadísticas del stock', () => {
     await page.addInitScript(() => {
       navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('sin cámara'), { name: 'NotFoundError' }));
     });
-    await page.route('https://world.openfoodfacts.org/**', (ruta) => ruta.fulfill({
+    await page.route('https://world.openfoodfacts.org/**', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json; charset=utf-8',
       headers: { 'Access-Control-Allow-Origin': '*' },
@@ -22,22 +22,22 @@ test.describe('estadísticas del stock', () => {
     // Muesli escaneado (2 ud., con calorías de OFF).
     await page.getByRole('button', { name: 'Añadir lote' }).click();
     await page.locator('.modal-pantalla').getByRole('button', { name: 'Escanear código' }).click();
-    const escaner = page.getByRole('dialog', { name: 'Escanear código' });
-    await escaner.getByLabel('O escribe el código').fill(MUESLI);
-    await escaner.getByRole('button', { name: 'Usar este código' }).click();
-    const alta = page.locator('.modal-pantalla');
-    await alta.getByLabel('Caducidad').fill('2027-03-01');
-    await alta.getByLabel('Unidades').fill('2');
-    await alta.getByRole('button', { name: 'Guardar lote' }).click();
+    const scanner = page.getByRole('dialog', { name: 'Escanear código' });
+    await scanner.getByLabel('O escribe el código').fill(MUESLI);
+    await scanner.getByRole('button', { name: 'Usar este código' }).click();
+    const newLotTest = page.locator('.modal-pantalla');
+    await newLotTest.getByLabel('Caducidad').fill('2027-03-01');
+    await newLotTest.getByLabel('Unidades').fill('2');
+    await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
     // Lentejas sin código (2 ud., sin calorías).
     await page.getByRole('button', { name: 'Añadir lote' }).click();
-    const lentejas = page.locator('.modal-pantalla');
-    await lentejas.getByLabel('Producto').fill('Lentejas sin código');
-    await lentejas.getByLabel('Caducidad').fill('2027-03-01');
-    await lentejas.getByLabel('Unidades').fill('2');
-    await lentejas.getByRole('button', { name: 'Guardar lote' }).click();
+    const lentils = page.locator('.modal-pantalla');
+    await lentils.getByLabel('Producto').fill('Lentejas sin código');
+    await lentils.getByLabel('Caducidad').fill('2027-03-01');
+    await lentils.getByLabel('Unidades').fill('2');
+    await lentils.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();

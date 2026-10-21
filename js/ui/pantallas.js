@@ -1,31 +1,31 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
-import { Aviso, Boton, Campo, Vacio } from './componentes.js';
-import { Miniatura } from './miniatura.js';
-import { CodigoBarras } from './codigo-barras.js';
-import { consumir, guardarConfiguracion, guardarMeta } from '../datos/tienda.js';
-import { descargarTexto, exportarCopia, importarCopia } from '../datos/copia-io.js';
+import { Notice, Button, Field, Empty } from './componentes.js';
+import { Thumbnail } from './miniatura.js';
+import { Barcode } from './codigo-barras.js';
+import { consume, saveSetting, saveMeta } from '../datos/tienda.js';
+import { downloadText, exportBackup, importBackupFile } from '../datos/copia-io.js';
 import { VERSION } from '../version.js';
-import { estaInstalada, esIOS, instalarApp, puedeInstalarConBoton, suscribirInstalacion } from './instalacion.js';
-import { validarValor } from '../logica/configuracion.js';
-import { describirCaducidad, diasEntre, formatearFecha, hoyEnMadrid } from '../logica/fechas.js';
-import { estadoCaducidad, filtrarResumen, idCorto, lotesVisibles, mapaPorId, aReponer, resumenStock } from '../logica/inventario.js';
-import { estadisticasStock } from '../logica/estadisticas.js';
+import { isInstalled, isIOS, installApp, canInstallWithButton, subscribeInstall } from './instalacion.js';
+import { validateValue } from '../logica/configuracion.js';
+import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logica/fechas.js';
+import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary } from '../logica/inventario.js';
+import { stockStatistics } from '../logica/estadisticas.js';
 
 // ---------- Caducidad ----------
-export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, refrescar, onEditarLote }) {
-  const hoy = hoyEnMadrid();
-  const porId = mapaPorId(datos.productos);
-  const lotes = lotesVisibles(datos.lotes, datos.productos);
-  if (lotes.length === 0) return html`<section class="pantalla"><h2>Caducidad</h2><${Vacio}>No hay comida registrada. Usa el botón + para añadir un lote.<//></section>`;
+export function ExpiryScreen({ db, dispositivo: device, datos: data, config, notificar: notifyUser, refrescar: refresh, onEditarLote }) {
+  const today = todayInMadrid();
+  const byId = mapById(data.productos);
+  const lots = visibleLots(data.lotes, data.productos);
+  if (lots.length === 0) return html`<section class="pantalla"><h2>Caducidad</h2><${Empty}>No hay comida registrada. Usa el botón + para añadir un lote.<//></section>`;
 
-  async function consumirLote(lote, n) {
+  async function consumeLot(lot, n) {
     try {
-      await consumir(db, dispositivo, lote.id, n);
-      notificar(`Consumido: ${n} de ${porId.get(lote.producto_id).nombre}`, 'ok');
-      refrescar();
+      await consume(db, device, lot.id, n);
+      notifyUser(`Consumido: ${n} de ${byId.get(lot.producto_id).nombre}`, 'ok');
+      refresh();
     } catch (e) {
-      notificar(e.message, 'error');
+      notifyUser(e.message, 'error');
     }
   }
 
@@ -33,21 +33,21 @@ export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, r
     <section class="pantalla">
       <h2>Caducidad</h2>
       <ul class="lista">
-        ${lotes.map((lote) => {
-          const producto = porId.get(lote.producto_id);
-          const estado = estadoCaducidad(lote.caducidad, hoy, config.dias_caduca_pronto);
-          const dias = diasEntre(hoy, lote.caducidad);
+        ${lots.map((lot) => {
+          const product = byId.get(lot.producto_id);
+          const status = expiryStatus(lot.caducidad, today, config.dias_caduca_pronto);
+          const days = daysBetween(today, lot.caducidad);
           return html`
-            <li class=${`tarjeta estado-${estado}`}>
-              <${Miniatura} db=${db} fotoId=${lote.foto_id} />
+            <li class=${`tarjeta estado-${status}`}>
+              <${Thumbnail} db=${db} fotoId=${lot.foto_id} />
               <div class="tarjeta-cuerpo">
-                <strong>${producto.nombre}</strong>
-                <span class="secundario">${lote.ubicacion} · ${lote.cantidad} ud.</span>
-                <span class="etiqueta-estado">${formatearFecha(lote.caducidad)} · ${describirCaducidad(dias)}</span>
+                <strong>${product.nombre}</strong>
+                <span class="secundario">${lot.ubicacion} · ${lot.cantidad} ud.</span>
+                <span class="etiqueta-estado">${formatDate(lot.caducidad)} · ${describeExpiry(days)}</span>
               </div>
               <div class="tarjeta-acciones">
-                <${Boton} onClick=${() => consumirLote(lote, 1)}>−1<//>
-                <${Boton} tipo="secundario" onClick=${() => onEditarLote(lote)}>Editar<//>
+                <${Button} onClick=${() => consumeLot(lot, 1)}>−1<//>
+                <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>Editar<//>
               </div>
             </li>`;
         })}
@@ -58,8 +58,8 @@ export function PantallaCaducidad({ db, dispositivo, datos, config, notificar, r
 
 // ---------- Stock ----------
 // Pantalla de estadísticas: aquí se añaden las nuevas. Cuentan todo el stock, sin filtros.
-export function PantallaEstadisticas({ datos }) {
-  const e = estadisticasStock(datos.productos, datos.lotes, datos.cacheOff ?? []);
+export function StatisticsScreen({ datos: data }) {
+  const e = stockStatistics(data.productos, data.lotes, data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <h2>Estadísticas</h2>
@@ -85,39 +85,39 @@ export function PantallaEstadisticas({ datos }) {
     </section>`;
 }
 
-export function PantallaStock({ datos, config, onAbrirProducto }) {
-  const [categoria, setCategoria] = useState('');
-  const [ubicacion, setUbicacion] = useState('');
-  const hoy = hoyEnMadrid();
-  const resumen = filtrarResumen(resumenStock(datos.productos, datos.lotes), { categoria, ubicacion });
-  const categoriasUsadas = [...new Set(datos.productos.filter((p) => !p.borrado).map((p) => p.categoria))];
+export function StockScreen({ datos: data, config, onAbrirProducto }) {
+  const [category, setCategoria] = useState('');
+  const [location, setUbicacion] = useState('');
+  const today = todayInMadrid();
+  const summary = filterSummary(stockSummary(data.productos, data.lotes), { categoria: category, ubicacion: location });
+  const usedCategories = [...new Set(data.productos.filter((p) => !p.borrado).map((p) => p.categoria))];
   return html`
     <section class="pantalla">
       <h2>Stock</h2>
 
       <div class="fila">
-        <${Campo} etiqueta="Categoría">
-          <select value=${categoria} onChange=${(e) => setCategoria(e.currentTarget.value)}>
+        <${Field} etiqueta="Categoría">
+          <select value=${category} onChange=${(e) => setCategoria(e.currentTarget.value)}>
             <option value="">Todas</option>
-            ${[...new Set([...config.categorias, ...categoriasUsadas])].map((c) => html`<option value=${c} selected=${c === categoria}>${c}</option>`)}
+            ${[...new Set([...config.categorias, ...usedCategories])].map((c) => html`<option value=${c} selected=${c === category}>${c}</option>`)}
           </select>
         <//>
-        <${Campo} etiqueta="Ubicación">
-          <select value=${ubicacion} onChange=${(e) => setUbicacion(e.currentTarget.value)}>
+        <${Field} etiqueta="Ubicación">
+          <select value=${location} onChange=${(e) => setUbicacion(e.currentTarget.value)}>
             <option value="">Todas</option>
-            ${config.ubicaciones.map((u) => html`<option value=${u} selected=${u === ubicacion}>${u}</option>`)}
+            ${config.ubicaciones.map((u) => html`<option value=${u} selected=${u === location}>${u}</option>`)}
           </select>
         <//>
       </div>
-      ${resumen.length === 0 && html`<${Vacio}>Ningún producto con estos filtros.<//>`}
+      ${summary.length === 0 && html`<${Empty}>Ningún producto con estos filtros.<//>`}
       <ul class="lista">
-        ${resumen.map((fila) => html`
+        ${summary.map((row) => html`
           <li>
-            <button type="button" class="fila-boton" onClick=${() => onAbrirProducto(fila.producto)}>
-              <span class="fila-titulo">${fila.producto.nombre}</span>
-              <span class="secundario">${fila.producto.categoria}</span>
-              <span class="fila-dato">${fila.total} ud.${fila.proximaCaducidad
-                ? html` · ${formatearFecha(fila.proximaCaducidad)} (${describirCaducidad(diasEntre(hoy, fila.proximaCaducidad))})`
+            <button type="button" class="fila-boton" onClick=${() => onAbrirProducto(row.producto)}>
+              <span class="fila-titulo">${row.producto.nombre}</span>
+              <span class="secundario">${row.producto.categoria}</span>
+              <span class="fila-dato">${row.total} ud.${row.proximaCaducidad
+                ? html` · ${formatDate(row.proximaCaducidad)} (${describeExpiry(daysBetween(today, row.proximaCaducidad))})`
                 : ' · agotado'}</span>
             </button>
           </li>`)}
@@ -127,23 +127,23 @@ export function PantallaStock({ datos, config, onAbrirProducto }) {
 }
 
 // ---------- A reponer ----------
-export function PantallaReponer({ datos, onComprado }) {
-  const pendientes = aReponer(datos.productos, datos.lotes);
-  if (pendientes.length === 0) {
-    return html`<section class="pantalla"><h2>A reponer</h2><${Vacio}>Nada por debajo del mínimo.<//></section>`;
+export function RestockScreen({ datos: data, onComprado }) {
+  const pending = toRestock(data.productos, data.lotes);
+  if (pending.length === 0) {
+    return html`<section class="pantalla"><h2>A reponer</h2><${Empty}>Nada por debajo del mínimo.<//></section>`;
   }
   return html`
     <section class="pantalla">
       <h2>A reponer</h2>
       <ul class="lista">
-        ${pendientes.map((fila) => html`
+        ${pending.map((row) => html`
           <li class="tarjeta">
             <div class="tarjeta-cuerpo">
-              <strong>${fila.producto.nombre}</strong>
-              <span class="secundario">Hay ${fila.stock} de ${fila.producto.stock_minimo} · faltan ${fila.falta}</span>
+              <strong>${row.producto.nombre}</strong>
+              <span class="secundario">Hay ${row.stock} de ${row.producto.stock_minimo} · faltan ${row.falta}</span>
             </div>
             <div class="tarjeta-acciones">
-              <${Boton} onClick=${() => onComprado(fila.producto)}>Comprado<//>
+              <${Button} onClick=${() => onComprado(row.producto)}>Comprado<//>
             </div>
           </li>`)}
       </ul>
@@ -152,30 +152,30 @@ export function PantallaReponer({ datos, onComprado }) {
 }
 
 // ---------- Imprimir ----------
-export function PantallaImprimir({ db, datos }) {
-  const porId = mapaPorId(datos.productos);
-  const lotes = lotesVisibles(datos.lotes, datos.productos);
+export function PrintScreen({ db, datos: data }) {
+  const byId = mapById(data.productos);
+  const lots = visibleLots(data.lotes, data.productos);
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
         <h2>Imprimir</h2>
-        <${Boton} onClick=${() => window.print()}>Imprimir<//>
+        <${Button} onClick=${() => window.print()}>Imprimir<//>
       </div>
-      <p class="solo-imprimir cabecera-impresion">Inventario de casa · ${formatearFecha(hoyEnMadrid())}</p>
+      <p class="solo-imprimir cabecera-impresion">Inventario de casa · ${formatDate(todayInMadrid())}</p>
       <table class="tabla-imprimir">
         <thead>
           <tr><th>Foto</th><th>ID</th><th>Producto</th><th>Código</th><th>Ubicación</th><th>Caducidad</th><th>Cant.</th><th>Consumido</th></tr>
         </thead>
         <tbody>
-          ${lotes.map((lote) => html`
+          ${lots.map((lot) => html`
             <tr>
-              <td class="celda-foto"><${Miniatura} db=${db} fotoId=${lote.foto_id} /></td>
-              <td>${idCorto(lote.id)}</td>
-              <td>${porId.get(lote.producto_id).nombre}</td>
-              <td class="celda-codigo"><${CodigoBarras} codigo=${porId.get(lote.producto_id).codigo_barras} /></td>
-              <td>${lote.ubicacion}</td>
-              <td>${formatearFecha(lote.caducidad)}</td>
-              <td>${lote.cantidad}</td>
+              <td class="celda-foto"><${Thumbnail} db=${db} fotoId=${lot.foto_id} /></td>
+              <td>${shortId(lot.id)}</td>
+              <td>${byId.get(lot.producto_id).nombre}</td>
+              <td class="celda-codigo"><${Barcode} codigo=${byId.get(lot.producto_id).codigo_barras} /></td>
+              <td>${lot.ubicacion}</td>
+              <td>${formatDate(lot.caducidad)}</td>
+              <td>${lot.cantidad}</td>
               <td class="celda-vacia"></td>
             </tr>`)}
         </tbody>
@@ -186,15 +186,15 @@ export function PantallaImprimir({ db, datos }) {
 
 // ---------- Ajustes ----------
 // Instalar en la pantalla de inicio: botón en Android, instrucciones en iPhone.
-function InstalarApp() {
-  const [boton, setBoton] = useState(puedeInstalarConBoton());
+function InstallApp() {
+  const [boton, setBoton] = useState(canInstallWithButton());
   const [mensaje, setMensaje] = useState('');
-  useEffect(() => suscribirInstalacion(() => setBoton(puedeInstalarConBoton())), []);
+  useEffect(() => subscribeInstall(() => setBoton(canInstallWithButton())), []);
 
-  if (estaInstalada()) {
+  if (isInstalled()) {
     return html`<div class="bloque"><h3>Instalar</h3><p class="secundario">La app ya está en la pantalla de inicio.</p></div>`;
   }
-  if (esIOS()) {
+  if (isIOS()) {
     return html`
       <div class="bloque" data-testid="instalar-ios">
         <h3>Instalar</h3>
@@ -206,124 +206,124 @@ function InstalarApp() {
     <div class="bloque" data-testid="instalar-android">
       <h3>Instalar</h3>
       ${boton
-        ? html`<div class="acciones"><${Boton} onClick=${async () => setMensaje(await instalarApp() === 'accepted' ? 'Instalada.' : '')}>Instalar en la pantalla de inicio<//></div>`
+        ? html`<div class="acciones"><${Button} onClick=${async () => setMensaje(await installApp() === 'accepted' ? 'Instalada.' : '')}>Instalar en la pantalla de inicio<//></div>`
         : html`<p class="secundario">Para instalarla, abre el menú del navegador y elige «Instalar aplicación» o «Añadir a pantalla de inicio».</p>`}
       ${mensaje && html`<p class="secundario">${mensaje}</p>`}
     </div>`;
 }
-function ListaEditable({ titulo, valores, onGuardar, notificar }) {
-  const [nuevo, setNuevo] = useState('');
+function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUser }) {
+  const [newItem, setNuevo] = useState('');
   // Quitar una categoría o ubicación pide confirmación.
-  const quitar = (valor) => {
-    if (!window.confirm(`¿Quitar «${valor}»?`)) return;
-    const anteriores = valores;
-    onGuardar(valores.filter((v) => v !== valor))
-      .then(() => notificar(`Quitada «${valor}».`, 'info', { etiqueta: 'Deshacer', onClick: () => onGuardar(anteriores) }))
-      .catch((e) => notificar(e.message, 'error'));
+  const removeItem = (value) => {
+    if (!window.confirm(`¿Quitar «${value}»?`)) return;
+    const previous = values;
+    onGuardar(values.filter((v) => v !== value))
+      .then(() => notifyUser(`Quitada «${value}».`, 'info', { etiqueta: 'Deshacer', onClick: () => onGuardar(previous) }))
+      .catch((e) => notifyUser(e.message, 'error'));
   };
-  const añadir = (evento) => {
-    evento.preventDefault();
-    const texto = nuevo.trim();
-    if (!texto) return;
-    onGuardar([...valores, texto])
+  const add = (event) => {
+    event.preventDefault();
+    const text = newItem.trim();
+    if (!text) return;
+    onGuardar([...values, text])
       .then(() => setNuevo(''))
-      .catch((e) => notificar(e.message, 'error'));
+      .catch((e) => notifyUser(e.message, 'error'));
   };
   return html`
     <div class="bloque">
       <h3>${titulo}</h3>
       <ul class="chips">
-        ${valores.map((v) => html`<li class="chip">${v}<button type="button" aria-label=${`Quitar ${v}`} onClick=${() => quitar(v)}>✕</button></li>`)}
+        ${values.map((v) => html`<li class="chip">${v}<button type="button" aria-label=${`Quitar ${v}`} onClick=${() => removeItem(v)}>✕</button></li>`)}
       </ul>
-      <form class="fila" onSubmit=${añadir}>
-        <input value=${nuevo} onInput=${(e) => setNuevo(e.currentTarget.value)} aria-label=${`Nueva ${titulo.toLowerCase()}`} />
-        <${Boton} tipo="secundario" type="submit">Añadir<//>
+      <form class="fila" onSubmit=${add}>
+        <input value=${newItem} onInput=${(e) => setNuevo(e.currentTarget.value)} aria-label=${`Nueva ${titulo.toLowerCase()}`} />
+        <${Button} tipo="secundario" type="submit">Añadir<//>
       </form>
     </div>`;
 }
 
-export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar, sincronizacion, estadoSync, ultimaSync, pendientes, onGuardarSincro, onSincronizar }) {
-  const [sincro, setSincro] = useState(sincronizacion);
+export function SettingsScreen({ db, dispositivo: device, config, notificar: notifyUser, refrescar: refresh, sincronizacion: syncLogic, estadoSync, ultimaSync, pendientes: pending, onGuardarSincro, onSincronizar }) {
+  const [sincro, setSincro] = useState(syncLogic);
   const [importado, setImportado] = useState('');
-  const guardar = async (clave, valor) => {
-    const limpio = validarValor(clave, valor);
-    await guardarConfiguracion(db, clave, limpio);
-    refrescar();
-    return limpio;
+  const save = async (key, value) => {
+    const cleanData = validateValue(key, value);
+    await saveSetting(db, key, cleanData);
+    refresh();
+    return cleanData;
   };
 
-  async function exportar() {
+  async function runExport() {
     try {
-      descargarTexto(await exportarCopia(db, dispositivo));
-      notificar('Copia exportada', 'ok');
+      downloadText(await exportBackup(db, device));
+      notifyUser('Copia exportada', 'ok');
     } catch (e) {
-      notificar(`No se pudo exportar: ${e.message}`, 'error');
+      notifyUser(`No se pudo exportar: ${e.message}`, 'error');
     }
   }
 
-  async function importar(evento) {
-    const fichero = evento.currentTarget.files?.[0];
-    evento.currentTarget.value = '';
-    if (!fichero) return;
+  async function importBackup(event) {
+    const uploadedFile = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!uploadedFile) return;
     try {
-      const r = await importarCopia(db, fichero);
+      const r = await importBackupFile(db, uploadedFile);
       setImportado(`Importado: ${r.productos} productos y ${r.lotes} lotes nuevos o más recientes, ${r.fotos} fotos.`);
-      refrescar();
+      refresh();
     } catch (e) {
-      notificar(e.message, 'error');
+      notifyUser(e.message, 'error');
     }
   }
 
-  async function guardarSincro() {
-    const nueva = { url: sincro.url.trim(), token: sincro.token.trim() };
-    await guardarMeta(db, 'sync_url', nueva.url);
-    await guardarMeta(db, 'sync_token', nueva.token);
-    notificar('Datos de sincronización guardados', 'ok');
-    onGuardarSincro(nueva);
+  async function saveSyncSettings() {
+    const next = { url: sincro.url.trim(), token: sincro.token.trim() };
+    await saveMeta(db, 'sync_url', next.url);
+    await saveMeta(db, 'sync_token', next.token);
+    notifyUser('Datos de sincronización guardados', 'ok');
+    onGuardarSincro(next);
   }
 
   return html`
     <section class="pantalla">
       <h2>Ajustes</h2>
 
-      <${ListaEditable} titulo="Categorías" valores=${config.categorias}
-        onGuardar=${(lista) => guardar('categorias', lista)} notificar=${notificar} />
-      <${ListaEditable} titulo="Ubicaciones" valores=${config.ubicaciones}
-        onGuardar=${(lista) => guardar('ubicaciones', lista)} notificar=${notificar} />
+      <${EditableList} titulo="Categorías" valores=${config.categorias}
+        onGuardar=${(list) => save('categorias', list)} notificar=${notifyUser} />
+      <${EditableList} titulo="Ubicaciones" valores=${config.ubicaciones}
+        onGuardar=${(list) => save('ubicaciones', list)} notificar=${notifyUser} />
 
       <div class="bloque">
         <h3>Avisos</h3>
-        <${Campo} etiqueta="Días para «caduca pronto»">
+        <${Field} etiqueta="Días para «caduca pronto»">
           <input type="number" min="0" max="3650" value=${config.dias_caduca_pronto}
-            onChange=${(e) => guardar('dias_caduca_pronto', e.currentTarget.value).catch((err) => notificar(err.message, 'error'))} />
+            onChange=${(e) => save('dias_caduca_pronto', e.currentTarget.value).catch((err) => notifyUser(err.message, 'error'))} />
         <//>
-        <${Campo} etiqueta="Hora del aviso diario">
+        <${Field} etiqueta="Hora del aviso diario">
           <input type="time" value=${config.hora_aviso}
-            onChange=${(e) => guardar('hora_aviso', e.currentTarget.value).catch((err) => notificar(err.message, 'error'))} />
+            onChange=${(e) => save('hora_aviso', e.currentTarget.value).catch((err) => notifyUser(err.message, 'error'))} />
         <//>
-        <${Campo} etiqueta="Emails de avisos" ayuda="Uno por línea o separados por comas.">
-          <textarea rows="3" onChange=${(e) => guardar('emails_avisos', e.currentTarget.value.split(/[\s,]+/)).catch((err) => notificar(err.message, 'error'))}>${config.emails_avisos.join('\n')}</textarea>
+        <${Field} etiqueta="Emails de avisos" ayuda="Uno por línea o separados por comas.">
+          <textarea rows="3" onChange=${(e) => save('emails_avisos', e.currentTarget.value.split(/[\s,]+/)).catch((err) => notifyUser(err.message, 'error'))}>${config.emails_avisos.join('\n')}</textarea>
         <//>
       </div>
 
       <div class="bloque">
         <h3>Sincronización</h3>
         <p class="secundario" data-testid="estado-sync" role="status">${estadoSync.mensaje || 'Sin sincronizar.'}</p>
-        <p class="secundario">Operaciones pendientes de enviar: <strong data-testid="pendientes-sync">${pendientes}</strong>.
+        <p class="secundario">Operaciones pendientes de enviar: <strong data-testid="pendientes-sync">${pending}</strong>.
           ${ultimaSync ? ' Última sincronización: ' + new Date(ultimaSync).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }) + '.' : ' Aún no se ha sincronizado.'}</p>
-        <${Campo} etiqueta="URL de Apps Script">
+        <${Field} etiqueta="URL de Apps Script">
           <input type="url" value=${sincro.url} onInput=${(e) => setSincro({ ...sincro, url: e.currentTarget.value })} />
         <//>
-        <${Campo} etiqueta="Token">
+        <${Field} etiqueta="Token">
           <input type="password" autocomplete="off" value=${sincro.token} onInput=${(e) => setSincro({ ...sincro, token: e.currentTarget.value })} />
         <//>
         <div class="acciones">
-          <${Boton} tipo="secundario" onClick=${guardarSincro}>Guardar<//>
-          <${Boton} disabled=${estadoSync.estado === 'sincronizando'} onClick=${onSincronizar}>Sincronizar ahora<//>
+          <${Button} tipo="secundario" onClick=${saveSyncSettings}>Guardar<//>
+          <${Button} disabled=${estadoSync.estado === 'sincronizando'} onClick=${onSincronizar}>Sincronizar ahora<//>
         </div>
       </div>
 
-      <${InstalarApp} />
+      <${InstallApp} />
 
       <div class="bloque">
         <h3>Versión</h3>
@@ -339,13 +339,13 @@ export function PantallaAjustes({ db, dispositivo, config, notificar, refrescar,
       <div class="bloque">
         <h3>Copia de seguridad</h3>
         <div class="acciones">
-          <${Boton} onClick=${exportar}>Exportar JSON<//>
+          <${Button} onClick=${runExport}>Exportar JSON<//>
           <label class="boton secundario">
             Importar JSON
-            <input type="file" accept="application/json,.json" class="oculto" onChange=${importar} />
+            <input type="file" accept="application/json,.json" class="oculto" onChange=${importBackup} />
           </label>
         </div>
-        <${Aviso} tipo="ok">${importado}<//>
+        <${Notice} tipo="ok">${importado}<//>
         <p class="secundario">Importar fusiona la copia con lo que ya hay: gana el registro más reciente.</p>
       </div>
     </section>

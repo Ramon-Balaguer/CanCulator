@@ -6,11 +6,11 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
-const raiz = resolve(process.argv[2] ?? '.');
-const puerto = Number(process.env.PUERTO ?? 4173);
+const root = resolve(process.argv[2] ?? '.');
+const port = Number(process.env.PUERTO ?? 4173);
 const base = process.env.BASE ?? '/inventario/';
 
-const TIPOS = {
+const GTIN_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -23,33 +23,33 @@ const TIPOS = {
   '.wasm': 'application/wasm',
 };
 
-createServer(async (peticion, respuesta) => {
-  const ruta = decodeURIComponent(new URL(peticion.url, 'http://local').pathname);
-  if (ruta === '/' || ruta === base.slice(0, -1)) {
-    respuesta.writeHead(302, { Location: base }).end();
+createServer(async (request, response) => {
+  const route = decodeURIComponent(new URL(request.url, 'http://local').pathname);
+  if (route === '/' || route === base.slice(0, -1)) {
+    response.writeHead(302, { Location: base }).end();
     return;
   }
-  if (!ruta.startsWith(base)) {
-    respuesta.writeHead(404).end('No encontrado');
+  if (!route.startsWith(base)) {
+    response.writeHead(404).end('No encontrado');
     return;
   }
-  let fichero = normalize(join(raiz, ruta.slice(base.length)));
-  if (fichero !== raiz && !fichero.startsWith(raiz + sep)) {
-    respuesta.writeHead(403).end();
+  let uploadedFile = normalize(join(root, route.slice(base.length)));
+  if (uploadedFile !== root && !uploadedFile.startsWith(root + sep)) {
+    response.writeHead(403).end();
     return;
   }
   try {
-    if ((await stat(fichero)).isDirectory()) fichero = join(fichero, 'index.html');
-    const datos = await readFile(fichero);
-    respuesta.writeHead(200, {
-      'Content-Type': TIPOS[extname(fichero)] ?? 'application/octet-stream',
+    if ((await stat(uploadedFile)).isDirectory()) uploadedFile = join(uploadedFile, 'index.html');
+    const data = await readFile(uploadedFile);
+    response.writeHead(200, {
+      'Content-Type': GTIN_TYPES[extname(uploadedFile)] ?? 'application/octet-stream',
       'Cache-Control': 'no-cache',
     });
-    respuesta.end(datos);
+    response.end(data);
   } catch {
-    respuesta.writeHead(404).end('No encontrado');
+    response.writeHead(404).end('No encontrado');
   }
-}).listen(puerto, function () {
+}).listen(port, function () {
   // Con PUERTO=0 el sistema elige uno libre; se anuncia el real.
-  console.log(`Sirviendo ${raiz} en http://localhost:${this.address().port}${base}`);
+  console.log(`Sirviendo ${root} en http://localhost:${this.address().port}${base}`);
 });

@@ -3,65 +3,65 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { construir, CON_VERSION } from '../../scripts/construir.mjs';
-import { MARCADOR_VERSION } from '../../js/logica/version.js';
+import { build, WITH_VERSION } from '../../scripts/construir.mjs';
+import { VERSION_MARKER } from '../../js/logica/version.js';
 
 test('construir copia la app e inyecta el hash en sw.js y version.js', async () => {
   const hash = 'deadbeefcafe0123456789abcdef0123456789ab';
-  const destino = await construir(hash);
-  for (const fichero of CON_VERSION) {
-    const texto = await readFile(join(destino, fichero), 'utf8');
-    assert.ok(texto.includes(hash), `${fichero} contiene el hash`);
-    assert.ok(!texto.includes(MARCADOR_VERSION), `${fichero} no conserva el marcador`);
+  const destination = await build(hash);
+  for (const uploadedFile of WITH_VERSION) {
+    const text = await readFile(join(destination, uploadedFile), 'utf8');
+    assert.ok(text.includes(hash), `${uploadedFile} contiene el hash`);
+    assert.ok(!text.includes(VERSION_MARKER), `${uploadedFile} no conserva el marcador`);
   }
-  const sw = await readFile(join(destino, 'sw.js'), 'utf8');
-  assert.match(sw, /const CACHE = `\$\{PREFIJO\}\$\{VERSION\}`/);
-  assert.ok(existsSync(join(destino, 'index.html')));
-  assert.ok(!existsSync(join(destino, 'tests')), 'no publica las pruebas');
-  assert.ok(!existsSync(join(destino, 'node_modules')), 'no publica node_modules');
-  assert.ok(!existsSync(join(destino, 'package.json')), 'no publica package.json');
+  const sw = await readFile(join(destination, 'sw.js'), 'utf8');
+  assert.match(sw, /const CACHE = `\$\{PREFIX\}\$\{VERSION\}`/);
+  assert.ok(existsSync(join(destination, 'index.html')));
+  assert.ok(!existsSync(join(destination, 'tests')), 'no publica las pruebas');
+  assert.ok(!existsSync(join(destination, 'node_modules')), 'no publica node_modules');
+  assert.ok(!existsSync(join(destination, 'package.json')), 'no publica package.json');
 });
 
 test('todo lo que precarga el service worker existe', async () => {
   const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
-  const lista = sw.match(/const PRECARGA = \[([\s\S]*?)\];/)[1];
-  const rutas = [...lista.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]).filter(Boolean);
-  assert.ok(rutas.length > 0);
-  for (const ruta of rutas) {
-    assert.ok(existsSync(new URL(`../../${ruta}`, import.meta.url)), `existe ${ruta}`);
+  const list = sw.match(/const PRECACHE = \[([\s\S]*?)\];/)[1];
+  const routes = [...list.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  assert.ok(routes.length > 0);
+  for (const route of routes) {
+    assert.ok(existsSync(new URL(`../../${route}`, import.meta.url)), `existe ${route}`);
   }
 });
 
 test('todo lo que precarga el service worker se publica', async () => {
-  const { PUBLICADOS } = await import('../../scripts/construir.mjs');
+  const { PUBLISHED } = await import('../../scripts/construir.mjs');
   const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
-  const lista = sw.match(/const PRECARGA = \[([\s\S]*?)\];/)[1];
-  const rutas = [...lista.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]).filter(Boolean);
-  for (const ruta of rutas) {
-    assert.ok(PUBLICADOS.includes(ruta.split('/')[0]), `se publica ${ruta}`);
+  const list = sw.match(/const PRECACHE = \[([\s\S]*?)\];/)[1];
+  const routes = [...list.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]).filter(Boolean);
+  for (const route of routes) {
+    assert.ok(PUBLISHED.includes(route.split('/')[0]), `se publica ${route}`);
   }
 });
 
 test('el service worker precarga todos los ficheros de la app (sin conexión, todo debe estar)', async () => {
   const { readdir } = await import('node:fs/promises');
   const sw = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
-  const lista = sw.match(/const PRECARGA = \[([\s\S]*?)\];/)[1];
-  const precargados = new Set([...lista.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]));
-  async function recorrer(dir) {
-    const entradas = await readdir(new URL(`../../${dir}/`, import.meta.url), { withFileTypes: true });
-    const archivos = await Promise.all(entradas.map((e) => (e.isDirectory()
-      ? recorrer(`${dir}/${e.name}`)
+  const list = sw.match(/const PRECACHE = \[([\s\S]*?)\];/)[1];
+  const precached = new Set([...list.matchAll(/'\.\/([^']*)'/g)].map((m) => m[1]));
+  async function walk(dir) {
+    const entries = await readdir(new URL(`../../${dir}/`, import.meta.url), { withFileTypes: true });
+    const files = await Promise.all(entries.map((e) => (e.isDirectory()
+      ? walk(`${dir}/${e.name}`)
       : [`${dir}/${e.name}`])));
-    return archivos.flat();
+    return files.flat();
   }
-  const necesarios = [
-    ...await recorrer('js'),
-    ...await recorrer('css'),
-    ...(await recorrer('vendor')).filter((f) => !f.includes('/licencias/')),
+  const required = [
+    ...await walk('js'),
+    ...await walk('css'),
+    ...(await walk('vendor')).filter((f) => !f.includes('/licencias/')),
     'index.html',
     'prueba-camara.html',
     'manifest.webmanifest',
   ];
-  const faltan = necesarios.filter((f) => !precargados.has(f));
-  assert.deepEqual(faltan, [], 'ficheros que no se precargan');
+  const missing = required.filter((f) => !precached.has(f));
+  assert.deepEqual(missing, [], 'ficheros que no se precargan');
 });

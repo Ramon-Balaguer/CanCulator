@@ -1,51 +1,51 @@
 // Genera los iconos PNG de la app (una lata sobre fondo verde) sin dependencias.
 // Uso: node scripts/generar-iconos.mjs
-import { codificarPng } from './png.mjs';
+import { encodePng } from './png.mjs';
 import { writeFileSync } from 'node:fs';
 
-const FONDO = [47, 107, 58];
-const LATA = [236, 240, 236];
-const BORDE = [190, 198, 192];
-const ETIQUETA = [242, 184, 75];
+const BACKGROUND = [47, 107, 58];
+const CAN = [236, 240, 236];
+const BORDER = [190, 198, 192];
+const LABEL = [242, 184, 75];
 
-function dentroElipse(x, y, cx, cy, rx, ry) {
+function insideEllipse(x, y, cx, cy, rx, ry) {
   return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 }
 
 // Color en coordenadas normalizadas (0..1).
-function colorEn(x, y) {
-  const izq = 0.32, der = 0.68, arriba = 0.27, abajo = 0.75;
-  const cx = 0.5, rx = (der - izq) / 2, ry = 0.055;
-  if (dentroElipse(x, y, cx, arriba, rx, ry)) {
-    return dentroElipse(x, y, cx, arriba, rx * 0.85, ry * 0.7) ? BORDE : LATA;
+function colorAt(x, y) {
+  const left = 0.32, right = 0.68, up = 0.27, down = 0.75;
+  const cx = 0.5, rx = (right - left) / 2, ry = 0.055;
+  if (insideEllipse(x, y, cx, up, rx, ry)) {
+    return insideEllipse(x, y, cx, up, rx * 0.85, ry * 0.7) ? BORDER : CAN;
   }
-  const enCuerpo = x >= izq && x <= der && y >= arriba && y <= abajo;
-  if (enCuerpo || dentroElipse(x, y, cx, abajo, rx, ry)) {
-    if (y >= 0.42 && y <= 0.62 && enCuerpo) return ETIQUETA;
-    return LATA;
+  const inBody = x >= left && x <= right && y >= up && y <= down;
+  if (inBody || insideEllipse(x, y, cx, down, rx, ry)) {
+    if (y >= 0.42 && y <= 0.62 && inBody) return LABEL;
+    return CAN;
   }
-  return FONDO;
+  return BACKGROUND;
 }
 
-function png(tamano) {
+function png(size) {
   const sub = 4;
-  const rgb = Buffer.alloc(tamano * tamano * 3);
-  for (let py = 0; py < tamano; py++) {
-    for (let px = 0; px < tamano; px++) {
-      const suma = [0, 0, 0];
+  const rgb = Buffer.alloc(size * size * 3);
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const sum = [0, 0, 0];
       for (let sy = 0; sy < sub; sy++) {
         for (let sx = 0; sx < sub; sx++) {
-          const c = colorEn((px + (sx + 0.5) / sub) / tamano, (py + (sy + 0.5) / sub) / tamano);
-          suma[0] += c[0]; suma[1] += c[1]; suma[2] += c[2];
+          const c = colorAt((px + (sx + 0.5) / sub) / size, (py + (sy + 0.5) / sub) / size);
+          sum[0] += c[0]; sum[1] += c[1]; sum[2] += c[2];
         }
       }
-      for (let i = 0; i < 3; i++) rgb[(py * tamano + px) * 3 + i] = Math.round(suma[i] / (sub * sub));
+      for (let i = 0; i < 3; i++) rgb[(py * size + px) * 3 + i] = Math.round(sum[i] / (sub * sub));
     }
   }
-  return codificarPng(tamano, tamano, rgb);
+  return encodePng(size, size, rgb);
 }
 
-for (const [nombre, tamano] of [['icono-192.png', 192], ['icono-512.png', 512], ['apple-touch-icon.png', 180]]) {
-  writeFileSync(new URL(`../icons/${nombre}`, import.meta.url), png(tamano));
-  console.log(`icons/${nombre}`);
+for (const [name, size] of [['icono-192.png', 192], ['icono-512.png', 512], ['apple-touch-icon.png', 180]]) {
+  writeFileSync(new URL(`../icons/${name}`, import.meta.url), png(size));
+  console.log(`icons/${name}`);
 }

@@ -1,301 +1,301 @@
 // Acciones sobre el inventario. Cada una escribe el registro y su operación en la misma
 // transacción, así nunca queda un cambio sin su entrada en la cola de sincronización.
-import { TABLAS, peticion, transaccion } from './db.js';
-import { activo, buscarLoteIgual } from '../logica/inventario.js';
-import { esFechaISO } from '../logica/fechas.js';
+import { TABLES, request, transaction } from './db.js';
+import { isActive, findSameLot } from '../logica/inventario.js';
+import { isISODate } from '../logica/fechas.js';
 
-export const TIPOS_OPERACION = Object.freeze(['crear', 'editar', 'consumir', 'reponer', 'borrar']);
+export const OPERATION_TYPES = Object.freeze(['crear', 'editar', 'consumir', 'reponer', 'borrar']);
 
-const ahora = () => new Date().toISOString();
+const now = () => new Date().toISOString();
 
 // Sin crypto.randomUUID (navegadores antiguos) no hay forma segura de generar ids: se avisa.
-export function nuevoId() {
+export function newId() {
   if (!globalThis.crypto?.randomUUID) throw new Error('Este navegador no puede generar identificadores');
   return crypto.randomUUID();
 }
 
-export function nuevaOperacion({ dispositivo, tipo, entidad, entidad_id, cambio = {}, fecha = ahora(), id = nuevoId() }) {
-  if (!TIPOS_OPERACION.includes(tipo)) throw new Error(`Tipo de operación desconocido: ${tipo}`);
-  return { id, dispositivo, fecha, tipo, entidad, entidad_id, cambio };
+export function newOperation({ dispositivo: device, tipo: type, entidad: entity, entidad_id: entityId, cambio: change = {}, fecha: date = now(), id = newId() }) {
+  if (!OPERATION_TYPES.includes(type)) throw new Error(`Tipo de operación desconocido: ${type}`);
+  return { id, dispositivo: device, fecha: date, tipo: type, entidad: entity, entidad_id: entityId, cambio: change };
 }
 
 // Lee el id del dispositivo; si no existe, lo crea. Vive en Meta, no en Configuracion,
 // para que no viaje en las copias JSON ni en la sincronización.
-export async function dispositivoId(db) {
-  return transaccion(db, [TABLAS.meta], 'readwrite', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.meta);
-    const actual = await peticion(almacen.get('dispositivo_id'));
-    if (actual?.valor) return actual.valor;
-    const valor = nuevoId();
-    almacen.put({ clave: 'dispositivo_id', valor });
-    return valor;
+export async function deviceId(db) {
+  return transaction(db, [TABLES.meta], 'readwrite', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.meta);
+    const current = await request(objectStore.get('dispositivo_id'));
+    if (current?.valor) return current.valor;
+    const value = newId();
+    objectStore.put({ clave: 'dispositivo_id', valor: value });
+    return value;
   });
 }
 
-function validarProducto(datos) {
-  const nombre = String(datos.nombre ?? '').replace(/\s+/g, ' ').trim();
-  if (!nombre) throw new Error('El producto necesita un nombre');
-  const minimo = Number(datos.stock_minimo ?? 0);
-  if (!Number.isInteger(minimo) || minimo < 0) throw new Error('El stock mínimo debe ser un entero de 0 o más');
-  const limpio = {
-    nombre,
-    categoria: String(datos.categoria ?? 'otros'),
-    codigo_barras: String(datos.codigo_barras ?? '').trim(),
-    stock_minimo: minimo,
+function validateProduct(data) {
+  const name = String(data.nombre ?? '').replace(/\s+/g, ' ').trim();
+  if (!name) throw new Error('El producto necesita un nombre');
+  const minimum = Number(data.stock_minimo ?? 0);
+  if (!Number.isInteger(minimum) || minimum < 0) throw new Error('El stock mínimo debe ser un entero de 0 o más');
+  const cleanData = {
+    nombre: name,
+    categoria: String(data.categoria ?? 'otros'),
+    codigo_barras: String(data.codigo_barras ?? '').trim(),
+    stock_minimo: minimum,
   };
   // Calorías del producto: solo se tocan si vienen en los datos (vacío = sin dato).
-  if (datos.kcal_100g !== undefined) limpio.kcal_100g = numeroOpcional(datos.kcal_100g, 'Calorías por 100 g');
-  if (datos.peso_bote_g !== undefined) limpio.peso_bote_g = numeroOpcional(datos.peso_bote_g, 'Peso del bote');
-  return limpio;
+  if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, 'Calorías por 100 g');
+  if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, 'Peso del bote');
+  return cleanData;
 }
 
-function numeroOpcional(valor, nombre) {
-  if (valor === null || valor === undefined || valor === '') return '';
-  const n = Number(valor);
-  if (!Number.isFinite(n) || n < 0) throw new Error(`${nombre} debe ser un número de 0 o más`);
+function optionalNumber(value, name) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) throw new Error(`${name} debe ser un número de 0 o más`);
   return n;
 }
 
-function validarLote(datos) {
-  const cantidad = Number(datos.cantidad);
-  if (!Number.isInteger(cantidad) || cantidad < 1) throw new Error('La cantidad debe ser un entero de 1 o más');
-  if (!esFechaISO(datos.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
-  if (!datos.ubicacion) throw new Error('Elige una ubicación');
-  return cantidad;
+function validateLot(data) {
+  const quantity = Number(data.cantidad);
+  if (!Number.isInteger(quantity) || quantity < 1) throw new Error('La cantidad debe ser un entero de 1 o más');
+  if (!isISODate(data.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
+  if (!data.ubicacion) throw new Error('Elige una ubicación');
+  return quantity;
 }
 
 // Crea un producto. Si ya hay uno con ese código de barras, devuelve ese.
-export function crearProducto(db, dispositivo, datos) {
-  const limpio = validarProducto(datos);
-  return transaccion(db, [TABLAS.productos, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const productos = await peticion(tx.objectStore(TABLAS.productos).getAll());
-    if (limpio.codigo_barras) {
-      const igual = productos.find((p) => activo(p) && p.codigo_barras === limpio.codigo_barras);
-      if (igual) return igual;
+export function createProduct(db, device, data) {
+  const cleanData = validateProduct(data);
+  return transaction(db, [TABLES.productos, TABLES.operaciones], 'readwrite', async (tx) => {
+    const products = await request(tx.objectStore(TABLES.productos).getAll());
+    if (cleanData.codigo_barras) {
+      const same = products.find((p) => isActive(p) && p.codigo_barras === cleanData.codigo_barras);
+      if (same) return same;
     }
-    const producto = { id: nuevoId(), ...limpio, actualizado: ahora(), borrado: false };
-    tx.objectStore(TABLAS.productos).put(producto);
-    tx.objectStore(TABLAS.operaciones).put(nuevaOperacion({
-      dispositivo, tipo: 'crear', entidad: 'producto', entidad_id: producto.id, cambio: { ...limpio },
+    const product = { id: newId(), ...cleanData, actualizado: now(), borrado: false };
+    tx.objectStore(TABLES.productos).put(product);
+    tx.objectStore(TABLES.operaciones).put(newOperation({
+      dispositivo: device, tipo: 'crear', entidad: 'producto', entidad_id: product.id, cambio: { ...cleanData },
     }));
-    return producto;
+    return product;
   });
 }
 
-export function editarProducto(db, dispositivo, id, cambios) {
-  return transaccion(db, [TABLAS.productos, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.productos);
-    const actual = await peticion(almacen.get(id));
-    if (!actual) throw new Error('Producto no encontrado');
-    const limpio = validarProducto({ ...actual, ...cambios });
-    const cambio = Object.fromEntries(Object.entries(limpio).filter(([k, v]) => actual[k] !== v));
-    if (Object.keys(cambio).length === 0) return actual;
-    const producto = { ...actual, ...cambio, actualizado: ahora() };
-    almacen.put(producto);
-    tx.objectStore(TABLAS.operaciones).put(nuevaOperacion({
-      dispositivo, tipo: 'editar', entidad: 'producto', entidad_id: id, cambio,
+export function editProduct(db, device, id, changes) {
+  return transaction(db, [TABLES.productos, TABLES.operaciones], 'readwrite', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.productos);
+    const current = await request(objectStore.get(id));
+    if (!current) throw new Error('Producto no encontrado');
+    const cleanData = validateProduct({ ...current, ...changes });
+    const change = Object.fromEntries(Object.entries(cleanData).filter(([k, v]) => current[k] !== v));
+    if (Object.keys(change).length === 0) return current;
+    const product = { ...current, ...change, actualizado: now() };
+    objectStore.put(product);
+    tx.objectStore(TABLES.operaciones).put(newOperation({
+      dispositivo: device, tipo: 'editar', entidad: 'producto', entidad_id: id, cambio: change,
     }));
-    return producto;
+    return product;
   });
 }
 
 // Alta de unidades. Si ya existe un lote del mismo producto, caducidad y ubicación,
 // se suman a ese lote (reposición) en lugar de crear otro.
-export function altaLote(db, dispositivo, datos) {
-  const cantidad = validarLote(datos);
-  return transaccion(db, [TABLAS.lotes, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const lotes = await peticion(tx.objectStore(TABLAS.lotes).getAll());
-    const operaciones = tx.objectStore(TABLAS.operaciones);
-    const igual = buscarLoteIgual(lotes, { producto_id: datos.producto_id, caducidad: datos.caducidad, ubicacion: datos.ubicacion });
-    if (igual) {
-      const lote = { ...igual, cantidad: igual.cantidad + cantidad, actualizado: ahora() };
-      tx.objectStore(TABLAS.lotes).put(lote);
-      operaciones.put(nuevaOperacion({
-        dispositivo, tipo: 'reponer', entidad: 'lote', entidad_id: lote.id, cambio: { cantidad },
+export function addLot(db, device, data) {
+  const quantity = validateLot(data);
+  return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
+    const lots = await request(tx.objectStore(TABLES.lotes).getAll());
+    const operations = tx.objectStore(TABLES.operaciones);
+    const same = findSameLot(lots, { producto_id: data.producto_id, caducidad: data.caducidad, ubicacion: data.ubicacion });
+    if (same) {
+      const lot = { ...same, cantidad: same.cantidad + quantity, actualizado: now() };
+      tx.objectStore(TABLES.lotes).put(lot);
+      operations.put(newOperation({
+        dispositivo: device, tipo: 'reponer', entidad: 'lote', entidad_id: lot.id, cambio: { cantidad: quantity },
       }));
       // Ya había un lote con esa caducidad y ubicación: se suman las unidades y se avisa.
-      return { lote, fusionado: true, anterior: igual.cantidad, sumadas: cantidad };
+      return { lote: lot, fusionado: true, anterior: same.cantidad, sumadas: quantity };
     }
-    const lote = {
-      id: nuevoId(),
-      producto_id: datos.producto_id,
-      cantidad,
-      caducidad: datos.caducidad,
-      ubicacion: datos.ubicacion,
-      observaciones: String(datos.observaciones ?? '').trim(),
-      foto_id: datos.foto_id ?? '',
+    const lot = {
+      id: newId(),
+      producto_id: data.producto_id,
+      cantidad: quantity,
+      caducidad: data.caducidad,
+      ubicacion: data.ubicacion,
+      observaciones: String(data.observaciones ?? '').trim(),
+      foto_id: data.foto_id ?? '',
       revisar: 'no',
-      actualizado: ahora(),
+      actualizado: now(),
       borrado: false,
     };
-    tx.objectStore(TABLAS.lotes).put(lote);
-    operaciones.put(nuevaOperacion({
-      dispositivo, tipo: 'crear', entidad: 'lote', entidad_id: lote.id,
+    tx.objectStore(TABLES.lotes).put(lot);
+    operations.put(newOperation({
+      dispositivo: device, tipo: 'crear', entidad: 'lote', entidad_id: lot.id,
       cambio: {
-        producto_id: lote.producto_id,
-        cantidad,
-        caducidad: lote.caducidad,
-        ubicacion: lote.ubicacion,
-        observaciones: lote.observaciones,
-        foto_id: lote.foto_id,
+        producto_id: lot.producto_id,
+        cantidad: quantity,
+        caducidad: lot.caducidad,
+        ubicacion: lot.ubicacion,
+        observaciones: lot.observaciones,
+        foto_id: lot.foto_id,
       },
     }));
-    return { lote, fusionado: false };
+    return { lote: lot, fusionado: false };
   });
 }
 
 // Consumir o reponer unidades de un lote: siempre incrementos, nunca un valor fijo.
-export function ajustarLote(db, dispositivo, loteId, delta) {
+export function adjustLot(db, device, lotId, delta) {
   if (!Number.isInteger(delta) || delta === 0) throw new Error('El cambio debe ser un entero distinto de 0');
-  return transaccion(db, [TABLAS.lotes, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.lotes);
-    const actual = await peticion(almacen.get(loteId));
-    if (!actual || !activo(actual)) throw new Error('Lote no encontrado');
-    if (actual.cantidad + delta < 0) throw new Error('No puedes consumir más unidades de las que hay en el lote');
-    const lote = { ...actual, cantidad: actual.cantidad + delta, actualizado: ahora() };
-    almacen.put(lote);
-    tx.objectStore(TABLAS.operaciones).put(nuevaOperacion({
-      dispositivo,
+  return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.lotes);
+    const current = await request(objectStore.get(lotId));
+    if (!current || !isActive(current)) throw new Error('Lote no encontrado');
+    if (current.cantidad + delta < 0) throw new Error('No puedes consumir más unidades de las que hay en el lote');
+    const lot = { ...current, cantidad: current.cantidad + delta, actualizado: now() };
+    objectStore.put(lot);
+    tx.objectStore(TABLES.operaciones).put(newOperation({
+      dispositivo: device,
       tipo: delta < 0 ? 'consumir' : 'reponer',
       entidad: 'lote',
-      entidad_id: loteId,
+      entidad_id: lotId,
       cambio: { cantidad: delta },
     }));
-    return lote;
+    return lot;
   });
 }
 
-export const consumir = (db, dispositivo, loteId, unidades = 1) => ajustarLote(db, dispositivo, loteId, -unidades);
-export const reponer = (db, dispositivo, loteId, unidades = 1) => ajustarLote(db, dispositivo, loteId, unidades);
+export const consume = (db, device, lotId, units = 1) => adjustLot(db, device, lotId, -units);
+export const restock = (db, device, lotId, units = 1) => adjustLot(db, device, lotId, units);
 
-export function editarLote(db, dispositivo, id, cambios) {
-  return transaccion(db, [TABLAS.lotes, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.lotes);
-    const actual = await peticion(almacen.get(id));
-    if (!actual || !activo(actual)) throw new Error('Lote no encontrado');
-    const campos = {
-      caducidad: cambios.caducidad ?? actual.caducidad,
-      ubicacion: cambios.ubicacion ?? actual.ubicacion,
+export function editLot(db, device, id, changes) {
+  return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.lotes);
+    const current = await request(objectStore.get(id));
+    if (!current || !isActive(current)) throw new Error('Lote no encontrado');
+    const fields = {
+      caducidad: changes.caducidad ?? current.caducidad,
+      ubicacion: changes.ubicacion ?? current.ubicacion,
     };
-    if (!esFechaISO(campos.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
-    if (!campos.ubicacion) throw new Error('Elige una ubicación');
+    if (!isISODate(fields.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
+    if (!fields.ubicacion) throw new Error('Elige una ubicación');
     // "cantidad" es el número final que cuenta la persona (recuento), no un ajuste.
-    const nuevaCantidad = cambios.cantidad === undefined ? actual.cantidad : Number(cambios.cantidad);
-    if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
-    const nuevo = {
-      observaciones: cambios.observaciones !== undefined ? String(cambios.observaciones).trim() : actual.observaciones,
-      foto_id: cambios.foto_id ?? actual.foto_id,
+    const newQuantity = changes.cantidad === undefined ? current.cantidad : Number(changes.cantidad);
+    if (!Number.isInteger(newQuantity) || newQuantity < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
+    const newItem = {
+      observaciones: changes.observaciones !== undefined ? String(changes.observaciones).trim() : current.observaciones,
+      foto_id: changes.foto_id ?? current.foto_id,
     };
-    const cambio = Object.fromEntries(
-      Object.entries({ ...campos, ...nuevo }).filter(([k, v]) => actual[k] !== v),
+    const change = Object.fromEntries(
+      Object.entries({ ...fields, ...newItem }).filter(([k, v]) => current[k] !== v),
     );
-    const delta = nuevaCantidad - actual.cantidad;
-    if (Object.keys(cambio).length === 0 && delta === 0) return actual;
-    const lote = { ...actual, ...cambio, cantidad: nuevaCantidad, actualizado: ahora() };
-    almacen.put(lote);
-    const operaciones = tx.objectStore(TABLAS.operaciones);
-    if (Object.keys(cambio).length > 0) {
-      operaciones.put(nuevaOperacion({
-        dispositivo, tipo: 'editar', entidad: 'lote', entidad_id: id, cambio,
+    const delta = newQuantity - current.cantidad;
+    if (Object.keys(change).length === 0 && delta === 0) return current;
+    const lot = { ...current, ...change, cantidad: newQuantity, actualizado: now() };
+    objectStore.put(lot);
+    const operations = tx.objectStore(TABLES.operaciones);
+    if (Object.keys(change).length > 0) {
+      operations.put(newOperation({
+        dispositivo: device, tipo: 'editar', entidad: 'lote', entidad_id: id, cambio: change,
       }));
     }
     // La diferencia viaja como incremento (reponer o consumir), igual que el resto de cambios de stock.
     if (delta !== 0) {
-      operaciones.put(nuevaOperacion({
-        dispositivo, tipo: delta > 0 ? 'reponer' : 'consumir', entidad: 'lote', entidad_id: id, cambio: { cantidad: delta },
+      operations.put(newOperation({
+        dispositivo: device, tipo: delta > 0 ? 'reponer' : 'consumir', entidad: 'lote', entidad_id: id, cambio: { cantidad: delta },
       }));
     }
-    return lote;
+    return lot;
   });
 }
 
 // Borrado lógico: nunca se elimina el registro.
-export function borrarLote(db, dispositivo, id) {
-  return transaccion(db, [TABLAS.lotes, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.lotes);
-    const actual = await peticion(almacen.get(id));
-    if (!actual || !activo(actual)) return actual ?? null;
-    const lote = { ...actual, borrado: true, actualizado: ahora() };
-    almacen.put(lote);
-    tx.objectStore(TABLAS.operaciones).put(nuevaOperacion({
-      dispositivo, tipo: 'borrar', entidad: 'lote', entidad_id: id, cambio: { borrado: true },
+export function removeLot(db, device, id) {
+  return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.lotes);
+    const current = await request(objectStore.get(id));
+    if (!current || !isActive(current)) return current ?? null;
+    const lot = { ...current, borrado: true, actualizado: now() };
+    objectStore.put(lot);
+    tx.objectStore(TABLES.operaciones).put(newOperation({
+      dispositivo: device, tipo: 'borrar', entidad: 'lote', entidad_id: id, cambio: { borrado: true },
     }));
-    return lote;
+    return lot;
   });
 }
 
 // Borra un producto y sus lotes activos, cada uno con su operación.
-export function borrarProducto(db, dispositivo, id) {
-  return transaccion(db, [TABLAS.productos, TABLAS.lotes, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const productos = tx.objectStore(TABLAS.productos);
-    const lotes = tx.objectStore(TABLAS.lotes);
-    const operaciones = tx.objectStore(TABLAS.operaciones);
-    const producto = await peticion(productos.get(id));
-    if (!producto || !activo(producto)) return null;
-    productos.put({ ...producto, borrado: true, actualizado: ahora() });
-    operaciones.put(nuevaOperacion({ dispositivo, tipo: 'borrar', entidad: 'producto', entidad_id: id, cambio: { borrado: true } }));
-    const suyos = (await peticion(lotes.getAll())).filter((l) => activo(l) && l.producto_id === id);
-    for (const lote of suyos) {
-      lotes.put({ ...lote, borrado: true, actualizado: ahora() });
-      operaciones.put(nuevaOperacion({ dispositivo, tipo: 'borrar', entidad: 'lote', entidad_id: lote.id, cambio: { borrado: true } }));
+export function removeProduct(db, device, id) {
+  return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
+    const products = tx.objectStore(TABLES.productos);
+    const lots = tx.objectStore(TABLES.lotes);
+    const operations = tx.objectStore(TABLES.operaciones);
+    const product = await request(products.get(id));
+    if (!product || !isActive(product)) return null;
+    products.put({ ...product, borrado: true, actualizado: now() });
+    operations.put(newOperation({ dispositivo: device, tipo: 'borrar', entidad: 'producto', entidad_id: id, cambio: { borrado: true } }));
+    const own = (await request(lots.getAll())).filter((l) => isActive(l) && l.producto_id === id);
+    for (const lot of own) {
+      lots.put({ ...lot, borrado: true, actualizado: now() });
+      operations.put(newOperation({ dispositivo: device, tipo: 'borrar', entidad: 'lote', entidad_id: lot.id, cambio: { borrado: true } }));
     }
-    return { producto, lotes: suyos.length };
+    return { producto: product, lotes: own.length };
   });
 }
 
 // Configuración: valores por clave. No genera operaciones (la sincronización de ajustes
 // se decide en la fase 4).
 // Guarda un ajuste con su fecha, para que la sincronización gane el más reciente.
-export function guardarConfiguracion(db, clave, valor) {
-  return transaccion(db, [TABLAS.configuracion], 'readwrite', (tx) => {
-    tx.objectStore(TABLAS.configuracion).put({ clave, valor, actualizado: ahora() });
-    return valor;
+export function saveSetting(db, key, value) {
+  return transaction(db, [TABLES.configuracion], 'readwrite', (tx) => {
+    tx.objectStore(TABLES.configuracion).put({ clave: key, valor: value, actualizado: now() });
+    return value;
   });
 }
 
 // Las fotos se guardan como bytes y no como Blob: WebKit (Safari) no puede guardar en
 // IndexedDB un Blob creado con canvas.toBlob ("Error preparing Blob/File data").
-export async function guardarFoto(db, blob) {
-  const id = nuevoId();
+export async function savePhoto(db, blob) {
+  const id = newId();
   const bytes = await blob.arrayBuffer();
-  return transaccion(db, [TABLAS.fotos], 'readwrite', (tx) => {
-    tx.objectStore(TABLAS.fotos).put({ id, bytes, tipo: blob.type || 'image/jpeg', creada: ahora() });
+  return transaction(db, [TABLES.fotos], 'readwrite', (tx) => {
+    tx.objectStore(TABLES.fotos).put({ id, bytes, tipo: blob.type || 'image/jpeg', creada: now() });
     return id;
   });
 }
 
 // Un lote puede llevar el id local de la foto o, tras subirla a Drive, el id de Drive.
-export async function leerFoto(db, id) {
+export async function readPhoto(db, id) {
   if (!id) return null;
-  const foto = await transaccion(db, [TABLAS.fotos], 'readonly', async (tx) => {
-    const almacen = tx.objectStore(TABLAS.fotos);
-    const directa = await peticion(almacen.get(id));
-    if (directa) return directa;
-    return (await peticion(almacen.getAll())).find((f) => f.drive_id === id) ?? null;
+  const photo = await transaction(db, [TABLES.fotos], 'readonly', async (tx) => {
+    const objectStore = tx.objectStore(TABLES.fotos);
+    const direct = await request(objectStore.get(id));
+    if (direct) return direct;
+    return (await request(objectStore.getAll())).find((f) => f.drive_id === id) ?? null;
   });
-  if (!foto) return null;
-  return { id: foto.id, creada: foto.creada, blob: new Blob([foto.bytes], { type: foto.tipo }) };
+  if (!photo) return null;
+  return { id: photo.id, creada: photo.creada, blob: new Blob([photo.bytes], { type: photo.tipo }) };
 }
 
 // Lee todo lo que necesita la interfaz de una vez.
-export function cargarTodo(db) {
-  return transaccion(db, Object.values(TABLAS), 'readonly', async (tx) => ({
-    productos: await peticion(tx.objectStore(TABLAS.productos).getAll()),
-    lotes: await peticion(tx.objectStore(TABLAS.lotes).getAll()),
-    configuracion: await peticion(tx.objectStore(TABLAS.configuracion).getAll()),
-    operaciones: await peticion(tx.objectStore(TABLAS.operaciones).getAll()),
-    cacheOff: await peticion(tx.objectStore(TABLAS.cacheOff).getAll()),
+export function loadAll(db) {
+  return transaction(db, Object.values(TABLES), 'readonly', async (tx) => ({
+    productos: await request(tx.objectStore(TABLES.productos).getAll()),
+    lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
+    configuracion: await request(tx.objectStore(TABLES.configuracion).getAll()),
+    operaciones: await request(tx.objectStore(TABLES.operaciones).getAll()),
+    cacheOff: await request(tx.objectStore(TABLES.cacheOff).getAll()),
   }));
 }
 
 // Ajustes locales del móvil (no se exportan ni se sincronizan), como la URL y el token.
-export function guardarMeta(db, clave, valor) {
-  return transaccion(db, [TABLAS.meta], 'readwrite', (tx) => {
-    tx.objectStore(TABLAS.meta).put({ clave, valor });
-    return valor;
+export function saveMeta(db, key, value) {
+  return transaction(db, [TABLES.meta], 'readwrite', (tx) => {
+    tx.objectStore(TABLES.meta).put({ clave: key, valor: value });
+    return value;
   });
 }
 
-export function leerMeta(db, clave) {
-  return transaccion(db, [TABLAS.meta], 'readonly', async (tx) => (await peticion(tx.objectStore(TABLAS.meta).get(clave)))?.valor ?? '');
+export function readMeta(db, key) {
+  return transaction(db, [TABLES.meta], 'readonly', async (tx) => (await request(tx.objectStore(TABLES.meta).get(key)))?.valor ?? '');
 }

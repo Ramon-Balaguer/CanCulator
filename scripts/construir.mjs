@@ -6,26 +6,26 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { inyectarVersion } from '../js/logica/version.js';
+import { injectVersion } from '../js/logica/version.js';
 
-const raiz = fileURLToPath(new URL('..', import.meta.url));
-const destino = join(raiz, '_site');
+const root = fileURLToPath(new URL('..', import.meta.url));
+const destination = join(root, '_site');
 
-export const PUBLICADOS = ['index.html', 'prueba-camara.html', 'manifest.webmanifest', 'sw.js', 'css', 'js', 'icons', 'vendor'];
-export const CON_VERSION = ['sw.js', 'js/version.js'];
+export const PUBLISHED = ['index.html', 'prueba-camara.html', 'manifest.webmanifest', 'sw.js', 'css', 'js', 'icons', 'vendor'];
+export const WITH_VERSION = ['sw.js', 'js/version.js'];
 
-export async function construir(hash) {
-  await rm(destino, { recursive: true, force: true });
-  await mkdir(destino, { recursive: true });
-  for (const entrada of PUBLICADOS) {
-    const origen = join(raiz, entrada);
-    if (existsSync(origen)) await cp(origen, join(destino, entrada), { recursive: true });
+export async function build(hash) {
+  await rm(destination, { recursive: true, force: true });
+  await mkdir(destination, { recursive: true });
+  for (const entry of PUBLISHED) {
+    const origin = join(root, entry);
+    if (existsSync(origin)) await cp(origin, join(destination, entry), { recursive: true });
   }
-  for (const fichero of CON_VERSION) {
-    const ruta = join(destino, fichero);
-    await writeFile(ruta, inyectarVersion(await readFile(ruta, 'utf8'), hash));
+  for (const uploadedFile of WITH_VERSION) {
+    const route = join(destination, uploadedFile);
+    await writeFile(route, injectVersion(await readFile(route, 'utf8'), hash));
   }
-  return destino;
+  return destination;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -34,5 +34,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.error('Falta el hash del commit');
     process.exit(1);
   }
-  console.log(`Construido en ${await construir(hash)} con versión ${hash}`);
+  console.log(`Construido en ${await build(hash)} con versión ${hash}`);
 }

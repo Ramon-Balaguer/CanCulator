@@ -1,10 +1,10 @@
 // IndexedDB: apertura y migraciones versionadas. Las migraciones solo crean lo que falta;
 // nunca borran tablas ni datos.
 
-export const NOMBRE_BD = 'inventario-casa';
+export const DB_NAME = 'inventario-casa';
 
 // Tablas: los mismos nombres que en la Google Sheet.
-export const TABLAS = Object.freeze({
+export const TABLES = Object.freeze({
   productos: 'Productos',
   lotes: 'Lotes',
   configuracion: 'Configuracion',
@@ -14,78 +14,78 @@ export const TABLAS = Object.freeze({
   cacheOff: 'cache_off',
 });
 
-const crearSiFalta = (db, nombre, opciones) => {
-  if (!db.objectStoreNames.contains(nombre)) db.createObjectStore(nombre, opciones);
+const createIfMissing = (db, name, options) => {
+  if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, options);
 };
 
 // MIGRACIONES[n] lleva de la versión n-1 a la n. Añadir nuevas al final, no editar las anteriores.
-const MIGRACIONES = [
+const MIGRATIONS = [
   null,
   (db) => {
-    crearSiFalta(db, TABLAS.productos, { keyPath: 'id' });
-    if (!db.objectStoreNames.contains(TABLAS.lotes)) {
-      db.createObjectStore(TABLAS.lotes, { keyPath: 'id' }).createIndex('producto_id', 'producto_id');
+    createIfMissing(db, TABLES.productos, { keyPath: 'id' });
+    if (!db.objectStoreNames.contains(TABLES.lotes)) {
+      db.createObjectStore(TABLES.lotes, { keyPath: 'id' }).createIndex('producto_id', 'producto_id');
     }
-    crearSiFalta(db, TABLAS.configuracion, { keyPath: 'clave' });
-    crearSiFalta(db, TABLAS.operaciones, { keyPath: 'id' });
-    crearSiFalta(db, TABLAS.fotos, { keyPath: 'id' });
-    crearSiFalta(db, TABLAS.meta, { keyPath: 'clave' });
+    createIfMissing(db, TABLES.configuracion, { keyPath: 'clave' });
+    createIfMissing(db, TABLES.operaciones, { keyPath: 'id' });
+    createIfMissing(db, TABLES.fotos, { keyPath: 'id' });
+    createIfMissing(db, TABLES.meta, { keyPath: 'clave' });
   },
   // v2: caché de Open Food Facts (fase 3).
   (db) => {
-    crearSiFalta(db, TABLAS.cacheOff, { keyPath: 'codigo' });
+    createIfMissing(db, TABLES.cacheOff, { keyPath: 'codigo' });
   },
 ];
 
-export const VERSION_ESQUEMA = MIGRACIONES.length - 1;
+export const SCHEMA_VERSION = MIGRATIONS.length - 1;
 
-export function abrirBD(nombre = NOMBRE_BD, indexedDB = globalThis.indexedDB) {
-  return new Promise((resolver, rechazar) => {
-    const peticion = indexedDB.open(nombre, VERSION_ESQUEMA);
-    peticion.onupgradeneeded = (evento) => {
-      const db = peticion.result;
-      const tx = peticion.transaction;
-      for (let v = (evento.oldVersion ?? 0) + 1; v <= VERSION_ESQUEMA; v++) {
-        MIGRACIONES[v](db, tx);
+export function openDatabase(name = DB_NAME, indexedDB = globalThis.indexedDB) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(name, SCHEMA_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      const tx = request.transaction;
+      for (let v = (event.oldVersion ?? 0) + 1; v <= SCHEMA_VERSION; v++) {
+        MIGRATIONS[v](db, tx);
       }
     };
-    peticion.onsuccess = () => {
-      const db = peticion.result;
+    request.onsuccess = () => {
+      const db = request.result;
       // Si otra versión de la app (más nueva) quiere actualizar la base de datos, esta conexión
       // se cierra para no bloquearla. La app avisa de que hay que recargar.
       db.onversionchange = () => {
         db.close();
         globalThis.dispatchEvent?.(new Event('bd-version-nueva'));
       };
-      resolver(db);
+      resolve(db);
     };
-    peticion.onerror = () => rechazar(peticion.error);
-    peticion.onblocked = () => rechazar(new Error('La base de datos está abierta en otra pestaña. Ciérrala y recarga.'));
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('La base de datos está abierta en otra pestaña. Ciérrala y recarga.'));
   });
 }
 
-export function peticion(req) {
-  return new Promise((resolver, rechazar) => {
-    req.onsuccess = () => resolver(req.result);
-    req.onerror = () => rechazar(req.error);
+export function request(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
 }
 
 // Ejecuta fn(tx) dentro de una transacción. fn puede esperar peticiones de IndexedDB
 // con await (son parte de la transacción), pero nunca otras promesas externas.
-export function transaccion(db, tablas, modo, fn) {
-  return new Promise((resolver, rechazar) => {
-    const tx = db.transaction(tablas, modo);
-    let resultado;
-    let fallo = null;
-    tx.oncomplete = () => (fallo ? rechazar(fallo) : resolver(resultado));
-    tx.onerror = () => { fallo ??= tx.error; };
-    tx.onabort = () => rechazar(fallo ?? tx.error ?? new Error('Transacción cancelada'));
+export function transaction(db, tables, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(tables, mode);
+    let result;
+    let failure = null;
+    tx.oncomplete = () => (failure ? reject(failure) : resolve(result));
+    tx.onerror = () => { failure ??= tx.error; };
+    tx.onabort = () => reject(failure ?? tx.error ?? new Error('Transacción cancelada'));
     Promise.resolve()
       .then(() => fn(tx))
-      .then((valor) => { resultado = valor; })
+      .then((value) => { result = value; })
       .catch((error) => {
-        fallo = error;
+        failure = error;
         try { tx.abort(); } catch { /* ya terminada */ }
       });
   });

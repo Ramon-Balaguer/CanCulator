@@ -1,23 +1,23 @@
 import { html, render } from 'htm/preact';
 import { VERSION } from './version.js';
-import { textoVersion } from './logica/version.js';
-import { abrirBD } from './datos/db.js';
-import { Raiz } from './ui/raiz.js';
-import { iniciarCapturaInstalacion } from './ui/instalacion.js';
+import { versionText } from './logica/version.js';
+import { openDatabase } from './datos/db.js';
+import { Root } from './ui/raiz.js';
+import { startInstallCapture } from './ui/instalacion.js';
 
-iniciarCapturaInstalacion();
+startInstallCapture();
 
-document.getElementById('version').textContent = textoVersion(VERSION);
+document.getElementById('version').textContent = versionText(VERSION);
 
-const estadoConexion = document.getElementById('estado-conexion');
-function pintarConexion() {
-  const enLinea = navigator.onLine;
-  estadoConexion.dataset.estado = enLinea ? 'en-linea' : 'sin-conexion';
-  estadoConexion.textContent = enLinea ? 'En línea' : 'Sin conexión';
+const connectionStatus = document.getElementById('estado-conexion');
+function paintConnection() {
+  const online = navigator.onLine;
+  connectionStatus.dataset.estado = online ? 'en-linea' : 'sin-conexion';
+  connectionStatus.textContent = online ? 'En línea' : 'Sin conexión';
 }
-window.addEventListener('online', pintarConexion);
-window.addEventListener('offline', pintarConexion);
-pintarConexion();
+window.addEventListener('online', paintConnection);
+window.addEventListener('offline', paintConnection);
+paintConnection();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js', { scope: './' }).catch((error) => {
@@ -25,11 +25,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const contenedor = document.getElementById('contenido');
-abrirBD()
-  .then((db) => render(html`<${Raiz} db=${db} />`, contenedor))
+const container = document.getElementById('contenido');
+openDatabase()
+  .then((db) => render(html`<${Root} db=${db} />`, container))
   .catch((error) => {
     // Sin IndexedDB no hay forma de guardar nada: se avisa claro en lugar de una pantalla vacía.
-    contenedor.textContent = `No se puede guardar datos en este navegador: ${error.message}`;
-    contenedor.dataset.error = 'bd';
+    container.textContent = `No se puede guardar datos en este navegador: ${error.message}`;
+    container.dataset.error = 'bd';
   });

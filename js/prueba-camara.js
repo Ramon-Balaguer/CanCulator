@@ -1,30 +1,30 @@
 // Página de diagnóstico: comprueba en el móvil que la cámara abre y que ZXing lee un código real.
 import { html, render } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { esGtinValido, normalizarCodigo, tipoCodigo } from './logica/codigo-barras.js';
-import { MENSAJE_FOTO_SIN_CODIGO, mensajeErrorCamara, RESTRICCIONES_CAMARA } from './logica/camara.js';
+import { isValidGtin, normalizeCode, codeType } from './logica/codigo-barras.js';
+import { PHOTO_NO_CODE_MESSAGE, cameraErrorMessage, CAMERA_CONSTRAINTS } from './logica/camara.js';
 
 const { BrowserMultiFormatOneDReader, BarcodeFormat } = window.ZXingBrowser;
 
-const TEXTO_ESTADO = {
+const STATUS_TEXT = {
   parada: 'Cámara parada',
   abriendo: 'Abriendo cámara…',
   leyendo: 'Buscando código…',
 };
 
-function nuevaLectura(resultado, origen) {
-  const texto = normalizarCodigo(resultado.getText());
+function newReading(result, origin) {
+  const text = normalizeCode(result.getText());
   return {
-    texto,
-    formato: BarcodeFormat[resultado.getBarcodeFormat()] ?? 'desconocido',
-    tipo: tipoCodigo(texto),
-    valido: esGtinValido(texto),
-    origen,
+    texto: text,
+    formato: BarcodeFormat[result.getBarcodeFormat()] ?? 'desconocido',
+    tipo: codeType(text),
+    valido: isValidGtin(text),
+    origen: origin,
   };
 }
 
-function Diagnostico() {
-  const filas = [
+function Diagnostics() {
+  const rows = [
     ['Contexto seguro (HTTPS)', window.isSecureContext],
     ['Acceso a cámara (mediaDevices)', !!navigator.mediaDevices?.getUserMedia],
     ['Instalada en pantalla de inicio', matchMedia('(display-mode: standalone)').matches || navigator.standalone === true],
@@ -34,8 +34,8 @@ function Diagnostico() {
     <section class="tarjeta">
       <h2>Este dispositivo</h2>
       <dl class="diagnostico">
-        ${filas.map(([nombre, valor]) => html`
-          <dt>${nombre}</dt><dd data-ok=${valor ? 'si' : 'no'}>${valor ? 'sí' : 'no'}</dd>
+        ${rows.map(([name, value]) => html`
+          <dt>${name}</dt><dd data-ok=${value ? 'si' : 'no'}>${value ? 'sí' : 'no'}</dd>
         `)}
       </dl>
       <p class="nota">${navigator.userAgent}</p>
@@ -43,65 +43,65 @@ function Diagnostico() {
   `;
 }
 
-function Resultado({ lectura }) {
+function Result({ lectura }) {
   if (!lectura) return null;
-  const control = lectura.valido ? 'dígito de control correcto' : 'dígito de control incorrecto';
+  const check = lectura.valido ? 'dígito de control correcto' : 'dígito de control incorrecto';
   return html`
     <section class="tarjeta" aria-live="polite">
       <h2>Código leído</h2>
       <p class="codigo" data-testid="codigo-leido">${lectura.texto}</p>
-      <p data-testid="codigo-detalle">${lectura.tipo ?? lectura.formato} · ${control} · desde ${lectura.origen}</p>
+      <p data-testid="codigo-detalle">${lectura.tipo ?? lectura.formato} · ${check} · desde ${lectura.origen}</p>
     </section>
   `;
 }
 
-function PruebaCamara() {
+function CameraTest() {
   const video = useRef(null);
-  const controles = useRef(null);
-  const lector = useRef(new BrowserMultiFormatOneDReader());
-  const [estado, setEstado] = useState('parada');
+  const controls = useRef(null);
+  const reader = useRef(new BrowserMultiFormatOneDReader());
+  const [status, setEstado] = useState('parada');
   const [lectura, setLectura] = useState(null);
   const [error, setError] = useState('');
 
-  const parar = () => {
-    controles.current?.stop();
-    controles.current = null;
+  const stop = () => {
+    controls.current?.stop();
+    controls.current = null;
     setEstado('parada');
   };
 
-  useEffect(() => parar, []);
+  useEffect(() => stop, []);
 
-  async function abrir() {
+  async function open() {
     setError('');
     setLectura(null);
     setEstado('abriendo');
     try {
-      controles.current = await lector.current.decodeFromConstraints(RESTRICCIONES_CAMARA, video.current, (resultado) => {
-        if (!resultado) return;
-        setLectura(nuevaLectura(resultado, 'cámara'));
+      controls.current = await reader.current.decodeFromConstraints(CAMERA_CONSTRAINTS, video.current, (result) => {
+        if (!result) return;
+        setLectura(newReading(result, 'cámara'));
         navigator.vibrate?.(80);
-        parar();
+        stop();
       });
       // Si ya se leyó un código mientras arrancaba, no volver a "leyendo".
-      if (controles.current) setEstado('leyendo');
+      if (controls.current) setEstado('leyendo');
     } catch (e) {
-      setError(mensajeErrorCamara(e));
-      parar();
+      setError(cameraErrorMessage(e));
+      stop();
     }
   }
 
-  async function leerFoto(evento) {
-    const entrada = evento.currentTarget;
-    const fichero = entrada.files?.[0];
-    entrada.value = '';
-    if (!fichero) return;
+  async function readPhoto(event) {
+    const entry = event.currentTarget;
+    const uploadedFile = entry.files?.[0];
+    entry.value = '';
+    if (!uploadedFile) return;
     setError('');
     setLectura(null);
-    const url = URL.createObjectURL(fichero);
+    const url = URL.createObjectURL(uploadedFile);
     try {
-      setLectura(nuevaLectura(await lector.current.decodeFromImageUrl(url), 'foto'));
+      setLectura(newReading(await reader.current.decodeFromImageUrl(url), 'foto'));
     } catch {
-      setError(MENSAJE_FOTO_SIN_CODIGO);
+      setError(PHOTO_NO_CODE_MESSAGE);
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -110,20 +110,20 @@ function PruebaCamara() {
   return html`
     <p>Apunta a un código de barras de una lata o paquete. Si la cámara en vivo falla, prueba con una foto.</p>
     <div class="acciones">
-      ${estado === 'parada'
-        ? html`<button type="button" class="boton" onClick=${abrir}>Abrir cámara</button>`
-        : html`<button type="button" class="boton secundario" onClick=${parar}>Parar cámara</button>`}
+      ${status === 'parada'
+        ? html`<button type="button" class="boton" onClick=${open}>Abrir cámara</button>`
+        : html`<button type="button" class="boton secundario" onClick=${stop}>Parar cámara</button>`}
       <label class="boton secundario">
         Leer de una foto
-        <input type="file" accept="image/*" capture="environment" class="oculto" data-testid="foto" onChange=${leerFoto} />
+        <input type="file" accept="image/*" capture="environment" class="oculto" data-testid="foto" onChange=${readPhoto} />
       </label>
     </div>
-    <p class="estado" data-testid="estado-camara">${TEXTO_ESTADO[estado]}</p>
-    <video ref=${video} class="visor" hidden=${estado === 'parada'} playsinline muted autoplay></video>
+    <p class="estado" data-testid="estado-camara">${STATUS_TEXT[status]}</p>
+    <video ref=${video} class="visor" hidden=${status === 'parada'} playsinline muted autoplay></video>
     ${error && html`<p class="error" role="alert">${error}</p>`}
-    <${Resultado} lectura=${lectura} />
-    <${Diagnostico} />
+    <${Result} lectura=${lectura} />
+    <${Diagnostics} />
   `;
 }
 
-render(html`<${PruebaCamara} />`, document.getElementById('contenido'));
+render(html`<${CameraTest} />`, document.getElementById('contenido'));

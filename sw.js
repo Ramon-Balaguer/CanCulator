@@ -2,10 +2,10 @@
 // El despliegue sustituye el marcador por el hash del commit, así cada versión
 // tiene su propia caché y los móviles reciben la nueva.
 const VERSION = '__COMMIT__';
-const PREFIJO = 'inventario-';
-const CACHE = `${PREFIJO}${VERSION}`;
+const PREFIX = 'inventario-';
+const CACHE = `${PREFIX}${VERSION}`;
 
-const PRECARGA = [
+const PRECACHE = [
   './',
   './index.html',
   './css/app.css',
@@ -54,65 +54,65 @@ const PRECARGA = [
   './vendor/zxing-browser.min.js',
 ];
 
-self.addEventListener('install', (evento) => {
-  evento.waitUntil(
+self.addEventListener('install', (event) => {
+  event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => cache.addAll(PRECARGA.map((url) => new Request(url, { cache: 'reload' }))))
+      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting()),
   );
 });
 
-self.addEventListener('activate', (evento) => {
-  evento.waitUntil(
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
     caches.keys()
-      .then((nombres) => Promise.all(
-        nombres
-          .filter((nombre) => nombre.startsWith(PREFIJO) && nombre !== CACHE)
-          .map((nombre) => caches.delete(nombre)),
+      .then((names) => Promise.all(
+        names
+          .filter((name) => name.startsWith(PREFIX) && name !== CACHE)
+          .map((name) => caches.delete(name)),
       ))
       .then(() => self.clients.claim()),
   );
 });
 
-self.addEventListener('fetch', (evento) => {
-  const peticion = evento.request;
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
   // Solo se cachean GET del propio origen. La sincronización (POST a Apps Script)
   // y Open Food Facts pasan directos.
-  if (peticion.method !== 'GET' || new URL(peticion.url).origin !== self.location.origin) return;
-  const red = desdeRed(peticion);
-  evento.waitUntil(red.catch(() => {}));
-  evento.respondWith(redPrimero(peticion, red));
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  const network = fromNetwork(request);
+  event.waitUntil(network.catch(() => {}));
+  event.respondWith(networkFirst(request, network));
 });
 
 // Con cobertura mala la red puede tardar mucho sin llegar a fallar. Pasado este
 // tiempo se usa la copia en caché si la hay; si no la hay, se sigue esperando a la red.
-const ESPERA_RED_MS = 4000;
+const NETWORK_WAIT_MS = 4000;
 
-async function desdeRed(peticion) {
-  const respuesta = await fetch(peticion);
-  if (respuesta.ok) {
+async function fromNetwork(request) {
+  const response = await fetch(request);
+  if (response.ok) {
     const cache = await caches.open(CACHE);
-    await cache.put(peticion, respuesta.clone());
+    await cache.put(request, response.clone());
   }
-  return respuesta;
+  return response;
 }
 
-async function redPrimero(peticion, red) {
-  let temporizador;
-  const tiempoAgotado = new Promise((_, rechazar) => {
-    temporizador = setTimeout(() => rechazar(new Error('La red tarda demasiado')), ESPERA_RED_MS);
+async function networkFirst(request, network) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('La red tarda demasiado')), NETWORK_WAIT_MS);
   });
   try {
-    return await Promise.race([red, tiempoAgotado]);
+    return await Promise.race([network, timeout]);
   } catch {
-    const guardada = await caches.match(peticion, { ignoreSearch: true });
-    if (guardada) return guardada;
-    if (peticion.mode === 'navigate') {
-      const inicio = await caches.match('./index.html');
-      if (inicio) return inicio;
+    const saved = await caches.match(request, { ignoreSearch: true });
+    if (saved) return saved;
+    if (request.mode === 'navigate') {
+      const start = await caches.match('./index.html');
+      if (start) return start;
     }
-    return red;
+    return network;
   } finally {
-    clearTimeout(temporizador);
+    clearTimeout(timer);
   }
 }

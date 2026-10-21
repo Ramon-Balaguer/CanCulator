@@ -1,13 +1,13 @@
 // Sincronización con el servidor (Apps Script). La lógica de reglas está en js/logica/sincronizacion.js.
-import { TABLAS, peticion, transaccion } from './db.js';
-import { ACCIONES, aplicarCambiosServidor, construirPeticionSync, entidadesPendientes, idsConfirmados, interpretarRespuestaSync } from '../logica/sincronizacion.js';
-import { editarLote, guardarMeta, leerMeta } from './tienda.js';
-import { activo } from '../logica/inventario.js';
+import { TABLES, request, transaction } from './db.js';
+import { ACTIONS, applyServerChanges, buildSyncRequest, pendingEntities, confirmedIds, parseSyncResponse } from '../logica/sincronizacion.js';
+import { editLot, saveMeta, readMeta } from './tienda.js';
+import { isActive } from '../logica/inventario.js';
 
-export const TIMEOUT_SYNC_MS = 30_000;
-const CLAVE_ULTIMA = 'ultima_sincronizacion';
+export const SYNC_TIMEOUT_MS = 30_000;
+const LAST_SYNC_KEY = 'ultima_sincronizacion';
 
-export class SinConexion extends Error {
+export class Offline extends Error {
   constructor() {
     super('Sin conexión. Los cambios se guardan y se enviarán más tarde.');
     this.name = 'SinConexion';
@@ -15,133 +15,133 @@ export class SinConexion extends Error {
 }
 
 // Envía una petición POST como text/plain: así el navegador no pide un "preflight" CORS.
-export async function enviarPeticion(url, cuerpo, fetchFn = globalThis.fetch.bind(globalThis)) {
-  const controlador = new AbortController();
-  const temporizador = setTimeout(() => controlador.abort(), TIMEOUT_SYNC_MS);
-  let respuesta;
+export async function sendRequest(url, body, fetchFn = globalThis.fetch.bind(globalThis)) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS);
+  let response;
   try {
-    respuesta = await fetchFn(url, {
+    response = await fetchFn(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(cuerpo),
+      body: JSON.stringify(body),
       redirect: 'follow',
-      signal: controlador.signal,
+      signal: controller.signal,
     });
   } catch (error) {
-    if (error.name === 'AbortError' || error instanceof TypeError) throw new SinConexion();
+    if (error.name === 'AbortError' || error instanceof TypeError) throw new Offline();
     throw error;
   } finally {
-    clearTimeout(temporizador);
+    clearTimeout(timer);
   }
-  const texto = await respuesta.text();
+  const text = await response.text();
   try {
-    return JSON.parse(texto);
+    return JSON.parse(text);
   } catch {
     throw new Error('El servidor no respondió con datos válidos. Revisa la URL de Apps Script.');
   }
 }
 
-let enCurso = null;
+let running = null;
 
 // Una sincronización a la vez: si ya hay una en marcha, se devuelve esa.
-export function sincronizarDatos(db, opciones) {
-  if (!enCurso) {
-    enCurso = sincronizarDatosUnaVez(db, opciones).finally(() => { enCurso = null; });
+export function syncData(db, options) {
+  if (!running) {
+    running = syncDataOnce(db, options).finally(() => { running = null; });
   }
-  return enCurso;
+  return running;
 }
 
-async function sincronizarDatosUnaVez(db, { url, token, dispositivo, fetchFn }) {
-  const [operaciones, configuracion, desde] = await Promise.all([
-    transaccion(db, [TABLAS.operaciones], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.operaciones).getAll())),
-    transaccion(db, [TABLAS.configuracion], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.configuracion).getAll())),
-    leerMeta(db, CLAVE_ULTIMA),
+async function syncDataOnce(db, { url, token, dispositivo: device, fetchFn }) {
+  const [operations, configuration, since] = await Promise.all([
+    transaction(db, [TABLES.operaciones], 'readonly', (tx) => request(tx.objectStore(TABLES.operaciones).getAll())),
+    transaction(db, [TABLES.configuracion], 'readonly', (tx) => request(tx.objectStore(TABLES.configuracion).getAll())),
+    readMeta(db, LAST_SYNC_KEY),
   ]);
-  operaciones.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  operations.sort((a, b) => a.fecha.localeCompare(b.fecha));
 
-  const peticionSync = construirPeticionSync({ token, dispositivo, operaciones, desde, configuracion });
-  const respuesta = interpretarRespuestaSync(await enviarPeticion(url, peticionSync, fetchFn));
-  const confirmados = idsConfirmados(respuesta);
+  const syncRequest = buildSyncRequest({ token, dispositivo: device, operaciones: operations, desde: since, configuracion: configuration });
+  const response = parseSyncResponse(await sendRequest(url, syncRequest, fetchFn));
+  const confirmed = confirmedIds(response);
 
   // Todo en una transacción: borrar lo confirmado y aplicar lo recibido.
-  const resumen = await transaccion(db, [TABLAS.productos, TABLAS.lotes, TABLAS.configuracion, TABLAS.operaciones], 'readwrite', async (tx) => {
-    const almacenOps = tx.objectStore(TABLAS.operaciones);
-    for (const id of confirmados) almacenOps.delete(id);
-    const pendientesAhora = (await peticion(almacenOps.getAll())).filter((o) => !confirmados.has(o.id));
+  const summary = await transaction(db, [TABLES.productos, TABLES.lotes, TABLES.configuracion, TABLES.operaciones], 'readwrite', async (tx) => {
+    const opsStore = tx.objectStore(TABLES.operaciones);
+    for (const id of confirmed) opsStore.delete(id);
+    const pendingNow = (await request(opsStore.getAll())).filter((o) => !confirmed.has(o.id));
 
     const local = {
-      productos: await peticion(tx.objectStore(TABLAS.productos).getAll()),
-      lotes: await peticion(tx.objectStore(TABLAS.lotes).getAll()),
-      configuracion: await peticion(tx.objectStore(TABLAS.configuracion).getAll()),
+      productos: await request(tx.objectStore(TABLES.productos).getAll()),
+      lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
+      configuracion: await request(tx.objectStore(TABLES.configuracion).getAll()),
     };
-    const nuevo = aplicarCambiosServidor(local, respuesta.cambios ?? {}, entidadesPendientes(pendientesAhora));
-    for (const [tabla, almacen] of [['productos', TABLAS.productos], ['lotes', TABLAS.lotes]]) {
-      const store = tx.objectStore(almacen);
-      for (const r of nuevo[tabla]) store.put(r);
+    const newItem = applyServerChanges(local, response.cambios ?? {}, pendingEntities(pendingNow));
+    for (const [table, objectStore] of [['productos', TABLES.productos], ['lotes', TABLES.lotes]]) {
+      const store = tx.objectStore(objectStore);
+      for (const r of newItem[table]) store.put(r);
     }
-    const storeConf = tx.objectStore(TABLAS.configuracion);
-    for (const c of nuevo.configuracion) {
-      storeConf.put({ clave: c.clave, valor: c.valor, actualizado: c.actualizado ?? '' });
+    const configStore = tx.objectStore(TABLES.configuracion);
+    for (const c of newItem.configuracion) {
+      configStore.put({ clave: c.clave, valor: c.valor, actualizado: c.actualizado ?? '' });
     }
     return {
-      enviadas: operaciones.length,
-      confirmadas: confirmados.size,
-      pendientes: pendientesAhora.length,
-      recibidos: Object.values(respuesta.cambios ?? {}).reduce((s, l) => s + l.length, 0),
+      enviadas: operations.length,
+      confirmadas: confirmed.size,
+      pendientes: pendingNow.length,
+      recibidos: Object.values(response.cambios ?? {}).reduce((s, l) => s + l.length, 0),
     };
   });
 
-  await guardarMeta(db, CLAVE_ULTIMA, respuesta.ahora);
-  return { ...resumen, ahora: respuesta.ahora, avisos: respuesta.avisos ?? [] };
+  await saveMeta(db, LAST_SYNC_KEY, response.ahora);
+  return { ...summary, ahora: response.ahora, avisos: response.avisos ?? [] };
 }
 
 // Sube las fotos que aún no están en Drive. Un fallo en una foto no para las demás ni los datos.
-export async function subirFotosPendientes(db, { url, token, dispositivo, fetchFn }) {
-  const [fotos, lotes] = await Promise.all([
-    transaccion(db, [TABLAS.fotos], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.fotos).getAll())),
-    transaccion(db, [TABLAS.lotes], 'readonly', (tx) => peticion(tx.objectStore(TABLAS.lotes).getAll())),
+export async function uploadPendingPhotos(db, { url, token, dispositivo: device, fetchFn }) {
+  const [photos, lots] = await Promise.all([
+    transaction(db, [TABLES.fotos], 'readonly', (tx) => request(tx.objectStore(TABLES.fotos).getAll())),
+    transaction(db, [TABLES.lotes], 'readonly', (tx) => request(tx.objectStore(TABLES.lotes).getAll())),
   ]);
-  const referenciadas = new Map(lotes.filter(activo).filter((l) => l.foto_id).map((l) => [l.foto_id, l]));
-  const pendientes = fotos.filter((f) => !f.drive_id && referenciadas.has(f.id));
+  const referenced = new Map(lots.filter(isActive).filter((l) => l.foto_id).map((l) => [l.foto_id, l]));
+  const pending = photos.filter((f) => !f.drive_id && referenced.has(f.id));
 
-  const subidas = [];
-  const errores = [];
-  for (const foto of pendientes) {
+  const uploaded = [];
+  const errors = [];
+  for (const photo of pending) {
     try {
-      const dato = base64DeBytes(foto.bytes);
-      const r = await enviarPeticion(url, {
-        accion: ACCIONES.FOTO, token, nombre: `${foto.id}.jpg`, tipo: foto.tipo, dato,
+      const item = encodeBytesSync(photo.bytes);
+      const r = await sendRequest(url, {
+        accion: ACTIONS.FOTO, token, nombre: `${photo.id}.jpg`, tipo: photo.tipo, dato: item,
       }, fetchFn);
       if (r.ok !== true || !r.id) throw new Error(r.error || 'Drive no devolvió un id');
-      await transaccion(db, [TABLAS.fotos], 'readwrite', (tx) => {
-        tx.objectStore(TABLAS.fotos).put({ ...foto, drive_id: r.id });
+      await transaction(db, [TABLES.fotos], 'readwrite', (tx) => {
+        tx.objectStore(TABLES.fotos).put({ ...photo, drive_id: r.id });
       });
       // El lote pasa a llevar el id de Drive; el cambio viaja como una operación más.
-      await editarLote(db, dispositivo, referenciadas.get(foto.id).id, { foto_id: r.id });
-      subidas.push(foto.id);
+      await editLot(db, device, referenced.get(photo.id).id, { foto_id: r.id });
+      uploaded.push(photo.id);
     } catch (error) {
-      errores.push(`${foto.id}: ${error.message}`);
+      errors.push(`${photo.id}: ${error.message}`);
     }
   }
-  return { subidas: subidas.length, errores };
+  return { subidas: uploaded.length, errores: errors };
 }
 
-function base64DeBytes(buffer) {
-  let binario = '';
+function encodeBytesSync(buffer) {
+  let binary = '';
   const bytes = new Uint8Array(buffer);
   for (let i = 0; i < bytes.length; i += 0x8000) {
-    binario += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-  return btoa(binario);
+  return btoa(binary);
 }
 
 // Ciclo completo: datos, luego fotos, y si hubo fotos subidas, otra vuelta de datos.
-export async function sincronizarTodo(db, opciones) {
-  const datos = await sincronizarDatos(db, opciones);
-  const fotos = await subirFotosPendientes(db, opciones);
-  if (fotos.subidas > 0) {
-    const segunda = await sincronizarDatos(db, opciones);
-    return { datos: segunda, fotos };
+export async function syncAll(db, options) {
+  const data = await syncData(db, options);
+  const photos = await uploadPendingPhotos(db, options);
+  if (photos.subidas > 0) {
+    const second = await syncData(db, options);
+    return { datos: second, fotos: photos };
   }
-  return { datos, fotos };
+  return { datos: data, fotos: photos };
 }

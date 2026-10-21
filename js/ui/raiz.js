@@ -1,13 +1,13 @@
 import { html } from 'htm/preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { Aviso } from './componentes.js';
-import { AltaLote, DetalleProducto, EditarLote } from './formularios.js';
-import { PantallaAjustes, PantallaCaducidad, PantallaEstadisticas, PantallaImprimir, PantallaReponer, PantallaStock } from './pantallas.js';
-import { borrarLote, borrarProducto, cargarTodo, dispositivoId, leerMeta } from '../datos/tienda.js';
-import { sincronizarTodo, SinConexion } from '../datos/sincro.js';
-import { configuracionEfectiva } from '../logica/configuracion.js';
+import { Notice } from './componentes.js';
+import { LotForm, ProductDetail, EditLot } from './formularios.js';
+import { SettingsScreen, ExpiryScreen, StatisticsScreen, PrintScreen, RestockScreen, StockScreen } from './pantallas.js';
+import { removeLot, removeProduct, loadAll, deviceId, readMeta } from '../datos/tienda.js';
+import { syncAll, Offline } from '../datos/sincro.js';
+import { effectiveSettings } from '../logica/configuracion.js';
 
-const PESTANAS = [
+const TABS = [
   { id: 'caducidad', texto: 'Caducidad' },
   { id: 'stock', texto: 'Stock' },
   { id: 'reponer', texto: 'A reponer' },
@@ -17,219 +17,219 @@ const PESTANAS = [
 ];
 
 // Espera tras un cambio local antes de sincronizar: agrupa varios cambios seguidos en un envío.
-const ESPERA_TRAS_CAMBIO_MS = 3000;
+const WAIT_AFTER_CHANGE_MS = 3000;
 // Tiempo para pulsar «Deshacer» tras un borrado. Solo después se escribe el borrado de verdad.
-const ESPERA_DESHACER_MS = 5000;
+const UNDO_WAIT_MS = 5000;
 
 // Estado de la app: carga todo desde IndexedDB y lo vuelve a leer después de cada cambio.
-export function Raiz({ db }) {
-  const [datos, setDatos] = useState(null);
-  const [dispositivo, setDispositivo] = useState('');
-  const [sincronizacion, setSincronizacion] = useState({ url: '', token: '' });
+export function Root({ db }) {
+  const [data, setDatos] = useState(null);
+  const [device, setDispositivo] = useState('');
+  const [syncLogic, setSincronizacion] = useState({ url: '', token: '' });
   const [estadoSync, setEstadoSync] = useState({ estado: 'inactiva', mensaje: '' });
   const [ultimaSync, setUltimaSync] = useState('');
   const [pestana, setPestana] = useState('caducidad');
-  const [vista, setVista] = useState(null); // { tipo, ... } para modales y formularios
-  const [aviso, setAviso] = useState(null);
+  const [view2, setVista] = useState(null); // { tipo, ... } para modales y formularios
+  const [notice, setAviso] = useState(null);
   const [error, setError] = useState('');
   // Ids de lotes y productos con un borrado pendiente: se ocultan hasta que se confirma o se deshace.
   const [ocultos, setOcultos] = useState(() => new Set());
-  const temporizador = useRef(null);
-  const sincroEnCurso = useRef(false);
-  const borradosPendientes = useRef(new Map());
+  const timer = useRef(null);
+  const syncRunning = useRef(false);
+  const pendingDeletes = useRef(new Map());
 
   // accion opcional: { etiqueta, onClick } para mostrar un botón en el aviso (p. ej. «Deshacer»).
-  const notificar = useCallback((texto, tipo = 'info', accion = null) => {
-    setAviso({ texto, tipo, id: Date.now(), accion });
+  const notifyUser = useCallback((text, type = 'info', accion = null) => {
+    setAviso({ texto: text, tipo: type, id: Date.now(), accion });
   }, []);
 
-  const cargarDatos = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      setDatos(await cargarTodo(db));
+      setDatos(await loadAll(db));
     } catch (e) {
       setError(`No se pudieron leer los datos: ${e.message}`);
     }
   }, [db]);
 
   // Sincronización: una a la vez, y solo si hay URL y token guardados.
-  const sincronizarAhora = useCallback(async (config = sincronizacion, id = dispositivo) => {
+  const syncNow = useCallback(async (config = syncLogic, id = device) => {
     if (!config.url || !config.token || !id) {
       setEstadoSync({ estado: 'inactiva', mensaje: 'Sin configurar: pega la URL y el token de Apps Script.' });
       return;
     }
-    if (sincroEnCurso.current) return;
+    if (syncRunning.current) return;
     if (!navigator.onLine) {
       setEstadoSync({ estado: 'sin-conexion', mensaje: 'Sin conexión: los cambios se enviarán al volver.' });
       return;
     }
-    sincroEnCurso.current = true;
+    syncRunning.current = true;
     setEstadoSync((e) => ({ ...e, estado: 'sincronizando', mensaje: 'Sincronizando…' }));
     try {
-      const r = await sincronizarTodo(db, { url: config.url, token: config.token, dispositivo: id, fetchFn: fetch });
-      const enviadas = r.datos.enviadas;
+      const r = await syncAll(db, { url: config.url, token: config.token, dispositivo: id, fetchFn: fetch });
+      const sent = r.datos.enviadas;
       setUltimaSync(r.datos.ahora);
       setEstadoSync({
         estado: 'ok',
-        mensaje: `Sincronizado. Enviadas ${enviadas}, recibidas ${r.datos.recibidos}, fotos subidas ${r.fotos.subidas}.`
+        mensaje: `Sincronizado. Enviadas ${sent}, recibidas ${r.datos.recibidos}, fotos subidas ${r.fotos.subidas}.`
           + (r.fotos.errores.length ? ` Fotos con error: ${r.fotos.errores.length}.` : ''),
       });
-      await cargarDatos();
+      await loadData();
     } catch (e) {
-      if (e instanceof SinConexion) {
+      if (e instanceof Offline) {
         setEstadoSync({ estado: 'sin-conexion', mensaje: e.message });
       } else {
         setEstadoSync({ estado: 'error', mensaje: e.message });
-        notificar(`Sincronización: ${e.message}`, 'error');
+        notifyUser(`Sincronización: ${e.message}`, 'error');
       }
     } finally {
-      sincroEnCurso.current = false;
+      syncRunning.current = false;
     }
-  }, [db, dispositivo, sincronizacion, cargarDatos, notificar]);
+  }, [db, device, syncLogic, loadData, notifyUser]);
 
   // Tras un cambio local: recargar y programar una sincronización dentro de unos segundos.
-  const refrescar = useCallback(() => {
-    cargarDatos();
-    clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => sincronizarAhora(), ESPERA_TRAS_CAMBIO_MS);
-  }, [cargarDatos, sincronizarAhora]);
+  const refresh = useCallback(() => {
+    loadData();
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => syncNow(), WAIT_AFTER_CHANGE_MS);
+  }, [loadData, syncNow]);
 
   // Borrado con «Deshacer»: se oculta enseguida y, si pasan unos segundos sin deshacer, se escribe.
-  const solicitarBorrado = useCallback(({ tipo, id, texto }) => {
-    setOcultos((previos) => new Set(previos).add(id));
-    const mostrar = () => setOcultos((previos) => {
-      const siguientes = new Set(previos);
-      siguientes.delete(id);
-      return siguientes;
+  const requestDelete = useCallback(({ tipo: type, id, texto: text }) => {
+    setOcultos((previousSet) => new Set(previousSet).add(id));
+    const show = () => setOcultos((previousSet) => {
+      const nextSet = new Set(previousSet);
+      nextSet.delete(id);
+      return nextSet;
     });
-    const escribir = setTimeout(async () => {
-      borradosPendientes.current.delete(id);
+    const write = setTimeout(async () => {
+      pendingDeletes.current.delete(id);
       try {
-        if (tipo === 'lote') await borrarLote(db, dispositivo, id);
-        else await borrarProducto(db, dispositivo, id);
+        if (type === 'lote') await removeLot(db, device, id);
+        else await removeProduct(db, device, id);
       } catch (e) {
-        notificar(`No se pudo borrar: ${e.message}`, 'error');
+        notifyUser(`No se pudo borrar: ${e.message}`, 'error');
       } finally {
-        mostrar();
-        refrescar();
+        show();
+        refresh();
       }
-    }, ESPERA_DESHACER_MS);
-    borradosPendientes.current.set(id, escribir);
-    notificar(texto, 'info', {
+    }, UNDO_WAIT_MS);
+    pendingDeletes.current.set(id, write);
+    notifyUser(text, 'info', {
       etiqueta: 'Deshacer',
       onClick: () => {
-        clearTimeout(escribir);
-        borradosPendientes.current.delete(id);
-        mostrar();
+        clearTimeout(write);
+        pendingDeletes.current.delete(id);
+        show();
         setAviso(null);
       },
     });
-  }, [db, dispositivo, notificar, refrescar]);
+  }, [db, device, notifyUser, refresh]);
 
   useEffect(() => {
     (async () => {
-      const id = await dispositivoId(db);
+      const id = await deviceId(db);
       setDispositivo(id);
       const config = {
-        url: await leerMeta(db, 'sync_url'),
-        token: await leerMeta(db, 'sync_token'),
+        url: await readMeta(db, 'sync_url'),
+        token: await readMeta(db, 'sync_token'),
       };
       setSincronizacion(config);
-      setUltimaSync(await leerMeta(db, 'ultima_sincronizacion'));
-      await cargarDatos();
+      setUltimaSync(await readMeta(db, 'ultima_sincronizacion'));
+      await loadData();
       return { config, id };
     })().then(({ config, id }) => {
       // Al abrir la app, si hay conexión y configuración, se sincroniza.
-      if (config.url && config.token) setTimeout(() => sincronizarAhora(config, id), 0);
+      if (config.url && config.token) setTimeout(() => syncNow(config, id), 0);
     }).catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
-  }, [db, cargarDatos]);
+  }, [db, loadData]);
 
   // Al recuperar la conexión, sincronizar lo pendiente.
   useEffect(() => {
-    const alConectar = () => sincronizarAhora();
-    window.addEventListener('online', alConectar);
-    return () => window.removeEventListener('online', alConectar);
-  }, [sincronizarAhora]);
+    const onOnline = () => syncNow();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [syncNow]);
 
   // Otra versión de la app ha actualizado la base de datos: esta pestaña ya no puede guardar.
   useEffect(() => {
-    const alCambiarVersion = () => setError('Hay una versión nueva de la app. Recarga la página para seguir (no se pierde nada guardado).');
-    globalThis.addEventListener('bd-version-nueva', alCambiarVersion);
-    return () => globalThis.removeEventListener('bd-version-nueva', alCambiarVersion);
+    const onVersionChange = () => setError('Hay una versión nueva de la app. Recarga la página para seguir (no se pierde nada guardado).');
+    globalThis.addEventListener('bd-version-nueva', onVersionChange);
+    return () => globalThis.removeEventListener('bd-version-nueva', onVersionChange);
   }, []);
 
   useEffect(() => {
-    if (!aviso) return undefined;
-    const t = setTimeout(() => setAviso(null), aviso.accion ? ESPERA_DESHACER_MS : 3000);
+    if (!notice) return undefined;
+    const t = setTimeout(() => setAviso(null), notice.accion ? UNDO_WAIT_MS : 3000);
     return () => clearTimeout(t);
-  }, [aviso]);
+  }, [notice]);
 
-  if (error) return html`<${Aviso} tipo="error">${error}<//>`;
-  if (!datos) return html`<p class="cargando">Cargando…</p>`;
+  if (error) return html`<${Notice} tipo="error">${error}<//>`;
+  if (!data) return html`<p class="cargando">Cargando…</p>`;
 
-  const config = configuracionEfectiva(datos.configuracion);
-  const cerrar = () => setVista(null);
-  const alHacer = () => { cerrar(); refrescar(); };
-  const pendientes = datos.operaciones.length;
+  const config = effectiveSettings(data.configuracion);
+  const close = () => setVista(null);
+  const onDone = () => { close(); refresh(); };
+  const pending = data.operaciones.length;
 
   // Lo que se ve: sin los lotes y productos con un borrado pendiente (ni los lotes de un producto oculto).
-  const visibles = {
-    ...datos,
-    productos: datos.productos.filter((p) => !ocultos.has(p.id)),
-    lotes: datos.lotes.filter((l) => !ocultos.has(l.id) && !ocultos.has(l.producto_id)),
+  const visible = {
+    ...data,
+    productos: data.productos.filter((p) => !ocultos.has(p.id)),
+    lotes: data.lotes.filter((l) => !ocultos.has(l.id) && !ocultos.has(l.producto_id)),
   };
 
-  const pantalla = {
-    caducidad: html`<${PantallaCaducidad} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config}
-      notificar=${notificar} refrescar=${refrescar} onEditarLote=${(lote) => setVista({ tipo: 'editar-lote', lote })} />`,
-    stock: html`<${PantallaStock} datos=${visibles} config=${config}
-      onAbrirProducto=${(producto) => setVista({ tipo: 'producto', producto })} />`,
-    reponer: html`<${PantallaReponer} datos=${visibles} onComprado=${(producto) => setVista({ tipo: 'alta', producto })} />`,
-    imprimir: html`<${PantallaImprimir} db=${db} datos=${visibles} />`,
-    estadisticas: html`<${PantallaEstadisticas} datos=${visibles} />`,
-    ajustes: html`<${PantallaAjustes} db=${db} dispositivo=${dispositivo} config=${config}
-      notificar=${notificar} refrescar=${refrescar} sincronizacion=${sincronizacion}
-      estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pendientes}
-      onGuardarSincro=${(nueva) => { setSincronizacion(nueva); sincronizarAhora(nueva); }}
-      onSincronizar=${() => sincronizarAhora()} />`,
+  const screen = {
+    caducidad: html`<${ExpiryScreen} db=${db} dispositivo=${device} datos=${visible} config=${config}
+      notificar=${notifyUser} refrescar=${refresh} onEditarLote=${(lot) => setVista({ tipo: 'editar-lote', lote: lot })} />`,
+    stock: html`<${StockScreen} datos=${visible} config=${config}
+      onAbrirProducto=${(product) => setVista({ tipo: 'producto', producto: product })} />`,
+    reponer: html`<${RestockScreen} datos=${visible} onComprado=${(product) => setVista({ tipo: 'alta', producto: product })} />`,
+    imprimir: html`<${PrintScreen} db=${db} datos=${visible} />`,
+    estadisticas: html`<${StatisticsScreen} datos=${visible} />`,
+    ajustes: html`<${SettingsScreen} db=${db} dispositivo=${device} config=${config}
+      notificar=${notifyUser} refrescar=${refresh} sincronizacion=${syncLogic}
+      estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pending}
+      onGuardarSincro=${(next) => { setSincronizacion(next); syncNow(next); }}
+      onSincronizar=${() => syncNow()} />`,
   }[pestana];
 
   let modal = null;
-  if (vista?.tipo === 'alta') {
-    modal = html`<section class="modal-pantalla"><${AltaLote} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config}
-      productoInicial=${vista.producto} notificar=${notificar} onHecho=${alHacer} onCancelar=${cerrar} /></section>`;
-  } else if (vista?.tipo === 'producto') {
-    const producto = visibles.productos.find((p) => p.id === vista.producto.id);
-    if (producto && !producto.borrado) {
-      modal = html`<${DetalleProducto} db=${db} dispositivo=${dispositivo} datos=${visibles} config=${config} producto=${producto}
-        notificar=${notificar} refrescar=${refrescar} onCerrar=${cerrar} solicitarBorrado=${solicitarBorrado}
+  if (view2?.tipo === 'alta') {
+    modal = html`<section class="modal-pantalla"><${LotForm} db=${db} dispositivo=${device} datos=${visible} config=${config}
+      productoInicial=${view2.producto} notificar=${notifyUser} onHecho=${onDone} onCancelar=${close} /></section>`;
+  } else if (view2?.tipo === 'producto') {
+    const product = visible.productos.find((p) => p.id === view2.producto.id);
+    if (product && !product.borrado) {
+      modal = html`<${ProductDetail} db=${db} dispositivo=${device} datos=${visible} config=${config} producto=${product}
+        notificar=${notifyUser} refrescar=${refresh} onCerrar=${close} solicitarBorrado=${requestDelete}
         onAnadirLote=${(p) => setVista({ tipo: 'alta', producto: p })}
-        onEditarLote=${(lote) => setVista({ tipo: 'editar-lote', lote, desde: 'producto', producto })} />`;
+        onEditarLote=${(lot) => setVista({ tipo: 'editar-lote', lote: lot, desde: 'producto', producto: product })} />`;
     }
-  } else if (vista?.tipo === 'editar-lote') {
-    const lote = visibles.lotes.find((l) => l.id === vista.lote.id);
-    const producto = lote && visibles.productos.find((p) => p.id === lote.producto_id);
-    if (lote && producto && !lote.borrado) {
-      modal = html`<${EditarLote} db=${db} dispositivo=${dispositivo} lote=${lote} producto=${producto} config=${config}
-        notificar=${notificar} onHecho=${alHacer} onCerrar=${cerrar} solicitarBorrado=${solicitarBorrado} />`;
+  } else if (view2?.tipo === 'editar-lote') {
+    const lot = visible.lotes.find((l) => l.id === view2.lote.id);
+    const product = lot && visible.productos.find((p) => p.id === lot.producto_id);
+    if (lot && product && !lot.borrado) {
+      modal = html`<${EditLot} db=${db} dispositivo=${device} lote=${lot} producto=${product} config=${config}
+        notificar=${notifyUser} onHecho=${onDone} onCerrar=${close} solicitarBorrado=${requestDelete} />`;
     }
   }
 
   return html`
     <div class="app">
-      <div class="pantallas">${pantalla}</div>
+      <div class="pantallas">${screen}</div>
 
       ${modal}
 
       <button type="button" class="fab" aria-label="Añadir lote" onClick=${() => setVista({ tipo: 'alta' })}>+</button>
 
-      ${aviso && (aviso.accion
-        ? html`<button type="button" class=${`toast toast-accion ${aviso.tipo}`} role="status" key=${aviso.id} onClick=${aviso.accion.onClick}>
-            <span>${aviso.texto}</span> <strong>${aviso.accion.etiqueta}</strong>
+      ${notice && (notice.accion
+        ? html`<button type="button" class=${`toast toast-accion ${notice.tipo}`} role="status" key=${notice.id} onClick=${notice.accion.onClick}>
+            <span>${notice.texto}</span> <strong>${notice.accion.etiqueta}</strong>
           </button>`
-        : html`<div class=${`toast ${aviso.tipo}`} role="status" key=${aviso.id}>${aviso.texto}</div>`)}
+        : html`<div class=${`toast ${notice.tipo}`} role="status" key=${notice.id}>${notice.texto}</div>`)}
 
       <nav class="barra" aria-label="Pantallas">
-        ${PESTANAS.map((p) => html`
+        ${TABS.map((p) => html`
           <button type="button" class=${`barra-boton ${pestana === p.id ? 'activa' : ''}`}
             aria-current=${pestana === p.id ? 'page' : null}
             onClick=${() => { setPestana(p.id); setVista(null); }}>${p.texto}</button>`)}

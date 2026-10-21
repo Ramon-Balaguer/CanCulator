@@ -2,58 +2,58 @@
 // text/plain (sin preflight CORS), cuerpo JSON, redirecciones seguidas.
 // No guarda datos. Muestra el resultado tal cual para diagnosticar problemas de despliegue.
 
-const formulario = document.getElementById('formulario');
-const salida = document.getElementById('resultado');
-const campoUrl = document.getElementById('url');
-const campoToken = document.getElementById('token');
+const form = document.getElementById('formulario');
+const output = document.getElementById('resultado');
+const urlField = document.getElementById('url');
+const tokenField = document.getElementById('token');
 
-const URL_GUARDADA = 'prueba-sync-url';
+const SAVED_URL_KEY = 'prueba-sync-url';
 
 try {
-  campoUrl.value = localStorage.getItem(URL_GUARDADA) ?? '';
+  urlField.value = localStorage.getItem(SAVED_URL_KEY) ?? '';
 } catch {
   // Sin almacenamiento disponible, se escribe la URL a mano.
 }
 
-function escribir(lineas) {
-  salida.textContent = lineas.join('\n');
+function write(lines) {
+  output.textContent = lines.join('\n');
 }
 
-formulario.addEventListener('submit', async (evento) => {
-  evento.preventDefault();
-  const url = campoUrl.value.trim();
-  const token = campoToken.value.trim();
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const url = urlField.value.trim();
+  const token = tokenField.value.trim();
   try {
-    localStorage.setItem(URL_GUARDADA, url);
+    localStorage.setItem(SAVED_URL_KEY, url);
   } catch {
     // Sin almacenamiento, no se recuerda la URL.
   }
-  escribir(['Enviando…']);
-  const inicio = performance.now();
+  write(['Enviando…']);
+  const start = performance.now();
   try {
-    const respuesta = await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ accion: 'ping', token }),
       redirect: 'follow',
     });
-    const texto = await respuesta.text();
-    const tiempo = Math.round(performance.now() - inicio);
+    const text = await response.text();
+    const elapsed = Math.round(performance.now() - start);
     let json = null;
     try {
-      json = JSON.parse(texto);
+      json = JSON.parse(text);
     } catch {
       // No es JSON: se muestra el inicio de la respuesta para ver qué devolvió el servidor.
     }
-    escribir([
-      `HTTP ${respuesta.status} (${tiempo} ms)`,
-      `URL final tras redirecciones: ${respuesta.url}`,
+    write([
+      `HTTP ${response.status} (${elapsed} ms)`,
+      `URL final tras redirecciones: ${response.url}`,
       json
         ? (json.ok ? `OK · servidor versión ${json.version}` : `Error del servidor: ${json.error}`)
-        : `La respuesta no es JSON. Inicio: ${texto.slice(0, 200)}`,
+        : `La respuesta no es JSON. Inicio: ${text.slice(0, 200)}`,
     ]);
   } catch (error) {
-    escribir([
+    write([
       'No llegó ninguna respuesta.',
       `Detalle: ${error.message}`,
       'Causas típicas: URL mal copiada, implementación sin acceso «Cualquier usuario», o sin conexión.',

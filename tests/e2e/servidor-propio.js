@@ -6,27 +6,27 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT = fileURLToPath(new URL('../../scripts/servir.mjs', import.meta.url));
 
-export async function servidorPropio() {
-  const proceso = spawn(process.execPath, [SCRIPT], {
+export async function ownServer() {
+  const childProcess = spawn(process.execPath, [SCRIPT], {
     env: { ...process.env, PUERTO: '0', BASE: '/inventario/' },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
-  const url = await new Promise((resolver, rechazar) => {
-    let salida = '';
-    proceso.stdout.on('data', (trozo) => {
-      salida += trozo;
-      const encontrada = salida.match(/http:\/\/localhost:\d+\/inventario\//);
-      if (encontrada) resolver(encontrada[0]);
+  const url = await new Promise((resolve, reject) => {
+    let output = '';
+    childProcess.stdout.on('data', (chunk) => {
+      output += chunk;
+      const found = output.match(/http:\/\/localhost:\d+\/inventario\//);
+      if (found) resolve(found[0]);
     });
-    proceso.once('exit', (codigo) => rechazar(new Error(`El servidor terminó (${codigo})`)));
+    childProcess.once('exit', (code) => reject(new Error(`El servidor terminó (${code})`)));
   });
-  const terminado = new Promise((resolver) => proceso.once('exit', resolver));
+  const done = new Promise((resolve) => childProcess.once('exit', resolve));
   return {
     url,
     // Se puede llamar varias veces.
     cortar: () => {
-      if (proceso.exitCode === null && proceso.signalCode === null) proceso.kill();
-      return terminado;
+      if (childProcess.exitCode === null && childProcess.signalCode === null) childProcess.kill();
+      return done;
     },
   };
 }
