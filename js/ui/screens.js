@@ -75,14 +75,20 @@ export function StatisticsScreen({ datos: data }) {
           ? t('estadisticas.faltan_uno')
           : t('estadisticas.faltan_varios', { n: e.productosSinKcal })}</span>`}
       </p>
+      <p>${t('estadisticas.peso_total')} <strong data-testid="peso-total">${e.totalPesoG} g</strong></p>
+      <p>${t('estadisticas.litros_total')} <strong data-testid="litros-total">${e.totalLitros} l</strong></p>
+      <p>${t('estadisticas.coste_total')} <strong data-testid="coste-total">${e.totalCoste.toFixed(2)} €</strong></p>
       <table class="tabla-estadisticas">
-        <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th></tr></thead>
+        <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th><th>${t('estadisticas.peso')}</th><th>${t('estadisticas.litros')}</th><th>${t('estadisticas.coste')}</th></tr></thead>
         <tbody>
           ${e.porCategoria.map((c) => html`
             <tr>
               <td>${c.categoria}</td>
               <td>${c.unidades}</td>
               <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : `${c.kcal}`}</td>
+              <td>${c.pesoG}</td>
+              <td>${c.litros}</td>
+              <td>${c.coste.toFixed(2)}</td>
             </tr>`)}
         </tbody>
       </table>
