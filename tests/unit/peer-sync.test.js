@@ -76,3 +76,35 @@ test('no modifica el estado de entrada', () => {
   applyRemoteOps(s, [op('o1', 'consumir', 'lote', 'l1', { cantidad: -1 }, '2026-10-02T09:00:00Z')], new Set());
   assert.equal(s.lotes[0].cantidad, 5);
 });
+
+const conAjustes = () => ({ ...base(), configuracion: [{ clave: 'categorias', valor: ['pescado'], actualizado: '2026-10-01T00:00:00Z' }] });
+const ajuste = (id, clave, valor, fecha) => op(id, 'editar', 'configuracion', clave, { valor }, fecha);
+
+test('un ajuste de categorías recibido se aplica al estado local', () => {
+  const r = applyRemoteOps(conAjustes(), [ajuste('o1', 'categorias', ['pescado', 'carne'], '2026-10-02T09:00:00Z')], new Set());
+  const categorias = r.state.configuracion.find((c) => c.clave === 'categorias');
+  assert.deepEqual(categorias.valor, ['pescado', 'carne']);
+  assert.equal(categorias.actualizado, '2026-10-02T09:00:00Z');
+  assert.deepEqual(r.applied, ['o1']);
+});
+
+test('un ajuste de ubicaciones que aún no existe localmente se añade', () => {
+  const r = applyRemoteOps(conAjustes(), [ajuste('o1', 'ubicaciones', ['Despensa', 'Nevera'], '2026-10-02T09:00:00Z')], new Set());
+  const ubicaciones = r.state.configuracion.find((c) => c.clave === 'ubicaciones');
+  assert.deepEqual(ubicaciones.valor, ['Despensa', 'Nevera']);
+});
+
+test('un ajuste más antiguo que el local no lo pisa', () => {
+  const s = conAjustes();
+  s.configuracion[0].actualizado = '2026-10-05T00:00:00Z';
+  const r = applyRemoteOps(s, [ajuste('o1', 'categorias', ['carne'], '2026-10-04T00:00:00Z')], new Set());
+  assert.deepEqual(r.state.configuracion[0].valor, ['pescado']);
+});
+
+test('gana el ajuste más reciente aunque llegue antes', () => {
+  const r = applyRemoteOps(conAjustes(), [
+    ajuste('o2', 'categorias', ['carne'], '2026-10-09T00:00:00Z'),
+    ajuste('o1', 'categorias', ['fruta'], '2026-10-05T00:00:00Z'),
+  ], new Set());
+  assert.deepEqual(r.state.configuracion[0].valor, ['carne']);
+});

@@ -29,6 +29,10 @@ export function alCambiarConectadas(avisar) {
   return () => oyentesConectadas.delete(avisar);
 }
 
+export function numeroConectadas() {
+  return conectadas.size;
+}
+
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
 export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
@@ -194,13 +198,15 @@ export async function applyPeerOperations(db, deviceId, operations) {
   const yaAplicados = new Set(Array.isArray(guardados) ? guardados : []);
   const nuevas = operations.filter((o) => o.dispositivo !== deviceId);
 
-  return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.meta], 'readwrite', async (tx) => {
+  return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.configuracion, TABLES.meta], 'readwrite', async (tx) => {
     const productos = await request(tx.objectStore(TABLES.productos).getAll());
     const lotes = await request(tx.objectStore(TABLES.lotes).getAll());
-    const { state, applied } = applyRemoteOps({ productos, lotes }, nuevas, yaAplicados);
+    const configuracion = await request(tx.objectStore(TABLES.configuracion).getAll());
+    const { state, applied } = applyRemoteOps({ productos, lotes, configuracion }, nuevas, yaAplicados);
     if (applied.length === 0) return 0;
     for (const p of state.productos) tx.objectStore(TABLES.productos).put(p);
     for (const l of state.lotes) tx.objectStore(TABLES.lotes).put(l);
+    for (const c of state.configuracion) tx.objectStore(TABLES.configuracion).put(c);
     const todos = [...yaAplicados, ...applied].slice(-MAX_IDS_APLICADOS);
     tx.objectStore(TABLES.meta).put({ clave: 'peer_applied_ids', valor: todos });
     return applied.length;

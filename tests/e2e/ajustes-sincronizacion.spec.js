@@ -47,4 +47,9 @@ test.describe('Ajustes: crear main y crear cliente', () => {
     await expect(escaner).toHaveCount(0);
     await expect(cliente.getByRole('button', { name: 'Salir de la sala' })).toBeVisible();
   });
+
+  test('la zona de sincronizar indica cuántos móviles hay conectados', async ({ page }) => {
+    const casa = page.getByTestId('sincronizacion-casa');
+    await expect(casa.getByTestId('moviles-conectados')).toHaveText('Móviles conectados: 0');
+  });
 });
