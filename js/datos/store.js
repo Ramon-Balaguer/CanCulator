@@ -238,12 +238,15 @@ export function removeProduct(db, device, id) {
   });
 }
 
-// Settings: values by key. They generate no operations (settings sync
-// they are added to that lot (restock) instead of creating another.
-// Stores a setting with its date, so the sync keeps the most recent one.
-export function saveSetting(db, key, value) {
-  return transaction(db, [TABLES.configuracion], 'readwrite', (tx) => {
-    tx.objectStore(TABLES.configuracion).put({ clave: key, valor: value, actualizado: now() });
+// Settings: values by key. Each change also generates an operation, so the other phones
+// receive it. The date lets the sync keep the most recent one.
+export function saveSetting(db, device, key, value) {
+  return transaction(db, [TABLES.configuracion, TABLES.operaciones], 'readwrite', (tx) => {
+    const date = now();
+    tx.objectStore(TABLES.configuracion).put({ clave: key, valor: value, actualizado: date });
+    tx.objectStore(TABLES.operaciones).put(newOperation({
+      dispositivo: device, tipo: 'editar', entidad: 'configuracion', entidad_id: key, cambio: { valor: value }, fecha: date,
+    }));
     return value;
   });
 }

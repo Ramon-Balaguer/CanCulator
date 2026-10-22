@@ -13,17 +13,31 @@ export async function hashToken(token, subtle = globalThis.crypto.subtle) {
 const maxFecha = (a, b) => (a && a > b ? a : b);
 
 // Aplica operaciones recibidas de otro móvil a una copia del estado local.
-// state: { productos: [...], lotes: [...] }. appliedIds: Set de ids ya aplicados (no se repiten).
+// Los ajustes (categorías, ubicaciones...) se guardan por clave; gana el cambio más reciente.
+function aplicarAjuste(ajustes, op) {
+  const actual = ajustes.find((a) => a.clave === op.entidad_id);
+  if (actual && op.fecha < actual.actualizado) return;
+  if (actual) Object.assign(actual, { valor: op.cambio.valor, actualizado: op.fecha });
+  else ajustes.push({ clave: op.entidad_id, valor: op.cambio.valor, actualizado: op.fecha });
+}
+
+// state: { productos: [...], lotes: [...], configuracion: [...] }. appliedIds: Set de ids ya aplicados (no se repiten).
 // Devuelve { state, applied: [ids aplicados ahora] }. No modifica los objetos de entrada.
 export function applyRemoteOps(state, ops, appliedIds) {
   const productos = state.productos.map((p) => ({ ...p }));
   const lotes = state.lotes.map((l) => ({ ...l }));
+  const configuracion = (state.configuracion ?? []).map((c) => ({ ...c }));
   const applied = [];
 
   const buscar = (lista, id) => lista.find((r) => r.id === id);
 
   for (const op of [...ops].sort((a, b) => a.fecha.localeCompare(b.fecha))) {
     if (appliedIds.has(op.id)) continue;
+    if (op.entidad === 'configuracion') {
+      aplicarAjuste(configuracion, op);
+      applied.push(op.id);
+      continue;
+    }
     const esProducto = op.entidad === 'producto';
     const lista = esProducto ? productos : lotes;
 
@@ -68,7 +82,7 @@ export function applyRemoteOps(state, ops, appliedIds) {
     }
     applied.push(op.id);
   }
-  return { state: { productos, lotes }, applied };
+  return { state: { productos, lotes, configuracion }, applied };
 }
 
 // Invitación para el QR: código de la sala y token, en un solo texto.
