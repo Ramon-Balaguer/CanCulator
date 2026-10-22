@@ -47,6 +47,9 @@ function validateProduct(data) {
   // Product calories: only touched if they come in the data (empty = no data).
   if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, t('store.kcal_100g'));
   if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, t('store.peso_bote'));
+  // Weight (grams) and price (euros) are optional, as the calories: empty = no data.
+  if (data.peso_g !== undefined) cleanData.peso_g = optionalNumber(data.peso_g, t('store.peso'));
+  if (data.precio !== undefined) cleanData.precio = optionalNumber(data.precio, t('store.precio'));
   // The photo and the notes belong to the product, not to each lot.
   if (data.foto_id !== undefined) cleanData.foto_id = String(data.foto_id ?? '');
   if (data.observaciones !== undefined) cleanData.observaciones = String(data.observaciones ?? '').trim();

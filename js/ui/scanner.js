@@ -2,10 +2,19 @@ import { html } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Button, Field, Modal, Notice } from './components.js';
 import { isValidGtin } from '../logica/barcode.js';
-import { caducidadDesdeDigitalLink, codigoDesdeTexto } from '../logica/gs1-digital-link.js';
+import { caducidadDesdeDigitalLink, codigoDesdeTexto, pesoDesdeDigitalLink, precioDesdeDigitalLink } from '../logica/gs1-digital-link.js';
 import { cameraErrorMessage, CAMERA_CONSTRAINTS, photoNoCodeMessage } from '../logica/camera.js';
 import { decodeInvite } from '../logica/peer-sync.js';
 import { t } from '../logica/idioma.js';
+
+// What the link of a QR carries besides the code: expiry, weight and price, each one or null.
+function datosDelQR(texto) {
+  return {
+    caducidad: caducidadDesdeDigitalLink(texto),
+    peso: pesoDesdeDigitalLink(texto),
+    precio: precioDesdeDigitalLink(texto),
+  };
+}
 
 // Scanner with the camera and, always, manual code entry as a backup.
 // The camera reads barcodes and the GS1 Digital Link QR codes that some products carry now.
@@ -28,7 +37,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
       closed = true;
       navigator.vibrate?.(80);
       const texto = result.getText();
-      onCodigo(codigoDesdeTexto(texto), caducidadDesdeDigitalLink(texto));
+      onCodigo(codigoDesdeTexto(texto), datosDelQR(texto));
     })
       .then((c) => {
         controls = c;
@@ -53,7 +62,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
       setAviso(t('escaner.digito_control'));
       return;
     }
-    onCodigo(code, caducidadDesdeDigitalLink(manual));
+    onCodigo(code, datosDelQR(manual));
   }
 
   return html`
