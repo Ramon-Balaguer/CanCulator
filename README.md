@@ -6,7 +6,7 @@ can sync with each other over the same Wi-Fi.
 
 Live app: https://ramon-balaguer.github.io/canculator/
 
-The interface is in Spanish. This README is in English.
+The app is multilingual: it is available in Spanish and English, and you can choose the language in Settings (Ajustes). This README is in English.
 
 ## Screenshots
 
@@ -14,11 +14,11 @@ These screenshots use a demo inventory: 65 products, 170 lots, 16 photos and abo
 
 | Stock | Expiry (Caducidad) | Statistics |
 | :---: | :---: | :---: |
-| ![Stock list with a full inventory](docs/img/stock.png) | ![Expiry list with expired and future lots](docs/img/caducidad.png) | ![Totals and table by category](docs/img/estadisticas.png) |
+<img src="docs/img/stock.png" alt="Stock list with a full inventory" width="260" height="563"> | <img src="docs/img/caducidad.png" alt="Expiry list with expired and future lots" width="260" height="563"> | <img src="docs/img/estadisticas.png" alt="Totals and table by category" width="260" height="563">
 
 | Settings: categories and locations | Sync: main phone | Sync: client phone |
 | :---: | :---: | :---: |
-| ![Settings with categories and locations](docs/img/ajustes-top.png) | ![Main phone with the room code](docs/img/sincronizar-main.png) | ![Client phone connected to the room](docs/img/sincronizar-cliente.png) |
+<img src="docs/img/ajustes-top.png" alt="Settings with categories and locations" width="260" height="563"> | <img src="docs/img/sincronizar-main.png" alt="Main phone with the room code" width="260" height="563"> | <img src="docs/img/sincronizar-cliente.png" alt="Client phone connected to the room" width="260" height="563">
 
 ## Screens
 
