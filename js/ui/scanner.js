@@ -1,12 +1,14 @@
 import { html } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Button, Field, Modal, Notice } from './components.js';
-import { isValidGtin, normalizeCode } from '../logica/barcode.js';
+import { isValidGtin } from '../logica/barcode.js';
+import { caducidadDesdeDigitalLink, codigoDesdeTexto } from '../logica/gs1-digital-link.js';
 import { cameraErrorMessage, CAMERA_CONSTRAINTS, photoNoCodeMessage } from '../logica/camera.js';
 import { decodeInvite } from '../logica/peer-sync.js';
 import { t } from '../logica/idioma.js';
 
 // Scanner with the camera and, always, manual code entry as a backup.
+// The camera reads barcodes and the GS1 Digital Link QR codes that some products carry now.
 export function ScannerModal({ onCodigo, onCerrar }) {
   const video = useRef(null);
   const [error, setError] = useState('');
@@ -16,7 +18,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
   useEffect(() => {
     let controls = null;
     let closed = false;
-    const reader = window.ZXingBrowser?.BrowserMultiFormatOneDReader;
+    const reader = window.ZXingBrowser?.BrowserMultiFormatReader;
     if (!reader) {
       setError(t('escaner.no_disponible'));
       return undefined;
@@ -25,7 +27,8 @@ export function ScannerModal({ onCodigo, onCerrar }) {
       if (!result || closed) return;
       closed = true;
       navigator.vibrate?.(80);
-      onCodigo(normalizeCode(result.getText()));
+      const texto = result.getText();
+      onCodigo(codigoDesdeTexto(texto), caducidadDesdeDigitalLink(texto));
     })
       .then((c) => {
         controls = c;
@@ -40,7 +43,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
 
   function sendManual(event) {
     event.preventDefault();
-    const code = normalizeCode(manual);
+    const code = codigoDesdeTexto(manual);
     if (!code) return;
     if (!/^\d{8,14}$/.test(code)) {
       setAviso(t('escaner.digitos'));
@@ -50,7 +53,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
       setAviso(t('escaner.digito_control'));
       return;
     }
-    onCodigo(code);
+    onCodigo(code, caducidadDesdeDigitalLink(manual));
   }
 
   return html`
