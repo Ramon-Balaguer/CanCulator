@@ -133,7 +133,7 @@ test('configuracion: valores por defecto y validación', () => {
   const effective = effectiveSettings([{ clave: 'dias_caduca_pronto', valor: 30 }]);
   assert.equal(effective.dias_caduca_pronto, 30);
   assert.equal(effective.hora_aviso, '09:00');
-  assert.equal(effective.categorias.length, 14);
+  assert.equal(effective.categorias.length, 17);
   assert.deepEqual(validateValue('ubicaciones', ['  Despensa ', 'despensa', 'Nevera']), ['Despensa', 'Nevera']);
   assert.throws(() => validateValue('ubicaciones', []), /al menos una/);
   assert.throws(() => validateValue('dias_caduca_pronto', -1), /entero/);

@@ -1,7 +1,11 @@
 // Guesses the app category from the Open Food Facts product. No DOM or network.
 // Rules are checked in order, so the most specific ones come first. Each rule maps
 // words found in the OFF category tags (e.g. "en:canned-tunas") to a default category.
+// The fresh rules go first: "fresh-meats" must not fall into the generic "carne" rule.
 const RULES = [
+  ['preparados frescos', /(chilled|refrigerated|fresh|fresco|refrigerad)[a-z-]*(ready|prepared|meal|dish|preparad|plato|comida)|(ready|prepared|meal|dish|preparad|plato)[a-z-]*(chilled|refrigerated|fresh|fresco|refrigerad)/],
+  ['carne fresca', /(fresh|fresca)[a-z-]*(meat|beef|pork|chicken|turkey|poultry|lamb|carne|pollo|ternera|cerdo|cordero)|(meat|beef|pork|chicken|turkey|poultry|lamb|carne|pollo|ternera|cerdo|cordero)[a-z-]*(fresh|fresca)/],
+  ['pescado fresco', /(fresh|fresco)[a-z-]*(fish|seafood|shellfish|salmon|\bcod\b|hake|pescad|marisco|merluza|lubina|dorada|gamba)|(fish|seafood|shellfish|salmon|\bcod\b|hake|pescad|marisco|merluza|lubina|dorada|gamba)[a-z-]*(fresh|fresco)/],
   ['agua y bebidas', /beverage|drink|water|juice|soda|\bcolas?\b|beer|wine|coffee|tea\b|infusion|bebida|agua|zumo|refresco|cerveza|vino|cafe/],
   ['legumbres', /legume|pulse|lentil|chickpea|bean|pea\b|peas\b|legumbre|lenteja|garbanzo|alubia|judia/],
   ['pescado', /fish|tuna|sardine|mackerel|anchov|salmon|\bcod\b|seafood|shellfish|pescado|atun|sardina|caballa|bacalao|marisco|mejillon/],
