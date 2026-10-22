@@ -120,6 +120,14 @@ test.describe('stock, reponer e imprimir', () => {
     await expect(page.locator('.modal-pantalla').getByLabel('Producto')).toHaveValue('Atún');
   });
 
+  test('A reponer vacío: explica cómo hacer que aparezca un producto', async ({ page }) => {
+    await openApp(page);
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'A reponer' }).click();
+    await expect(page.getByText('Nada por debajo del mínimo.')).toBeVisible();
+    await expect(page.getByText('Aquí aparecen los productos cuyo stock baja de su mínimo.')).toBeVisible();
+    await expect(page.getByText('edita un producto y pon un «Stock mínimo» mayor que 0.')).toBeVisible();
+  });
+
   test('Imprimir: en print oculta la navegación y muestra la tabla con ID corto', async ({ page }) => {
     await openApp(page);
     await newLot(page, { nombre: 'Melocotón', cantidad: 2 });

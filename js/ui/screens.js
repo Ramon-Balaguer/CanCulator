@@ -147,7 +147,11 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
 export function RestockScreen({ datos: data, onComprado }) {
   const pending = toRestock(data.productos, data.lotes);
   if (pending.length === 0) {
-    return html`<section class="pantalla"><h2>${t('reponer.titulo')}</h2><${Empty}>${t('reponer.vacio')}<//></section>`;
+    return html`<section class="pantalla">
+      <h2>${t('reponer.titulo')}</h2>
+      <${Empty}>${t('reponer.vacio')}<//>
+      <${Empty}>${t('reponer.ayuda')}<//>
+    </section>`;
   }
   return html`
     <section class="pantalla">

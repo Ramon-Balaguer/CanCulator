@@ -82,6 +82,7 @@ export const TEXTOS = Object.freeze({
 
     'reponer.titulo': 'A reponer',
     'reponer.vacio': 'Nada por debajo del mínimo.',
+    'reponer.ayuda': 'Aquí aparecen los productos cuyo stock baja de su mínimo. Para que aparezca alguno, edita un producto y pon un «Stock mínimo» mayor que 0.',
     'reponer.hay': 'Hay {stock} de {minimo} · faltan {falta}',
 
     'imprimir.titulo': 'Imprimir',
@@ -360,6 +361,7 @@ export const TEXTOS = Object.freeze({
 
     'reponer.titulo': 'To restock',
     'reponer.vacio': 'Nothing below the minimum.',
+    'reponer.ayuda': 'Products whose stock falls below their minimum appear here. To get one listed, edit a product and set a «Stock mínimo» above 0.',
     'reponer.hay': 'Have {stock} of {minimo} · {falta} short',
 
     'imprimir.titulo': 'Print',
