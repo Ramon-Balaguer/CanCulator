@@ -263,7 +263,7 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
   const [importado, setImportado] = useState('');
   const save = async (key, value) => {
     const cleanData = validateValue(key, value);
-    await saveSetting(db, key, cleanData);
+    await saveSetting(db, device, key, cleanData);
     refresh();
     return cleanData;
   };
