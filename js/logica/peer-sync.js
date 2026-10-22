@@ -85,6 +85,34 @@ export function applyRemoteOps(state, ops, appliedIds) {
   return { state: { productos, lotes, configuracion }, applied };
 }
 
+// Fusión de un snapshot completo (todos los productos, lotes y ajustes del otro móvil).
+// Cada registro gana el de fecha más reciente; los que solo existen en el otro móvil se añaden.
+// Sirve para recuperar lo que no llegó por operaciones y para que los dos móviles acaben iguales.
+function fusionarPorFecha(locales, remotos, claveDe) {
+  const mapa = new Map(locales.map((r) => [claveDe(r), { ...r }]));
+  let changed = 0;
+  for (const r of remotos) {
+    const actual = mapa.get(claveDe(r));
+    if (!actual || r.actualizado > actual.actualizado) {
+      mapa.set(claveDe(r), { ...r });
+      changed++;
+    }
+  }
+  return { lista: [...mapa.values()], changed };
+}
+
+// state: { productos, lotes, configuracion }; remote: el snapshot recibido con la misma forma.
+// Devuelve { state, changed: número de registros añadidos o cambiados }. No modifica las entradas.
+export function mergeSnapshot(state, remote) {
+  const productos = fusionarPorFecha(state.productos, remote.productos ?? [], (p) => p.id);
+  const lotes = fusionarPorFecha(state.lotes, remote.lotes ?? [], (l) => l.id);
+  const configuracion = fusionarPorFecha(state.configuracion ?? [], remote.configuracion ?? [], (c) => c.clave);
+  return {
+    state: { productos: productos.lista, lotes: lotes.lista, configuracion: configuracion.lista },
+    changed: productos.changed + lotes.changed + configuracion.changed,
+  };
+}
+
 // Invitación para el QR: código de la sala y token, en un solo texto.
 const PREFIJO_INVITACION = 'canculator:';
 const CODIGO_SALA = /^[A-Z2-9]{6}$/;

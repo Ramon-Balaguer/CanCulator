@@ -3,7 +3,7 @@
 // y cada cambio local se envía al momento a los móviles conectados.
 import { TABLES, request, transaction } from './db.js';
 import { readMeta } from './store.js';
-import { applyRemoteOps, hashToken } from '../logica/peer-sync.js';
+import { applyRemoteOps, hashToken, mergeSnapshot } from '../logica/peer-sync.js';
 
 const PREFIJO_SALA = 'canculator-';
 const MAX_IDS_APLICADOS = 5000;
@@ -35,7 +35,7 @@ export function numeroConectadas() {
 
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
-export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
+export function createRoom({ db, code, token, onOps, onSnapshot, onFotos, onStatus }) {
   let peer = null;
   let timer = null;
   let cerrada = false;
@@ -43,7 +43,7 @@ export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
   const abrir = () => {
     if (cerrada) return;
     peer = new window.Peer(PREFIJO_SALA + code);
-    peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onFotos, onStatus }));
+    peer.on('connection', (conexion) => prepararConexion({ db, conexion, token, onOps, onSnapshot, onFotos, onStatus }));
     peer.on('error', (e) => {
       if (e.type === 'unavailable-id') {
         onStatus('La sala aún está activa en el servicio; reintentando…');
@@ -68,11 +68,11 @@ export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
 
 // Se une a la sala con ese código. Si la conexión se cae, llama a onClosed (para reintentar).
 // Si el anfitrión aún no está registrado (p. ej. tras recargar su app), también llama a onClosed.
-export function joinRoom({ db, code, token, onOps, onFotos, onStatus, onClosed }) {
+export function joinRoom({ db, code, token, onOps, onSnapshot, onFotos, onStatus, onClosed }) {
   const peer = new window.Peer();
   peer.on('open', () => {
     onStatus('Uniéndose a la sala…');
-    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onFotos, onStatus, onClosed });
+    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onSnapshot, onFotos, onStatus, onClosed });
   });
   peer.on('error', (e) => {
     if (e.type === 'peer-unavailable') {
@@ -99,9 +99,10 @@ export async function enviarCambiosPendientes() {
   }
 }
 
-// Protocolo: saludo (huella del token). Si coincide, se envían las operaciones pendientes
-// y, a partir de ahí, cada cambio local nuevo.
-function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClosed }) {
+// Protocolo: saludo (huella del token). Si coincide, se envían las operaciones pendientes y el estado
+// completo (snapshot), y, a partir de ahí, cada cambio local nuevo. El snapshot corrige las diferencias
+// que las operaciones no hayan dejado (un registro que nunca llegó, o uno que quedó atrás).
+function prepararConexion({ db, conexion, token, onOps, onSnapshot, onFotos, onStatus, onClosed }) {
   const miHuellaPromesa = hashToken(token);
   const registro = { conexion, db, enviados: new Set() };
   let verificado = false;
@@ -124,8 +125,13 @@ function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClo
       const pendientes = await operacionesPendientes(db);
       pendientes.forEach((o) => registro.enviados.add(o.id));
       conexion.send({ tipo: 'operaciones', operaciones: pendientes });
+      conexion.send({ tipo: 'estado', estado: await leerEstado(db) });
     } else if (mensaje?.tipo === 'operaciones' && verificado) {
       await onOps(mensaje.operaciones ?? []);
+      await pedirFotosFaltantes(db, conexion);
+    } else if (mensaje?.tipo === 'estado' && verificado) {
+      const cambios = await aplicarSnapshot(db, mensaje.estado ?? {});
+      if (cambios > 0) onSnapshot?.(cambios);
       await pedirFotosFaltantes(db, conexion);
     } else if (mensaje?.tipo === 'pedir-fotos' && verificado) {
       await enviarFotos(db, conexion, mensaje.ids ?? []);
@@ -184,6 +190,32 @@ async function guardarFotoRecibida(db, foto) {
     if (await request(almacen.get(foto.id))) return false;
     almacen.put({ id: foto.id, bytes: foto.bytes, tipo: foto.tipo || 'image/jpeg', creada: foto.creada });
     return true;
+  });
+}
+
+async function leerEstado(db) {
+  return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.configuracion], 'readonly', async (tx) => ({
+    productos: await request(tx.objectStore(TABLES.productos).getAll()),
+    lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
+    configuracion: await request(tx.objectStore(TABLES.configuracion).getAll()),
+  }));
+}
+
+// Fusiona el snapshot del otro móvil con el local (gana el registro más reciente) y devuelve cuántos cambió.
+// Lee y escribe en la misma transacción: abrir otra dentro haría que las escrituras no se apliquen.
+async function aplicarSnapshot(db, remoto) {
+  return transaction(db, [TABLES.productos, TABLES.lotes, TABLES.configuracion], 'readwrite', async (tx) => {
+    const local = {
+      productos: await request(tx.objectStore(TABLES.productos).getAll()),
+      lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
+      configuracion: await request(tx.objectStore(TABLES.configuracion).getAll()),
+    };
+    const { state, changed } = mergeSnapshot(local, remoto);
+    if (changed === 0) return 0;
+    for (const p of state.productos) tx.objectStore(TABLES.productos).put(p);
+    for (const l of state.lotes) tx.objectStore(TABLES.lotes).put(l);
+    for (const c of state.configuracion) tx.objectStore(TABLES.configuracion).put(c);
+    return changed;
   });
 }
 
