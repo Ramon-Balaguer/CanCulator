@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 
 // Sincronización directa entre dos móviles por WebRTC. Usa el servicio público de señalización
 // de PeerJS, así que necesita internet. No usa Apps Script.
@@ -13,13 +14,6 @@ test('un lote añadido en un móvil aparece en el otro por la sala', async ({ br
     await movilA.goto('./');
     await movilB.goto('./');
 
-    // Mismo token en los dos móviles.
-    for (const movil of [movilA, movilB]) {
-      await movil.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
-      await movil.getByLabel('Token').fill('token-de-prueba');
-      await movil.getByRole('button', { name: 'Guardar token' }).click();
-    }
-
     // El móvil A añade un lote y crea la sala.
     await movilA.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
     await movilA.getByRole('button', { name: 'Añadir lote' }).click();
@@ -30,14 +24,11 @@ test('un lote añadido en un móvil aparece en el otro por la sala', async ({ br
     await alta.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(movilA.locator('.modal-pantalla')).toHaveCount(0);
 
-    await movilA.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
-    await movilA.getByRole('button', { name: 'Crear sala' }).click();
-    const codigo = await movilA.getByTestId('codigo-sala').textContent();
-
-    // El móvil B se une con el código.
-    await movilB.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
-    await movilB.getByLabel('Código de la sala').fill(codigo);
-    await movilB.getByRole('button', { name: 'Entrar' }).click();
+    // El móvil A crea el main con la password; el móvil B entra como cliente con el código.
+    await abrirAjustes(movilA);
+    const codigo = await crearMain(movilA);
+    await abrirAjustes(movilB);
+    await entrarComoCliente(movilB, codigo);
     await expect(movilB.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
 
     // El lote llega al móvil B.
