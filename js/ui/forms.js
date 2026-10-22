@@ -57,7 +57,8 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
 
   // After scanning: if there is already a product, it is used; if not, Open Food Facts is asked ONCE.
   // A failure never blocks the entry: the name stays editable by hand.
-  async function onScanned(code) {
+  // The expiry date comes only when the QR carries it (GS1 identifier 17); otherwise the field is kept.
+  async function onScanned(code, caducidad) {
     setEscaneando(false);
     setAviso(null);
     const existing = findProductByCode(data.productos, code);
@@ -66,6 +67,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       codigo: code,
       nombre: existing?.nombre ?? c.nombre,
       categoria: existing?.categoria ?? c.categoria,
+      caducidad: caducidad ?? c.caducidad,
     }));
     if (existing) {
       setAviso({ tipo: 'info', texto: t('anadir.ya_tienes_producto', { nombre: existing.nombre }) });
