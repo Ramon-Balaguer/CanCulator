@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { pngEan13 } from '../fixtures/barcode.js';
+import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 
 // Con la sala abierta, la foto de un lote llega al otro móvil con el lote.
 test('la foto de un lote llega al otro móvil por la sala', async ({ browser }) => {
@@ -10,16 +11,10 @@ test('la foto de un lote llega al otro móvil por la sala', async ({ browser }) 
   const anfitrion = await a.newPage();
   const invitado = await b.newPage();
   try {
-    for (const p of [anfitrion, invitado]) {
-      await p.goto('./');
-      await p.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Ajustes' }).click();
-      await p.getByLabel('Token').fill('token-de-prueba');
-      await p.getByRole('button', { name: 'Guardar token' }).click();
-    }
-    await anfitrion.getByRole('button', { name: 'Crear sala' }).click();
-    const codigo = await anfitrion.getByTestId('codigo-sala').textContent();
-    await invitado.getByLabel('Código de la sala').fill(codigo);
-    await invitado.getByRole('button', { name: 'Entrar' }).click();
+    await abrirAjustes(anfitrion);
+    const codigo = await crearMain(anfitrion);
+    await abrirAjustes(invitado);
+    await entrarComoCliente(invitado, codigo);
     await expect(invitado.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
     await expect(anfitrion.getByTestId('estado-casa')).toContainText('Conectado', { timeout: 90_000 });
 

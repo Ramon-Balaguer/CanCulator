@@ -4,7 +4,7 @@ import { Button, Field } from './components.js';
 import { QrScannerModal } from './scanner.js';
 import { applyPeerOperations, createRoom, joinRoom } from '../datos/peer-link.js';
 import { readMeta, saveMeta } from '../datos/store.js';
-import { decodeInvite, encodeInvite } from '../logica/peer-sync.js';
+import { encodeInvite } from '../logica/peer-sync.js';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ESPERA_REUNION_MS = 1000;
@@ -88,15 +88,13 @@ export function restaurarSala({ db, deviceId, token, refresh }) {
   });
 }
 
-// Sincronización entre dos móviles en la misma red, en tres pasos:
-// 1) guardar el token, 2) crear sala (anfitrión), 3) entrar en sala (con QR o código).
+// Sincronización entre dos móviles en la misma red:
+// «Crear main» guarda la password de sincronización y crea la sala; «Crear cliente» entra en ella.
 export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
   const [vista, setVista] = useState(estado);
-  const [tokenTyped, setTokenTyped] = useState('');
-  const [codeTyped, setCodeTyped] = useState('');
+  const [passwordTyped, setPasswordTyped] = useState(token ?? '');
+  const [mensajeMain, setMensajeMain] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [mensajeToken, setMensajeToken] = useState('');
-  const arrancadoRef = useRef(false);
 
   // El bloque se suscribe a la sala; desmontarlo no la cierra.
   contexto = { db, deviceId, refresh };
@@ -105,37 +103,26 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
     return () => oyentes.delete(setVista);
   }, []);
 
-  const guardarToken = async (nuevo) => {
-    const limpio = nuevo.trim();
-    if (!limpio) return setMensajeToken('El token no puede estar vacío.');
-    await saveMeta(db, CLAVE_TOKEN, limpio);
-    onToken(limpio);
-    setMensajeToken('Token guardado.');
+  const guardarPassword = async (nueva) => {
+    await saveMeta(db, CLAVE_TOKEN, nueva);
+    onToken(nueva);
   };
 
-  // Entrar con un QR: trae la sala y el token. Si el token de este móvil es otro, se usa el del QR.
-  const alEscanear = async (texto) => {
-    setScanning(false);
-    const invitacion = decodeInvite(texto);
-    if (!invitacion) {
-      // Código de sala escrito a mano en el escáner.
-      const soloCodigo = texto.trim().toUpperCase();
-      if (soloCodigo.length !== 6 || !token) return emitir({ status: 'Ese QR no es de una sala de inventario.' });
-      return unirseSala(soloCodigo, token);
-    }
-    if (invitacion.token !== token) {
-      await guardarToken(invitacion.token);
-      setMensajeToken('Token tomado del QR.');
-    }
-    unirseSala(invitacion.code, invitacion.token);
-  };
-
-  const entrarConCodigo = (event) => {
+  // Main: guarda la password y crea la sala. El QR y el código salen de ahí.
+  const crearMain = async (event) => {
     event.preventDefault();
-    const limpio = codeTyped.trim().toUpperCase();
-    if (limpio.length !== 6) return emitir({ status: 'El código tiene 6 caracteres.' });
-    if (!token) return emitir({ status: 'Primero guarda el token (paso 1).' });
-    unirseSala(limpio, token);
+    const limpia = passwordTyped.trim();
+    if (!limpia) return setMensajeMain('La password no puede estar vacía.');
+    await guardarPassword(limpia);
+    setMensajeMain('');
+    crearSala(codigoNuevo(), limpia);
+  };
+
+  // Cliente: al guardar en el escáner se guarda la password y se entra en la sala.
+  const crearCliente = async ({ codigo, password }) => {
+    setScanning(false);
+    if (password !== token) await guardarPassword(password);
+    unirseSala(codigo, password);
   };
 
   const { rol, codigo, status } = vista;
@@ -144,43 +131,39 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
   return html`
     <div class="bloque" data-testid="sincronizacion-casa">
       <h3>Sincronizar entre móviles</h3>
-      <p class="secundario">Los dos móviles tienen que estar en la misma Wi-Fi y con el mismo token.</p>
+      <p class="secundario">Los dos móviles tienen que estar en la misma Wi-Fi.</p>
 
-      <div class="bloque-paso">
-        <strong>1. Token</strong>
-        <p class="secundario">${token ? 'Token guardado. Pon el mismo en el otro móvil (o escanea su QR).' : 'Escribe un token y guárdalo. Es el mismo en los dos móviles.'}</p>
-        <form class="fila" onSubmit=${(e) => { e.preventDefault(); guardarToken(tokenTyped); }}>
-          <${Field} etiqueta="Token">
-            <input type="password" autocomplete="off" value=${tokenTyped} onInput=${(e) => setTokenTyped(e.currentTarget.value)} />
-          <//>
-          <${Button} tipo="secundario" type="submit">Guardar token<//>
-        </form>
-        ${mensajeToken && html`<p class="secundario">${mensajeToken}</p>`}
-      </div>
-
-      <div class="bloque-paso">
-        <strong>2. Crear sala</strong>
-        <p class="secundario">En un móvil. Muestra un QR con la sala y el token.</p>
-        ${rol !== 'anfitrion' && html`<div class="acciones"><${Button} tipo="secundario" disabled=${!token || rol !== null} onClick=${() => crearSala(codigoNuevo(), token)}>Crear sala<//></div>`}
+      <div class="bloque" data-testid="crear-main">
+        <h3>Crear main</h3>
+        <p class="secundario" data-testid="explicacion-password">La password de sincronización protege tu inventario: solo entra en la sala quien la tenga.
+          Pon la misma en todos los móviles de la casa y no la compartas fuera de ella.</p>
         ${rol === 'anfitrion' && html`
           <${Qr} text=${inviteText} />
-          <p class="codigo" data-testid="codigo-sala">${codigo}</p>`}
+          <p class="codigo" data-testid="codigo-sala">${codigo}</p>
+          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>Cerrar sala<//></div>`}
+        ${rol === null && html`
+          <form class="formulario" onSubmit=${crearMain}>
+            <${Field} etiqueta="Password de sincronización">
+              <input type="password" autocomplete="off" value=${passwordTyped} onInput=${(e) => setPasswordTyped(e.currentTarget.value)} />
+            <//>
+            <${Button} tipo="secundario" type="submit">Guardar y crear sala<//>
+          </form>
+          ${mensajeMain && html`<p class="secundario">${mensajeMain}</p>`}`}
+        ${rol === 'invitado' && html`<p class="secundario">Este móvil ya está en una sala como cliente. Sal de ella para crear el main.</p>`}
       </div>
 
-      <div class="bloque-paso">
-        <strong>3. Entrar en sala</strong>
-        <p class="secundario">En el otro móvil. Escanea el QR o escribe el código.</p>
-        <div class="acciones">
-          <${Button} tipo="secundario" disabled=${rol !== null} onClick=${() => setScanning(true)}>Escanear QR<//>
-        </div>
-        <form class="fila" onSubmit=${entrarConCodigo}>
-          <input value=${codeTyped} maxlength="6" autocomplete="off" aria-label="Código de la sala" disabled=${rol !== null} onInput=${(e) => setCodeTyped(e.currentTarget.value)} />
-          <${Button} tipo="secundario" type="submit" disabled=${rol !== null}>Entrar<//>
-        </form>
+      <div class="bloque" data-testid="crear-cliente">
+        <h3>Crear cliente</h3>
+        ${rol === null && html`
+          <p class="secundario">En el otro móvil, escanea el QR del main o haz una foto. Luego pon la password.</p>
+          <div class="acciones"><${Button} tipo="secundario" onClick=${() => setScanning(true)}>Escanear QR<//></div>`}
+        ${rol === 'invitado' && html`
+          <p class="secundario">Conectado a la sala <span class="codigo-pequeno">${codigo}</span>.</p>
+          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>Salir de la sala<//></div>`}
+        ${rol === 'anfitrion' && html`<p class="secundario">Este móvil es el main. Cierra la sala para conectarlo como cliente.</p>`}
       </div>
 
       <p class="secundario" data-testid="estado-casa" role="status">${status}</p>
-      ${rol !== null && html`<div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>Salir de la sala<//></div>`}
-      ${scanning && html`<${QrScannerModal} onCodigo=${alEscanear} onCerrar=${() => setScanning(false)} />`}
+      ${scanning && html`<${QrScannerModal} passwordInicial=${token ?? ''} onGuardar=${crearCliente} onCerrar=${() => setScanning(false)} />`}
     </div>`;
 }
