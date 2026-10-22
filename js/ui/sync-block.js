@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Button, Field } from './components.js';
 import { QrScannerModal } from './scanner.js';
-import { applyPeerOperations, createRoom, joinRoom } from '../datos/peer-link.js';
+import { alCambiarConectadas, applyPeerOperations, createRoom, joinRoom, numeroConectadas } from '../datos/peer-link.js';
 import { readMeta, saveMeta } from '../datos/store.js';
 import { encodeInvite } from '../logica/peer-sync.js';
 
@@ -95,6 +95,7 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
   const [passwordTyped, setPasswordTyped] = useState(token ?? '');
   const [mensajeMain, setMensajeMain] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [conectados, setConectados] = useState(numeroConectadas);
 
   // El bloque se suscribe a la sala; desmontarlo no la cierra.
   contexto = { db, deviceId, refresh };
@@ -102,6 +103,7 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
     oyentes.add(setVista);
     return () => oyentes.delete(setVista);
   }, []);
+  useEffect(() => alCambiarConectadas(setConectados), []);
 
   const guardarPassword = async (nueva) => {
     await saveMeta(db, CLAVE_TOKEN, nueva);
@@ -163,6 +165,7 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
         ${rol === 'anfitrion' && html`<p class="secundario">Este móvil es el main. Cierra la sala para conectarlo como cliente.</p>`}
       </div>
 
+      <p class="secundario" data-testid="moviles-conectados">Móviles conectados: ${conectados}</p>
       <p class="secundario" data-testid="estado-casa" role="status">${status}</p>
       ${scanning && html`<${QrScannerModal} passwordInicial=${token ?? ''} onGuardar=${crearCliente} onCerrar=${() => setScanning(false)} />`}
     </div>`;

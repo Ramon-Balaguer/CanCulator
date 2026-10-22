@@ -29,6 +29,10 @@ export function alCambiarConectadas(avisar) {
   return () => oyentesConectadas.delete(avisar);
 }
 
+export function numeroConectadas() {
+  return conectadas.size;
+}
+
 // Crea (o vuelve a abrir) una sala con ese código. Devuelve { cerrar }.
 // Si el código aún está registrado en el servicio (p. ej. tras reiniciar), reintenta solo.
 export function createRoom({ db, code, token, onOps, onFotos, onStatus }) {
