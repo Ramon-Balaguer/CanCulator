@@ -22,6 +22,11 @@ export const DEFAULT_CATEGORIES = Object.freeze([
   'otros',
 ]);
 
+// Drinks and waters are measured in ml (volume), the rest of the products in grams (weight).
+export function esBebida(categoria) {
+  return categoria === 'agua y bebidas';
+}
+
 export const DEFAULT_SETTINGS = Object.freeze({
   categorias: DEFAULT_CATEGORIES,
   ubicaciones: Object.freeze(['Despensa']),
