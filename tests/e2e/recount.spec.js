@@ -16,6 +16,7 @@ test('editar un lote fija la cantidad que se escribe (recuento)', async ({ page 
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
   await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   const card = page.locator('li.tarjeta', { hasText: 'Garbanzos recuento' });
   await expect(card).toContainText('5 ud.');
 

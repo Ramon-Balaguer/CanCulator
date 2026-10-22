@@ -29,7 +29,7 @@ test('la foto de un lote llega al otro móvil por la sala', async ({ browser }) 
     await alta.getByLabel('Producto').fill('Lentejas con foto');
     await alta.getByLabel('Caducidad').fill('2027-09-01');
     await alta.getByLabel('Unidades').fill('2');
-    await alta.getByLabel('Foto del lote (opcional)').setInputFiles({ name: 'l.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
+    await alta.getByLabel('Foto (opcional)').setInputFiles({ name: 'l.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
     await alta.getByRole('button', { name: 'Guardar lote' }).click();
 
     await invitado.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();

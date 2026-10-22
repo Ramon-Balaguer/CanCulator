@@ -10,8 +10,8 @@ import { restaurarSala } from './sync-block.js';
 import { effectiveSettings } from '../logica/settings.js';
 
 const TABS = [
-  { id: 'caducidad', texto: 'Caducidad' },
   { id: 'stock', texto: 'Stock' },
+  { id: 'caducidad', texto: 'Caducidad' },
   { id: 'reponer', texto: 'A reponer' },
   { id: 'imprimir', texto: 'Imprimir' },
   { id: 'estadisticas', texto: 'Estadísticas' },
@@ -30,7 +30,7 @@ export function Root({ db }) {
   const [syncLogic, setSincronizacion] = useState({ url: '', token: '' });
   const [estadoSync, setEstadoSync] = useState({ estado: 'inactiva', mensaje: '' });
   const [ultimaSync, setUltimaSync] = useState('');
-  const [pestana, setPestana] = useState('caducidad');
+  const [pestana, setPestana] = useState('stock');
   const [view2, setVista] = useState(null); // Is a cache entry still valid? "ahora" is passed to be able to test it.
   const [notice, setAviso] = useState(null);
   const [error, setError] = useState('');

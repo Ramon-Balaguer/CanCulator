@@ -4,7 +4,7 @@ import { Notice, Button, Field, Modal } from './components.js';
 import { ScannerModal } from './scanner.js';
 import { addLot, removeLot, removeProduct, consume, createProduct, editLot, editProduct, savePhoto } from '../datos/store.js';
 import { compressPhoto } from '../datos/photos.js';
-import { findSameLot, findProductByCode, findProductByName, lotsToConsume } from '../logica/inventory.js';
+import { findSameLot, findProductByCode, findProductByName, lotsToConsume, photoIdOf } from '../logica/inventory.js';
 import { isValidGtin } from '../logica/barcode.js';
 import { todayInMadrid, formatDate, daysBetween, describeExpiry, formatDateInput, parseTypedDate } from '../logica/dates.js';
 import { Thumbnail } from './thumbnail.js';
@@ -20,7 +20,6 @@ const EMPTY_FIELDS = () => ({
   ubicacion: '',
   caducidad: '',
   cantidad: '1',
-  observaciones: '',
   foto: null,
 });
 
@@ -102,7 +101,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
     }
   }
 
-  // The front photo of the product becomes the lot photo, unless the user already chose one.
+  // The front photo of the product becomes the product photo, unless the user already chose one.
   // A failure (offline, CORS, timeout) is silent: the photo is optional.
   async function downloadFrontPhoto(product) {
     const url = frontImageUrl(product);
@@ -135,14 +134,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       const existing = productoInicial
         ?? findProductByCode(data.productos, fields.codigo)
         ?? findProductByName(data.productos, name);
-      const product = existing ?? await createProduct(db, device, {
-        nombre: name,
-        categoria: fields.categoria,
-        codigo_barras: fields.codigo,
-        stock_minimo: 0,
-        // If Open Food Facts brought energy, the calories are stored with the product.
-        ...nutritionDataFromOFF(ofProducto ?? {}),
-      });
+      // The photo is saved first: it belongs to the product, new or existing.
       let photoId = '';
       let photoNotice = '';
       if (fields.foto) {
@@ -152,13 +144,25 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
           photoNotice = ` La foto no se guardó: ${e.message}`;
         }
       }
+      let product = existing;
+      if (!product) {
+        product = await createProduct(db, device, {
+          nombre: name,
+          categoria: fields.categoria,
+          codigo_barras: fields.codigo,
+          stock_minimo: 0,
+          foto_id: photoId,
+          // If Open Food Facts brought energy, the calories are stored with the product.
+          ...nutritionDataFromOFF(ofProducto ?? {}),
+        });
+      } else if (photoId) {
+        product = await editProduct(db, device, product.id, { foto_id: photoId });
+      }
       const r = await addLot(db, device, {
         producto_id: product.id,
         cantidad: quantity,
         caducidad: expiryIso,
         ubicacion: fields.ubicacion,
-        observaciones: fields.observaciones,
-        foto_id: photoId,
       });
       if (r.fusionado) {
         // No new lot is created: it is added to the existing one, and it says how much there is now.
@@ -175,8 +179,9 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
   }
 
   // Preview warning: if the product already has a lot with that expiry and location, it is added to that one.
-  const currentProduct = productoInicial
-    ?? findProductByCode(data.productos, fields.codigo)
+  // A product known by its code or coming from Restock keeps its name: the lot form cannot rename it.
+  const lockedProduct = productoInicial ?? findProductByCode(data.productos, fields.codigo);
+  const currentProduct = lockedProduct
     ?? findProductByName(data.productos, fields.nombre);
   const previousExpiry = parseTypedDate(fields.caducidad);
   const sameLot = currentProduct && previousExpiry
@@ -200,8 +205,9 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
         ${ofProducto && html`<${Button} tipo="secundario" onClick=${() => setVerOFF(true)}>Ver todos los datos de Open Food Facts<//>`}
         ${verOFF && ofProducto && html`<${OFFData} codigo=${fields.codigo} producto=${ofProducto} onCerrar=${() => setVerOFF(false)} />`}
 
-        <${Field} etiqueta="Producto">
-          <input required list="productos-existentes" value=${fields.nombre} onInput=${change('nombre')} autocomplete="off" />
+        <${Field} etiqueta="Producto" ayuda=${lockedProduct ? 'El nombre es del producto: para cambiarlo, edita el producto.' : undefined}>
+          <input required list="productos-existentes" value=${fields.nombre} onInput=${change('nombre')} autocomplete="off"
+            readOnly=${!!lockedProduct} />
           <datalist id="productos-existentes">
             ${data.productos.filter((p) => !p.borrado).map((p) => html`<option value=${p.nombre}></option>`)}
           </datalist>
@@ -230,15 +236,12 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
           <//>
         </div>
 
-        <${Field} etiqueta="Observaciones">
-          <input value=${fields.observaciones} onInput=${change('observaciones')} maxlength="200" />
-        <//>
 
-        <${Field} etiqueta="Foto del lote (opcional)">
+        <${Field} etiqueta="Foto (opcional)">
           <input type="file" accept="image/*" capture="environment"
             onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? fields.foto })} />
         <//>
-        ${previa && html`<img class="previa" src=${previa} alt="Foto del lote" />`}
+        ${previa && html`<img class="previa" src=${previa} alt="Foto del producto" />`}
         ${previa && html`<p class="secundario">Si prefieres otra foto, elígela arriba y sustituirá a esta.</p>`}
 
         ${sameLot && html`<${Notice} tipo="info">Ya tienes ${sameLot.cantidad} ud. de ${currentProduct.nombre} con esta caducidad y ubicación. Si guardas, se suman a ese lote.<//>`}
@@ -316,20 +319,25 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
 
   if (editando) {
     return html`<${Modal} titulo="Editar producto" onCerrar=${() => setEditando(false)}>
-      <${EditProduct} db=${db} dispositivo=${device} config=${config} producto=${product}
+      <${EditProduct} db=${db} dispositivo=${device} config=${config} producto=${product} fotoId=${photoIdOf(product, data.lotes)}
         notificar=${notifyUser} onHecho=${() => { setEditando(false); refresh(); }} onCancelar=${() => setEditando(false)} />
     <//>`;
   }
 
   return html`
     <${Modal} titulo=${product.nombre} onCerrar=${onCerrar}>
-      <p class="secundario">${product.categoria} · mínimo ${product.stock_minimo}</p>
+      <div class="lote-fila">
+        <${Thumbnail} db=${db} fotoId=${photoIdOf(product, data.lotes)} />
+        <div>
+          <p class="secundario">${product.categoria} · mínimo ${product.stock_minimo}</p>
+          ${product.observaciones && html`<p class="secundario">${product.observaciones}</p>`}
+        </div>
+      </div>
       ${perContainer !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${perContainer} kcal por bote · ${Math.round(perContainer * productUnits * 10) / 10} kcal en el stock (${productUnits} ud.)</p>`}
       ${lots.length === 0 && html`<p class="vacio">No quedan unidades de este producto.</p>`}
       <ul class="lista-lotes">
         ${lots.map((lot) => html`
           <li class="lote-fila">
-            <${Thumbnail} db=${db} fotoId=${lot.foto_id} />
             <div class="lote-datos">
               <strong>${formatDate(lot.caducidad)}</strong>
               <span class="secundario">${describeExpiry(daysBetween(today, lot.caducidad))} · ${lot.ubicacion} · ${lot.cantidad} ud.</span>
@@ -364,19 +372,39 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
   `;
 }
 
-export function EditProduct({ db, dispositivo: device, config, producto: product, notificar: notifyUser, onHecho, onCancelar }) {
+export function EditProduct({ db, dispositivo: device, config, producto: product, fotoId, notificar: notifyUser, onHecho, onCancelar }) {
   const [name, setNombre] = useState(product.nombre);
   const [category, setCategoria] = useState(product.categoria);
   const [code, setCodigo] = useState(product.codigo_barras ?? '');
   const [minimum, setMinimo] = useState(String(product.stock_minimo));
+  const [notes, setObservaciones] = useState(product.observaciones ?? '');
+  // Photo chosen now (it replaces the product's photo); without a new one, the photo stays.
+  const [photo, setFoto] = useState(null);
+  const [previa, setPrevia] = useState(null);
   const [error, setError] = useState('');
   const categories = [...new Set([...config.categorias, category])];
+
+  useEffect(() => {
+    if (!photo) { setPrevia(null); return undefined; }
+    const url = URL.createObjectURL(photo);
+    setPrevia(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
 
   async function save(event) {
     event.preventDefault();
     try {
+      let photoId;
+      if (photo) {
+        try {
+          photoId = await savePhoto(db, await compressPhoto(photo));
+        } catch (e) {
+          throw new Error(`No se pudo guardar la foto: ${e.message}`);
+        }
+      }
       await editProduct(db, device, product.id, {
         nombre: name, categoria: category, codigo_barras: code, stock_minimo: Number(minimum),
+        observaciones: notes, ...(photoId ? { foto_id: photoId } : {}),
       });
       notifyUser('Producto guardado', 'ok');
       onHecho();
@@ -399,6 +427,17 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
         <${Field} etiqueta="Stock mínimo" ayuda="Unidades por debajo de las que avisar en A reponer. 0 = no avisar.">
           <input type="number" min="0" step="1" value=${minimum} onInput=${(e) => setMinimo(e.currentTarget.value)} />
         <//>
+        <${Field} etiqueta="Observaciones">
+          <input value=${notes} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} />
+        <//>
+        <div class="campo">
+          <span class="campo-etiqueta">Foto del producto</span>
+          ${!previa && html`<${Thumbnail} db=${db} fotoId=${fotoId} />`}
+          ${previa && html`<img class="previa" src=${previa} alt="Foto nueva del producto" />`}
+          <input type="file" accept="image/*" capture="environment"
+            onChange=${(e) => setFoto(e.currentTarget.files?.[0] ?? null)} />
+          <span class="campo-ayuda">Elige una foto para añadirla o cambiarla. Sin foto nueva, se queda la que había.</span>
+        </div>
         <${Notice} tipo="error">${error}<//>
         <div class="acciones">
           <${Button} type="submit">Guardar<//>
@@ -412,39 +451,21 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
 export function EditLot({ db, dispositivo: device, lote: lot, producto: product, config, notificar: notifyUser, onHecho, onCerrar, solicitarBorrado: requestDelete }) {
   const [expiry, setCaducidad] = useState(formatDate(lot.caducidad));
   const [location, setUbicacion] = useState(lot.ubicacion);
-  const [observaciones, setObservaciones] = useState(lot.observaciones ?? '');
   // Real quantity of the lot: the final number is typed (useful when recounting).
   const [quantity, setCantidad] = useState(String(lot.cantidad));
   const [error, setError] = useState('');
-  // Photo added now to an existing lot (or replacing the previous one).
-  const [photo, setFoto] = useState(null);
-  const [previa, setPrevia] = useState(null);
   const [confirmarBorradoLote, setConfirmarBorradoLote] = useState(false);
   const locations = [...new Set([...config.ubicaciones, lot.ubicacion])];
 
-  useEffect(() => {
-    if (!photo) { setPrevia(null); return undefined; }
-    const url = URL.createObjectURL(photo);
-    setPrevia(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
-
+  // A lot only has expiry, location and units. The rest (name, photo, barcode...) belongs to the product.
   async function save(event) {
     event.preventDefault();
     setError('');
     try {
       const expiryIso = parseTypedDate(expiry);
       if (!expiryIso) throw new Error('La caducidad debe ser una fecha válida, por ejemplo 01/03/2027');
-      let photoId;
-      if (photo) {
-        try {
-          photoId = await savePhoto(db, await compressPhoto(photo));
-        } catch (e) {
-          throw new Error(`No se pudo guardar la foto: ${e.message}`);
-        }
-      }
       await editLot(db, device, lot.id, {
-        caducidad: expiryIso, ubicacion: location, observaciones, cantidad: Number(quantity), foto_id: photoId,
+        caducidad: expiryIso, ubicacion: location, cantidad: Number(quantity),
       });
       notifyUser('Lote guardado', 'ok');
       onHecho();
@@ -477,7 +498,6 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
             ${locations.map((u) => html`<option value=${u} selected=${u === location}>${u}</option>`)}
           </select>
         <//>
-        <${Field} etiqueta="Observaciones"><input value=${observaciones} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} /><//>
         <${Field} etiqueta="Cantidad" ayuda="Escribe cuántas unidades hay. 0 oculta el lote, no lo borra.">
           <div class="cantidad-control">
             <input type="number" inputmode="numeric" min="0" step="1" required aria-label="Cantidad" value=${quantity} onInput=${(e) => setCantidad(e.currentTarget.value)} />
@@ -485,14 +505,6 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
             <button type="button" aria-label="Reducir una unidad" onClick=${() => ajustarCantidad(-1)}>▼</button>
           </div>
         <//>
-        <div class="campo">
-          <span class="campo-etiqueta">Foto del lote</span>
-          ${!previa && html`<${Thumbnail} db=${db} fotoId=${lot.foto_id} />`}
-          ${previa && html`<img class="previa" src=${previa} alt="Foto nueva del lote" />`}
-          <input type="file" accept="image/*" capture="environment"
-            onChange=${(e) => setFoto(e.currentTarget.files?.[0] ?? null)} />
-          <span class="campo-ayuda">Elige una foto para añadirla o cambiarla. Sin foto nueva, se queda la que había.</span>
-        </div>
         <${Notice} tipo="error">${error}<//>
         <div class="acciones">
           <${Button} type="submit">Guardar<//>

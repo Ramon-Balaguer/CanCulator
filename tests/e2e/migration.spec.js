@@ -30,6 +30,7 @@ test('la base de datos de la versión 1 pasa a la actual sin perder datos', asyn
   });
 
   await page.goto('./');
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   await expect(page.locator('li.tarjeta', { hasText: 'Legado de la v1' })).toContainText('2 ud.');
   const version = await page.evaluate(() => new Promise((resolve) => {
     const r = indexedDB.open('canculator');

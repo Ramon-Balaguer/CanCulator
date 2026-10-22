@@ -228,6 +228,9 @@ body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 .boton.peligro:hover { background: var(--peligro-hover); border-color: var(--peligro-hover); }
 .boton.secundario.peligro { background: transparent; border-color: var(--peligro); color: var(--peligro); }
 
+/* Botón −1 de Caducidad: más apagado para que no destaque sobre el resto de la tarjeta. */
+.boton.consumir { filter: brightness(0.7); }
+
 .boton:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .boton input { width: 64px; }

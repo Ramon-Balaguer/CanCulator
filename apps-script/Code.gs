@@ -10,7 +10,7 @@ const PHOTOS_FOLDER = 'inventario-fotos';
 const TIME_ZONE = 'Europe/Madrid';
 
 const COLUMNS = {
-  Productos: ['id', 'nombre', 'categoria', 'codigo_barras', 'stock_minimo', 'actualizado', 'borrado', 'kcal_100g', 'peso_bote_g'],
+  Productos: ['id', 'nombre', 'categoria', 'codigo_barras', 'stock_minimo', 'actualizado', 'borrado', 'kcal_100g', 'peso_bote_g', 'observaciones', 'foto_id'],
   Lotes: ['id', 'producto_id', 'cantidad', 'caducidad', 'ubicacion', 'observaciones', 'foto_id', 'revisar', 'actualizado', 'borrado'],
   Configuracion: ['clave', 'valor', 'actualizado'],
   Dispositivos: ['dispositivo', 'ultima_sincronizacion'],
