@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 
 // Sincronización directa entre dos móviles por WebRTC. Usa el servicio público de señalización
-// de PeerJS, así que necesita internet. No usa Apps Script.
+// de PeerJS, así que necesita internet.
 test('un lote añadido en un móvil aparece en el otro por la sala', async ({ browser }) => {
   test.skip(browser.browserType().name() !== 'chromium', 'WebRTC: el WebKit de Playwright no conecta las salas en este entorno; se prueba en iPhone real.');
   test.setTimeout(150_000);

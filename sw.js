@@ -22,7 +22,6 @@ const PRECACHE = [
   './js/datos/peer-link.js',
   './js/datos/photos.js',
   './js/datos/store.js',
-  './js/datos/sync.js',
   './js/logica/backup.js',
   './js/logica/barcode.js',
   './js/logica/camera.js',
@@ -37,10 +36,8 @@ const PRECACHE = [
   './js/logica/peer-sync.js',
   './js/logica/settings.js',
   './js/logica/statistics.js',
-  './js/logica/sync-logic.js',
   './js/logica/version.js',
   './js/peer-test.js',
-  './js/sync-test.js',
   './js/ui/barcode-view.js',
   './js/ui/components.js',
   './js/ui/forms.js',
@@ -83,8 +80,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  // Only same-origin GETs are cached. The sync (POST to Apps Script)
-  // and keep all their data.
+  // Only same-origin GETs are cached. Anything else (the POSTs) goes to the network untouched.
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   const network = fromNetwork(request);
   event.waitUntil(network.catch(() => {}));

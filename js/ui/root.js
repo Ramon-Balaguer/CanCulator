@@ -4,7 +4,6 @@ import { Notice } from './components.js';
 import { LotForm, ProductDetail, EditLot } from './forms.js';
 import { SettingsScreen, ExpiryScreen, StatisticsScreen, PrintScreen, RestockScreen, StockScreen } from './screens.js';
 import { removeLot, removeProduct, loadAll, deviceId, readMeta } from '../datos/store.js';
-import { syncAll, Offline } from '../datos/sync.js';
 import { enviarCambiosPendientes } from '../datos/peer-link.js';
 import { restaurarSala } from './sync-block.js';
 import { effectiveSettings } from '../logica/settings.js';
@@ -18,8 +17,6 @@ const TABS = [
   { id: 'ajustes', texto: 'Ajustes' },
 ];
 
-// Wait after a local change before syncing: groups several changes in a row into one send.
-const WAIT_AFTER_CHANGE_MS = 3000;
 // Time to press "Undo" after a delete. Only then is the real delete written.
 const UNDO_WAIT_MS = 5000;
 
@@ -27,17 +24,13 @@ const UNDO_WAIT_MS = 5000;
 export function Root({ db }) {
   const [data, setDatos] = useState(null);
   const [device, setDispositivo] = useState('');
-  const [syncLogic, setSincronizacion] = useState({ url: '', token: '' });
-  const [estadoSync, setEstadoSync] = useState({ estado: 'inactiva', mensaje: '' });
-  const [ultimaSync, setUltimaSync] = useState('');
+  const [token, setToken] = useState('');
   const [pestana, setPestana] = useState('stock');
   const [view2, setVista] = useState(null); // Is a cache entry still valid? "ahora" is passed to be able to test it.
   const [notice, setAviso] = useState(null);
   const [error, setError] = useState('');
   // Ids of lots and products with a pending delete: they are hidden until confirmed or undone.
   const [ocultos, setOcultos] = useState(() => new Set());
-  const timer = useRef(null);
-  const syncRunning = useRef(false);
   const pendingDeletes = useRef(new Map());
 
   // optional action: { etiqueta, onClick } to show a button in the notice (e.g. «Undo»).
@@ -53,49 +46,12 @@ export function Root({ db }) {
     }
   }, [db]);
 
-  // Sync: one at a time, and only if a URL and token are saved.
-  const syncNow = useCallback(async (config = syncLogic, id = device) => {
-    if (!config.url || !config.token || !id) {
-      setEstadoSync({ estado: 'inactiva', mensaje: 'Sin configurar: pega la URL y el token de Apps Script.' });
-      return;
-    }
-    if (syncRunning.current) return;
-    if (!navigator.onLine) {
-      setEstadoSync({ estado: 'sin-conexion', mensaje: 'Sin conexión: los cambios se enviarán al volver.' });
-      return;
-    }
-    syncRunning.current = true;
-    setEstadoSync((e) => ({ ...e, estado: 'sincronizando', mensaje: 'Sincronizando…' }));
-    try {
-      const r = await syncAll(db, { url: config.url, token: config.token, dispositivo: id, fetchFn: fetch });
-      const sent = r.datos.enviadas;
-      setUltimaSync(r.datos.ahora);
-      setEstadoSync({
-        estado: 'ok',
-        mensaje: `Sincronizado. Enviadas ${sent}, recibidas ${r.datos.recibidos}, fotos subidas ${r.fotos.subidas}.`
-          + (r.fotos.errores.length ? ` Fotos con error: ${r.fotos.errores.length}.` : ''),
-      });
-      await loadData();
-    } catch (e) {
-      if (e instanceof Offline) {
-        setEstadoSync({ estado: 'sin-conexion', mensaje: e.message });
-      } else {
-        setEstadoSync({ estado: 'error', mensaje: e.message });
-        notifyUser(`Sincronización: ${e.message}`, 'error');
-      }
-    } finally {
-      syncRunning.current = false;
-    }
-  }, [db, device, syncLogic, loadData, notifyUser]);
-
-  // After a local change: reload and schedule a sync within a few seconds.
+  // After a local change: reload and send it to the phones connected to the room.
   const refresh = useCallback(() => {
     loadData();
     // Con un móvil conectado por sala, el cambio llega al momento al otro.
     enviarCambiosPendientes().catch(() => {});
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => syncNow(), WAIT_AFTER_CHANGE_MS);
-  }, [loadData, syncNow]);
+  }, [loadData]);
 
   // Delete with "Undo": it is hidden right away and, if a few seconds pass without undoing, it is written.
   const requestDelete = useCallback(({ tipo: type, id, texto: text }) => {
@@ -133,31 +89,15 @@ export function Root({ db }) {
     (async () => {
       const id = await deviceId(db);
       setDispositivo(id);
-      const config = {
-        url: await readMeta(db, 'sync_url'),
-        token: await readMeta(db, 'sync_token'),
-      };
-      setSincronizacion(config);
-      setUltimaSync(await readMeta(db, 'ultima_sincronizacion'));
+      setToken(await readMeta(db, 'sync_token'));
       await loadData();
-      return { config, id };
-    })().then(({ config, id }) => {
-      // When the app opens, if there is connection and configuration, it syncs.
-      if (config.url && config.token) setTimeout(() => syncNow(config, id), 0);
-    }).catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
+    })().catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
   }, [db, loadData]);
 
   // Al abrir la app, vuelve a abrir la sala guardada aunque la pestaña de Ajustes no esté visible.
   useEffect(() => {
-    if (device) restaurarSala({ db, deviceId: device, token: syncLogic.token, refresh });
-  }, [db, device, syncLogic.token, refresh]);
-
-  // When the connection comes back, sync what is pending.
-  useEffect(() => {
-    const onOnline = () => syncNow();
-    window.addEventListener('online', onOnline);
-    return () => window.removeEventListener('online', onOnline);
-  }, [syncNow]);
+    if (device) restaurarSala({ db, deviceId: device, token, refresh });
+  }, [db, device, token, refresh]);
 
   // Another app version has updated the database: this tab can no longer save.
   useEffect(() => {
@@ -178,7 +118,6 @@ export function Root({ db }) {
   const config = effectiveSettings(data.configuracion);
   const close = () => setVista(null);
   const onDone = () => { close(); refresh(); };
-  const pending = data.operaciones.length;
 
   // What is seen: without the lots and products with a pending delete (nor the lots of a hidden product).
   const visible = {
@@ -196,9 +135,7 @@ export function Root({ db }) {
     imprimir: html`<${PrintScreen} db=${db} datos=${visible} />`,
     estadisticas: html`<${StatisticsScreen} datos=${visible} />`,
     ajustes: html`<${SettingsScreen} db=${db} dispositivo=${device} config=${config}
-      notificar=${notifyUser} refrescar=${refresh} sincronizacion=${syncLogic}
-      estadoSync=${estadoSync} ultimaSync=${ultimaSync} pendientes=${pending}
-      onToken=${(token) => setSincronizacion((prev) => ({ ...prev, token }))} />`,
+      notificar=${notifyUser} refrescar=${refresh} token=${token} onToken=${setToken} />`,
   }[pestana];
 
   let modal = null;
