@@ -12,19 +12,20 @@ import { validateValue } from '../logica/settings.js';
 import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logica/dates.js';
 import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary, photoIdOf } from '../logica/inventory.js';
 import { stockStatistics } from '../logica/statistics.js';
+import { t, idiomaActual, cambiarIdioma, IDIOMAS, NOMBRES_IDIOMA } from '../logica/idioma.js';
 
 // ---------- Expiry ----------
 export function ExpiryScreen({ db, dispositivo: device, datos: data, config, notificar: notifyUser, refrescar: refresh, onEditarLote }) {
   const today = todayInMadrid();
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
-  if (lots.length === 0) return html`<section class="pantalla"><h2>Caducidad</h2><${Empty}>No hay comida registrada. Usa el botón + para añadir un lote.<//></section>`;
+  if (lots.length === 0) return html`<section class="pantalla"><h2>${t('caducidad.titulo')}</h2><${Empty}>${t('caducidad.vacio')}<//></section>`;
   const offImages = offImagesByBarcode(data.cacheOff ?? []);
 
   async function consumeLot(lot, n) {
     try {
       await consume(db, device, lot.id, n);
-      notifyUser(`Consumido: ${n} de ${byId.get(lot.producto_id).nombre}`, 'ok');
+      notifyUser(t('caducidad.consumido', { n, nombre: byId.get(lot.producto_id).nombre }), 'ok');
       refresh();
     } catch (e) {
       notifyUser(e.message, 'error');
@@ -33,7 +34,7 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
 
   return html`
     <section class="pantalla">
-      <h2>Caducidad</h2>
+      <h2>${t('caducidad.titulo')}</h2>
       <ul class="lista">
         ${lots.map((lot) => {
           const product = byId.get(lot.producto_id);
@@ -44,12 +45,12 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
               <${ProductImage} db=${db} imageUrl=${offImages.get(product.codigo_barras)} photoId=${photoIdOf(product, data.lotes)} />
               <div class="tarjeta-cuerpo">
                 <strong>${product.nombre}</strong>
-                <span class="secundario">${lot.ubicacion} · ${lot.cantidad} ud.</span>
+                <span class="secundario">${lot.ubicacion} · ${lot.cantidad} ${t('unidades.abrev')}</span>
                 <span class="etiqueta-estado">${formatDate(lot.caducidad)} · ${describeExpiry(days)}</span>
               </div>
               <div class="tarjeta-acciones">
                 <${Button} className="consumir" onClick=${() => consumeLot(lot, 1)}>−1<//>
-                <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>Editar<//>
+                <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>${t('btn.editar')}<//>
               </div>
             </li>`;
         })}
@@ -64,16 +65,18 @@ export function StatisticsScreen({ datos: data }) {
   const e = stockStatistics(data.productos, data.lotes, data.cacheOff ?? []);
   return html`
     <section class="pantalla">
-      <h2>Estadísticas</h2>
+      <h2>${t('estadisticas.titulo')}</h2>
     <div class="estadisticas bloque" data-testid="estadisticas">
-      ${e.totalUnidades === 0 && html`<p class="vacio">Todavía no hay comida registrada.</p>`}
-      <h3>Estadísticas</h3>
-      <p>Unidades en total: <strong data-testid="unidades-total">${e.totalUnidades}</strong></p>
-      <p>Calorías en total: <strong data-testid="kcal-total">${e.totalKcal} kcal</strong>
-        ${e.productosSinKcal > 0 && html`<span class="secundario"> (faltan datos de ${e.productosSinKcal} ${e.productosSinKcal === 1 ? 'producto' : 'productos'})</span>`}
+      ${e.totalUnidades === 0 && html`<p class="vacio">${t('estadisticas.vacio')}</p>`}
+      <h3>${t('estadisticas.titulo')}</h3>
+      <p>${t('estadisticas.unidades_total')} <strong data-testid="unidades-total">${e.totalUnidades}</strong></p>
+      <p>${t('estadisticas.kcal_total')} <strong data-testid="kcal-total">${e.totalKcal} kcal</strong>
+        ${e.productosSinKcal > 0 && html`<span class="secundario"> ${e.productosSinKcal === 1
+          ? t('estadisticas.faltan_uno')
+          : t('estadisticas.faltan_varios', { n: e.productosSinKcal })}</span>`}
       </p>
       <table class="tabla-estadisticas">
-        <thead><tr><th>Categoría</th><th>Unidades</th><th>Kcal</th></tr></thead>
+        <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th></tr></thead>
         <tbody>
           ${e.porCategoria.map((c) => html`
             <tr>
@@ -104,23 +107,23 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
   const offImages = offImagesByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
-      <h2>Stock</h2>
+      <h2>${t('stock.titulo')}</h2>
 
       <div class="fila">
-        <${Field} etiqueta="Categoría">
+        <${Field} etiqueta=${t('stock.categoria')}>
           <select value=${category} onChange=${(e) => setCategoria(e.currentTarget.value)}>
-            <option value="">Todas</option>
+            <option value="">${t('stock.todas')}</option>
             ${[...new Set([...config.categorias, ...usedCategories])].map((c) => html`<option value=${c} selected=${c === category}>${c}</option>`)}
           </select>
         <//>
-        <${Field} etiqueta="Ubicación">
+        <${Field} etiqueta=${t('stock.ubicacion')}>
           <select value=${location} onChange=${(e) => setUbicacion(e.currentTarget.value)}>
-            <option value="">Todas</option>
+            <option value="">${t('stock.todas')}</option>
             ${config.ubicaciones.map((u) => html`<option value=${u} selected=${u === location}>${u}</option>`)}
           </select>
         <//>
       </div>
-      ${summary.length === 0 && html`<${Empty}>Ningún producto con estos filtros.<//>`}
+      ${summary.length === 0 && html`<${Empty}>${t('stock.vacio')}<//>`}
       <ul class="lista">
         ${summary.map((row) => html`
           <li>
@@ -129,9 +132,9 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
               <span class="fila-texto">
                 <span class="fila-titulo">${row.producto.nombre}</span>
                 <span class="secundario">${row.producto.categoria}</span>
-                <span class="fila-dato">${row.total} ud.${row.proximaCaducidad
+                <span class="fila-dato">${row.total} ${t('unidades.abrev')}${row.proximaCaducidad
                   ? html` · ${formatDate(row.proximaCaducidad)} (${describeExpiry(daysBetween(today, row.proximaCaducidad))})`
-                  : ' · agotado'}</span>
+                  : ` · ${t('stock.agotado')}`}</span>
               </span>
             </button>
           </li>`)}
@@ -144,20 +147,20 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
 export function RestockScreen({ datos: data, onComprado }) {
   const pending = toRestock(data.productos, data.lotes);
   if (pending.length === 0) {
-    return html`<section class="pantalla"><h2>A reponer</h2><${Empty}>Nada por debajo del mínimo.<//></section>`;
+    return html`<section class="pantalla"><h2>${t('reponer.titulo')}</h2><${Empty}>${t('reponer.vacio')}<//></section>`;
   }
   return html`
     <section class="pantalla">
-      <h2>A reponer</h2>
+      <h2>${t('reponer.titulo')}</h2>
       <ul class="lista">
         ${pending.map((row) => html`
           <li class="tarjeta">
             <div class="tarjeta-cuerpo">
               <strong>${row.producto.nombre}</strong>
-              <span class="secundario">Hay ${row.stock} de ${row.producto.stock_minimo} · faltan ${row.falta}</span>
+              <span class="secundario">${t('reponer.hay', { stock: row.stock, minimo: row.producto.stock_minimo, falta: row.falta })}</span>
             </div>
             <div class="tarjeta-acciones">
-              <${Button} onClick=${() => onComprado(row.producto)}>Comprado<//>
+              <${Button} onClick=${() => onComprado(row.producto)}>${t('btn.comprado')}<//>
             </div>
           </li>`)}
       </ul>
@@ -173,14 +176,14 @@ export function PrintScreen({ db, datos: data }) {
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
-        <h2>Imprimir</h2>
-        <${Button} onClick=${() => window.print()}>Imprimir<//>
+        <h2>${t('imprimir.titulo')}</h2>
+        <${Button} onClick=${() => window.print()}>${t('btn.imprimir')}<//>
       </div>
-      <p class="solo-imprimir cabecera-impresion">CanCulator · ${formatDate(todayInMadrid())}</p>
+      <p class="solo-imprimir cabecera-impresion">${t('imprimir.cabecera', { fecha: formatDate(todayInMadrid()) })}</p>
       <div class="tabla-scroll">
       <table class="tabla-imprimir">
         <thead>
-          <tr><th>Foto</th><th>ID</th><th>Producto</th><th>Código</th><th>Ubicación</th><th>Caducidad</th><th>Cant.</th><th>Consumido</th></tr>
+          <tr><th>${t('imprimir.foto')}</th><th>ID</th><th>${t('imprimir.producto')}</th><th>${t('imprimir.codigo')}</th><th>${t('imprimir.ubicacion')}</th><th>${t('imprimir.caducidad')}</th><th>${t('imprimir.cantidad')}</th><th>${t('imprimir.consumido')}</th></tr>
         </thead>
         <tbody>
           ${lots.map((lot) => html`
@@ -209,33 +212,34 @@ function InstallApp() {
   useEffect(() => subscribeInstall(() => setBoton(canInstallWithButton())), []);
 
   if (isInstalled()) {
-    return html`<div class="bloque"><h3>Instalar</h3><p class="secundario">La app ya está en la pantalla de inicio.</p></div>`;
+    return html`<div class="bloque"><h3>${t('instalar.titulo')}</h3><p class="secundario">${t('instalar.ya_instalada')}</p></div>`;
   }
   if (isIOS()) {
     return html`
       <div class="bloque" data-testid="instalar-ios">
-        <h3>Instalar</h3>
-        <p>En iPhone se instala desde Safari: toca el botón <strong>Compartir</strong> (el cuadrado con una flecha hacia arriba) y luego <strong>«Añadir a pantalla de inicio»</strong>.</p>
-        <p class="secundario">Ábrela después desde ese icono: así funciona sin conexión.</p>
+        <h3>${t('instalar.titulo')}</h3>
+        <p>${t('instalar.ios_1')} <strong>${t('instalar.ios_compartir')}</strong> ${t('instalar.ios_2')} <strong>${t('instalar.ios_añadir')}</strong>.</p>
+        <p class="secundario">${t('instalar.ios_abrir')}</p>
       </div>`;
   }
   return html`
     <div class="bloque" data-testid="instalar-android">
-      <h3>Instalar</h3>
+      <h3>${t('instalar.titulo')}</h3>
       ${boton
-        ? html`<div class="acciones"><${Button} onClick=${async () => setMensaje(await installApp() === 'accepted' ? 'Instalada.' : '')}>Instalar en la pantalla de inicio<//></div>`
-        : html`<p class="secundario">Para instalarla, abre el menú del navegador y elige «Instalar aplicación» o «Añadir a pantalla de inicio».</p>`}
+        ? html`<div class="acciones"><${Button} onClick=${async () => setMensaje(await installApp() === 'accepted' ? t('instalar.instalada') : '')}>${t('instalar.boton')}<//></div>`
+        : html`<p class="secundario">${t('instalar.menu')}</p>`}
       ${mensaje && html`<p class="secundario">${mensaje}</p>`}
     </div>`;
 }
-function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUser }) {
+
+function EditableList({ titulo, etiquetaNueva, valores: values, onGuardar, notificar: notifyUser }) {
   const [newItem, setNuevo] = useState('');
   // Removing a category or location asks for confirmation.
   const removeItem = (value) => {
-    if (!window.confirm(`¿Quitar «${value}»?`)) return;
+    if (!window.confirm(t('ajustes.confirmar_quitar', { valor: value }))) return;
     const previous = values;
     onGuardar(values.filter((v) => v !== value))
-      .then(() => notifyUser(`Quitada «${value}».`, 'info', { etiqueta: 'Deshacer', onClick: () => onGuardar(previous) }))
+      .then(() => notifyUser(t('ajustes.quitada', { valor: value }), 'info', { etiqueta: t('btn.deshacer'), onClick: () => onGuardar(previous) }))
       .catch((e) => notifyUser(e.message, 'error'));
   };
   const add = (event) => {
@@ -250,11 +254,11 @@ function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUse
     <div class="bloque">
       <h3>${titulo}</h3>
       <ul class="chips">
-        ${values.map((v) => html`<li class="chip">${v}<button type="button" aria-label=${`Quitar ${v}`} onClick=${() => removeItem(v)}>✕</button></li>`)}
+        ${values.map((v) => html`<li class="chip">${v}<button type="button" aria-label=${t('btn.quitar', { valor: v })} onClick=${() => removeItem(v)}>✕</button></li>`)}
       </ul>
       <form class="fila" onSubmit=${add}>
-        <input value=${newItem} onInput=${(e) => setNuevo(e.currentTarget.value)} aria-label=${`Nueva ${titulo.toLowerCase()}`} />
-        <${Button} tipo="secundario" type="submit">Añadir<//>
+        <input value=${newItem} onInput=${(e) => setNuevo(e.currentTarget.value)} aria-label=${etiquetaNueva} />
+        <${Button} tipo="secundario" type="submit">${t('btn.anadir')}<//>
       </form>
     </div>`;
 }
@@ -271,9 +275,9 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
   async function runExport() {
     try {
       downloadText(await exportBackup(db, device));
-      notifyUser('Copia exportada', 'ok');
+      notifyUser(t('ajustes.exportada'), 'ok');
     } catch (e) {
-      notifyUser(`No se pudo exportar: ${e.message}`, 'error');
+      notifyUser(t('ajustes.error_exportar', { error: e.message }), 'error');
     }
   }
 
@@ -283,34 +287,42 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
     if (!uploadedFile) return;
     try {
       const r = await importBackupFile(db, uploadedFile);
-      setImportado(`Importado: ${r.productos} productos y ${r.lotes} lotes nuevos o más recientes, ${r.fotos} fotos.`);
+      setImportado(t('ajustes.importado', { productos: r.productos, lotes: r.lotes, fotos: r.fotos }));
       refresh();
     } catch (e) {
       notifyUser(e.message, 'error');
     }
   }
 
-
   return html`
     <section class="pantalla">
-      <h2>Ajustes</h2>
+      <h2>${t('ajustes.titulo')}</h2>
 
-      <${EditableList} titulo="Categorías" valores=${config.categorias}
+      <div class="bloque">
+        <h3>${t('ajustes.idioma')}</h3>
+        <${Field} etiqueta=${t('ajustes.idioma')}>
+          <select value=${idiomaActual()} onChange=${(e) => cambiarIdioma(e.currentTarget.value)}>
+            ${IDIOMAS.map((id) => html`<option value=${id} selected=${id === idiomaActual()}>${NOMBRES_IDIOMA[id]}</option>`)}
+          </select>
+        <//>
+      </div>
+
+      <${EditableList} titulo=${t('ajustes.categorias')} etiquetaNueva=${t('ajustes.nueva_categoria')} valores=${config.categorias}
         onGuardar=${(list) => save('categorias', list)} notificar=${notifyUser} />
-      <${EditableList} titulo="Ubicaciones" valores=${config.ubicaciones}
+      <${EditableList} titulo=${t('ajustes.ubicaciones')} etiquetaNueva=${t('ajustes.nueva_ubicacion')} valores=${config.ubicaciones}
         onGuardar=${(list) => save('ubicaciones', list)} notificar=${notifyUser} />
 
       <div class="bloque">
-        <h3>Avisos</h3>
-        <${Field} etiqueta="Días para «caduca pronto»">
+        <h3>${t('ajustes.avisos')}</h3>
+        <${Field} etiqueta=${t('ajustes.dias_caduca_pronto')}>
           <input type="number" min="0" max="3650" value=${config.dias_caduca_pronto}
             onChange=${(e) => save('dias_caduca_pronto', e.currentTarget.value).catch((err) => notifyUser(err.message, 'error'))} />
         <//>
-        <${Field} etiqueta="Hora del aviso diario">
+        <${Field} etiqueta=${t('ajustes.hora_aviso')}>
           <input type="time" value=${config.hora_aviso}
             onChange=${(e) => save('hora_aviso', e.currentTarget.value).catch((err) => notifyUser(err.message, 'error'))} />
         <//>
-        <${Field} etiqueta="Emails de avisos" ayuda="Uno por línea o separados por comas.">
+        <${Field} etiqueta=${t('ajustes.emails')} ayuda=${t('ajustes.emails_ayuda')}>
           <textarea rows="3" onChange=${(e) => save('emails_avisos', e.currentTarget.value.split(/[\s,]+/)).catch((err) => notifyUser(err.message, 'error'))}>${config.emails_avisos.join('\n')}</textarea>
         <//>
       </div>
@@ -320,28 +332,28 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
       <${InstallApp} />
 
       <div class="bloque">
-        <h3>Versión</h3>
-        <p class="secundario">Commit de esta app: <span class="codigo-pequeno" data-testid="version-completa">${VERSION}</span></p>
-        <p class="secundario">Compara este texto entre móviles: si coincide, es la misma versión.</p>
+        <h3>${t('ajustes.version')}</h3>
+        <p class="secundario">${t('ajustes.commit')} <span class="codigo-pequeno" data-testid="version-completa">${VERSION}</span></p>
+        <p class="secundario">${t('ajustes.comparar_version')}</p>
       </div>
 
       <div class="bloque">
-        <h3>Diagnóstico</h3>
-        <p><a href="camera-test.html">Prueba de cámara y código de barras</a></p>
-        <p><a href="peer-test.html">Prueba de sala P2P (dos móviles)</a></p>
+        <h3>${t('ajustes.diagnostico')}</h3>
+        <p><a href="camera-test.html">${t('ajustes.prueba_camara')}</a></p>
+        <p><a href="peer-test.html">${t('ajustes.prueba_sala')}</a></p>
       </div>
 
       <div class="bloque">
-        <h3>Copia de seguridad</h3>
+        <h3>${t('ajustes.copia')}</h3>
         <div class="acciones">
-          <${Button} onClick=${runExport}>Exportar JSON<//>
+          <${Button} onClick=${runExport}>${t('ajustes.exportar')}<//>
           <label class="boton secundario">
-            Importar JSON
+            ${t('ajustes.importar')}
             <input type="file" accept="application/json,.json" class="oculto" onChange=${importBackup} />
           </label>
         </div>
         <${Notice} tipo="ok">${importado}<//>
-        <p class="secundario">Importar fusiona la copia con lo que ya hay: gana el registro más reciente.</p>
+        <p class="secundario">${t('ajustes.copia_ayuda')}</p>
       </div>
     </section>
   `;

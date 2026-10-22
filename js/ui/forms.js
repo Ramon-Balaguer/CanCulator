@@ -12,6 +12,7 @@ import { queryOFF, STATES, readCacheOFF } from '../datos/off.js';
 import { OFFData } from './off-data.js';
 import { guessCategory, frontImageUrl } from '../logica/off-category.js';
 import { nutritionDataFromOFF, kcalPerContainer, storedKcalPerContainer } from '../logica/nutrition.js';
+import { t } from '../logica/idioma.js';
 
 const EMPTY_FIELDS = () => ({
   codigo: '',
@@ -67,11 +68,11 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       categoria: existing?.categoria ?? c.categoria,
     }));
     if (existing) {
-      setAviso({ tipo: 'info', texto: `Ya tienes «${existing.nombre}». Revisa los datos del lote.` });
+      setAviso({ tipo: 'info', texto: t('anadir.ya_tienes_producto', { nombre: existing.nombre }) });
       return;
     }
     if (!isValidGtin(code)) {
-      setAviso({ tipo: 'error', texto: 'El código no tiene un dígito de control válido. Escribe el nombre a mano.' });
+      setAviso({ tipo: 'error', texto: t('anadir.codigo_invalido') });
       return;
     }
     setConsultando(true);
@@ -86,15 +87,15 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
           categoria: guessed || c.categoria,
         }));
         const brand = r.marca && r.marca !== r.nombre ? ` (${r.marca})` : '';
-        const category = guessed ? ` Categoría sugerida: ${guessed}.` : '';
-        setAviso({ tipo: 'info', texto: `Open Food Facts: ${r.nombre}${brand}.${category} Revisa los datos antes de guardar.` });
+        const category = guessed ? t('off.categoria_sugerida', { categoria: guessed }) : '';
+        setAviso({ tipo: 'info', texto: t('off.encontrado', { nombre: r.nombre, marca: brand, categoria: category }) });
         downloadFrontPhoto(r.producto);
       } else if (r.estado === STATES.NO_ENCONTRADO) {
-        setAviso({ tipo: 'info', texto: 'No está en Open Food Facts. Escribe el nombre a mano.' });
+        setAviso({ tipo: 'info', texto: t('off.no_encontrado') });
       } else if (r.estado === STATES.SIN_CONEXION) {
-        setAviso({ tipo: 'info', texto: 'Sin conexión: escribe el nombre a mano.' });
+        setAviso({ tipo: 'info', texto: t('off.sin_conexion') });
       } else {
-        setAviso({ tipo: 'error', texto: 'No se pudo consultar Open Food Facts. Escribe el nombre a mano.' });
+        setAviso({ tipo: 'error', texto: t('off.error') });
       }
     } finally {
       setConsultando(false);
@@ -121,13 +122,13 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
     event.preventDefault();
     setError('');
     const name = fields.nombre.trim();
-    if (!name) return setError('Escribe el nombre del producto');
-    if (!fields.categoria) return setError('Elige una categoría');
-    if (!fields.ubicacion) return setError('Elige una ubicación');
+    if (!name) return setError(t('anadir.error_nombre'));
+    if (!fields.categoria) return setError(t('anadir.error_categoria'));
+    if (!fields.ubicacion) return setError(t('anadir.error_ubicacion'));
     const expiryIso = parseTypedDate(fields.caducidad);
-    if (!expiryIso) return setError('Indica la caducidad como DD/MM/AAAA, por ejemplo 01/03/2027');
+    if (!expiryIso) return setError(t('anadir.error_caducidad'));
     const quantity = Number(fields.cantidad);
-    if (!Number.isInteger(quantity) || quantity < 1) return setError('La cantidad debe ser un número entero de 1 o más');
+    if (!Number.isInteger(quantity) || quantity < 1) return setError(t('anadir.error_cantidad'));
 
     setGuardando(true);
     try {
@@ -141,7 +142,7 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
         try {
           photoId = await savePhoto(db, await compressPhoto(fields.foto));
         } catch (e) {
-          photoNotice = ` La foto no se guardó: ${e.message}`;
+          photoNotice = t('anadir.foto_no_guardada', { error: e.message });
         }
       }
       let product = existing;
@@ -166,9 +167,9 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       });
       if (r.fusionado) {
         // No new lot is created: it is added to the existing one, and it says how much there is now.
-        notifyUser(`Ya había un lote de ${product.nombre} con esa caducidad (${r.anterior} ud.). Sumadas ${r.sumadas}: ahora hay ${r.lote.cantidad}.${photoNotice}`, 'info');
+        notifyUser(t('anadir.fusionado', { nombre: product.nombre, anterior: r.anterior, sumadas: r.sumadas, total: r.lote.cantidad, foto: photoNotice }), 'info');
       } else {
-        notifyUser(`Añadido: ${product.nombre}.${photoNotice}`, photoNotice ? 'error' : 'ok');
+        notifyUser(t('anadir.anadido', { nombre: product.nombre, foto: photoNotice }), photoNotice ? 'error' : 'ok');
       }
       onHecho();
     } catch (e) {
@@ -197,20 +198,20 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
 
   return html`
     <section class="pantalla">
-      <h2>Añadir lote</h2>
+      <h2>${t('anadir.titulo')}</h2>
       <form class="formulario" onSubmit=${save}>
         ${!loteDeProducto && html`
           <div class="fila">
-            <${Button} tipo="secundario" onClick=${() => setEscaneando(true)}>Escanear código<//>
+            <${Button} tipo="secundario" onClick=${() => setEscaneando(true)}>${t('btn.escanear_codigo')}<//>
             ${fields.codigo && html`<span class="codigo-pequeno">${fields.codigo}</span>`}
           </div>
           ${escaneando && html`<${ScannerModal} onCodigo=${onScanned} onCerrar=${() => setEscaneando(false)} />`}
-          ${consultando && html`<p class="secundario">Consultando Open Food Facts…</p>`}
+          ${consultando && html`<p class="secundario">${t('anadir.consultando')}</p>`}
           <${Notice} tipo=${notice?.tipo ?? 'info'}>${notice?.texto}<//>
-          ${ofProducto && html`<${Button} tipo="secundario" onClick=${() => setVerOFF(true)}>Ver todos los datos de Open Food Facts<//>`}
+          ${ofProducto && html`<${Button} tipo="secundario" onClick=${() => setVerOFF(true)}>${t('btn.ver_datos_off')}<//>`}
           ${verOFF && ofProducto && html`<${OFFData} codigo=${fields.codigo} producto=${ofProducto} onCerrar=${() => setVerOFF(false)} />`}
 
-          <${Field} etiqueta="Producto" ayuda=${lockedProduct ? 'El nombre es del producto: para cambiarlo, edita el producto.' : undefined}>
+          <${Field} etiqueta=${t('anadir.producto')} ayuda=${lockedProduct ? t('anadir.producto_bloqueado') : undefined}>
             <input required list="productos-existentes" value=${fields.nombre} onInput=${change('nombre')} autocomplete="off"
               readOnly=${!!lockedProduct} />
             <datalist id="productos-existentes">
@@ -218,45 +219,45 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
             </datalist>
           <//>
 
-          <${Field} etiqueta="Categoría">
+          <${Field} etiqueta=${t('anadir.categoria')}>
             <select value=${fields.categoria} onChange=${change('categoria')}>
               ${categories.map((c) => html`<option value=${c} selected=${c === fields.categoria}>${c}</option>`)}
             </select>
           <//>
         `}
 
-        <${Field} etiqueta="Ubicación">
+        <${Field} etiqueta=${t('anadir.ubicacion')}>
           <select value=${fields.ubicacion} onChange=${change('ubicacion')}>
             ${locations.map((u) => html`<option value=${u} selected=${u === fields.ubicacion}>${u}</option>`)}
           </select>
         <//>
 
         <div class="fila">
-          <${Field} etiqueta="Caducidad">
-            <input type="text" inputmode="numeric" autocomplete="off" required placeholder="DD/MM/AAAA" maxlength="10"
+          <${Field} etiqueta=${t('anadir.caducidad')}>
+            <input type="text" inputmode="numeric" autocomplete="off" required placeholder=${t('fecha.formato')} maxlength="10"
               value=${fields.caducidad}
               onInput=${(e) => setCampos({ ...fields, caducidad: formatDateInput(e.currentTarget.value) })} />
           <//>
-          <${Field} etiqueta="Unidades">
+          <${Field} etiqueta=${t('anadir.unidades')}>
             <input type="number" inputmode="numeric" min="1" step="1" value=${fields.cantidad} onInput=${change('cantidad')} />
           <//>
         </div>
 
 
         ${!loteDeProducto && html`
-          <${Field} etiqueta="Foto (opcional)">
+          <${Field} etiqueta=${t('anadir.foto')}>
             <input type="file" accept="image/*" capture="environment"
               onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? fields.foto })} />
           <//>
-          ${previa && html`<img class="previa" src=${previa} alt="Foto del producto" />`}
-          ${previa && html`<p class="secundario">Si prefieres otra foto, elígela arriba y sustituirá a esta.</p>`}
+          ${previa && html`<img class="previa" src=${previa} alt=${t('anadir.foto_alt')} />`}
+          ${previa && html`<p class="secundario">${t('anadir.foto_cambiar')}</p>`}
         `}
 
-        ${sameLot && html`<${Notice} tipo="info">Ya tienes ${sameLot.cantidad} ud. de ${currentProduct.nombre} con esta caducidad y ubicación. Si guardas, se suman a ese lote.<//>`}
+        ${sameLot && html`<${Notice} tipo="info">${t('anadir.ya_tienes_lote', { cantidad: sameLot.cantidad, nombre: currentProduct.nombre })}<//>`}
         <${Notice} tipo="error">${error}<//>
         <div class="acciones">
-          <${Button} type="submit" disabled=${guardando}>${guardando ? 'Guardando…' : 'Guardar lote'}<//>
-          <${Button} tipo="secundario" onClick=${onCancelar}>Cancelar<//>
+          <${Button} type="submit" disabled=${guardando}>${guardando ? t('btn.guardando') : t('btn.guardar_lote')}<//>
+          <${Button} tipo="secundario" onClick=${onCancelar}>${t('btn.cancelar')}<//>
         </div>
       </form>
     <//>
@@ -298,7 +299,7 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
     const n = quantityOf(lot.id);
     try {
       await consume(db, device, lot.id, n);
-      notifyUser(`Consumido: ${n} de ${product.nombre}`, 'ok');
+      notifyUser(t('caducidad.consumido', { n, nombre: product.nombre }), 'ok');
       refresh();
     } catch (e) {
       notifyUser(e.message, 'error');
@@ -311,9 +312,9 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
     try {
       const r = await queryOFF(db, product.codigo_barras);
       if (r.estado === STATES.ENCONTRADO && r.producto) setDatosOFF(r.producto);
-      else if (r.estado === STATES.NO_ENCONTRADO) notifyUser('Open Food Facts no tiene este producto.', 'info');
-      else if (r.estado === STATES.SIN_CONEXION) notifyUser('Sin conexión y sin datos guardados de este producto.', 'error');
-      else notifyUser('No se pudo consultar Open Food Facts.', 'error');
+      else if (r.estado === STATES.NO_ENCONTRADO) notifyUser(t('off.no_existe'), 'info');
+      else if (r.estado === STATES.SIN_CONEXION) notifyUser(t('off.sin_datos'), 'error');
+      else notifyUser(t('off.error_consulta'), 'error');
     } finally {
       setBuscandoOFF(false);
     }
@@ -321,12 +322,12 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
 
   // The delete is written later, unless "Undo" is pressed in the notice.
   function removeAll() {
-    requestDelete({ tipo: 'producto', id: product.id, texto: `${product.nombre} borrado` });
+    requestDelete({ tipo: 'producto', id: product.id, texto: t('producto.borrado', { nombre: product.nombre }) });
     onCerrar();
   }
 
   if (editando) {
-    return html`<${Modal} titulo="Editar producto" onCerrar=${() => setEditando(false)}>
+    return html`<${Modal} titulo=${t('producto.editar_titulo')} onCerrar=${() => setEditando(false)}>
       <${EditProduct} db=${db} dispositivo=${device} config=${config} producto=${product} fotoId=${photoIdOf(product, data.lotes)}
         notificar=${notifyUser} onHecho=${() => { setEditando(false); refresh(); }} onCancelar=${() => setEditando(false)} />
     <//>`;
@@ -337,43 +338,43 @@ export function ProductDetail({ db, dispositivo: device, datos: data, config, pr
       <div class="lote-fila">
         <${Thumbnail} db=${db} fotoId=${photoIdOf(product, data.lotes)} />
         <div>
-          <p class="secundario">${product.categoria} · mínimo ${product.stock_minimo}</p>
+          <p class="secundario">${t('producto.resumen', { categoria: product.categoria, minimo: product.stock_minimo })}</p>
           ${product.observaciones && html`<p class="secundario">${product.observaciones}</p>`}
         </div>
       </div>
-      ${perContainer !== null && html`<p class="secundario" data-testid="kcal-producto">Calorías: ${perContainer} kcal por bote · ${Math.round(perContainer * productUnits * 10) / 10} kcal en el stock (${productUnits} ud.)</p>`}
-      ${lots.length === 0 && html`<p class="vacio">No quedan unidades de este producto.</p>`}
+      ${perContainer !== null && html`<p class="secundario" data-testid="kcal-producto">${t('producto.kcal', { kcal: perContainer, total: Math.round(perContainer * productUnits * 10) / 10, ud: productUnits })}</p>`}
+      ${lots.length === 0 && html`<p class="vacio">${t('producto.sin_unidades')}</p>`}
       <ul class="lista-lotes">
         ${lots.map((lot) => html`
           <li class="lote-fila">
             <div class="lote-datos">
               <strong>${formatDate(lot.caducidad)}</strong>
-              <span class="secundario">${describeExpiry(daysBetween(today, lot.caducidad))} · ${lot.ubicacion} · ${lot.cantidad} ud.</span>
+              <span class="secundario">${describeExpiry(daysBetween(today, lot.caducidad))} · ${lot.ubicacion} · ${lot.cantidad} ${t('unidades.abrev')}</span>
             </div>
             <div class="lote-acciones">
-              <input type="number" min="1" max=${lot.cantidad} aria-label="Unidades"
+              <input type="number" min="1" max=${lot.cantidad} aria-label=${t('anadir.unidades')}
                 value=${cantidades[lot.id] ?? 1}
                 onInput=${(e) => setCantidades({ ...cantidades, [lot.id]: e.currentTarget.value })} />
-              <${Button} onClick=${() => consumeFrom(lot)}>Consumir<//>
-              <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>Editar<//>
+              <${Button} onClick=${() => consumeFrom(lot)}>${t('btn.consumir')}<//>
+              <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>${t('btn.editar')}<//>
             </div>
           </li>
         `)}
       </ul>
       <div class="acciones">
-        <${Button} onClick=${() => onAnadirLote(product)}>Añadir lote<//>
-        <${Button} tipo="secundario" onClick=${() => setEditando(true)}>Editar producto<//>
-        ${product.codigo_barras && html`<${Button} tipo="secundario" disabled=${buscandoOFF} onClick=${viewOFFData}>${buscandoOFF ? 'Buscando…' : 'Datos de Open Food Facts'}<//>`}
+        <${Button} onClick=${() => onAnadirLote(product)}>${t('btn.anadir_lote')}<//>
+        <${Button} tipo="secundario" onClick=${() => setEditando(true)}>${t('btn.editar_producto')}<//>
+        ${product.codigo_barras && html`<${Button} tipo="secundario" disabled=${buscandoOFF} onClick=${viewOFFData}>${buscandoOFF ? t('btn.buscando') : t('btn.datos_off')}<//>`}
       </div>
       ${datosOFF && html`<${OFFData} codigo=${product.codigo_barras} producto=${datosOFF} onCerrar=${() => setDatosOFF(null)} />`}
       <div class="zona-peligro">
         ${!confirmarBorrado
-          ? html`<${Button} tipo="peligro" onClick=${() => setConfirmarBorrado(true)}>Borrar producto<//>`
+          ? html`<${Button} tipo="peligro" onClick=${() => setConfirmarBorrado(true)}>${t('btn.borrar_producto')}<//>`
           : html`
-            <p>Se borrará el producto y todos sus lotes. ¿Seguro?</p>
+            <p>${t('producto.borrar_aviso')}</p>
             <div class="acciones">
-              <${Button} tipo="peligro" onClick=${removeAll}>Sí, borrar<//>
-              <${Button} tipo="secundario" onClick=${() => setConfirmarBorrado(false)}>No<//>
+              <${Button} tipo="peligro" onClick=${removeAll}>${t('btn.si_borrar')}<//>
+              <${Button} tipo="secundario" onClick=${() => setConfirmarBorrado(false)}>${t('btn.no')}<//>
             </div>`}
       </div>
     <//>
@@ -407,14 +408,14 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
         try {
           photoId = await savePhoto(db, await compressPhoto(photo));
         } catch (e) {
-          throw new Error(`No se pudo guardar la foto: ${e.message}`);
+          throw new Error(t('producto.error_foto', { error: e.message }));
         }
       }
       await editProduct(db, device, product.id, {
         nombre: name, categoria: category, codigo_barras: code, stock_minimo: Number(minimum),
         observaciones: notes, ...(photoId ? { foto_id: photoId } : {}),
       });
-      notifyUser('Producto guardado', 'ok');
+      notifyUser(t('producto.guardado'), 'ok');
       onHecho();
     } catch (e) {
       setError(e.message);
@@ -423,33 +424,33 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
 
   return html`
     <section class="pantalla">
-      <h2>Editar producto</h2>
+      <h2>${t('producto.editar_titulo')}</h2>
       <form class="formulario" onSubmit=${save}>
-        <${Field} etiqueta="Nombre"><input required value=${name} onInput=${(e) => setNombre(e.currentTarget.value)} /><//>
-        <${Field} etiqueta="Categoría">
+        <${Field} etiqueta=${t('producto.nombre')}><input required value=${name} onInput=${(e) => setNombre(e.currentTarget.value)} /><//>
+        <${Field} etiqueta=${t('anadir.categoria')}>
           <select value=${category} onChange=${(e) => setCategoria(e.currentTarget.value)}>
             ${categories.map((c) => html`<option value=${c} selected=${c === category}>${c}</option>`)}
           </select>
         <//>
-        <${Field} etiqueta="Código de barras"><input inputmode="numeric" value=${code} onInput=${(e) => setCodigo(e.currentTarget.value)} /><//>
-        <${Field} etiqueta="Stock mínimo" ayuda="Unidades por debajo de las que avisar en A reponer. 0 = no avisar.">
+        <${Field} etiqueta=${t('producto.codigo_barras')}><input inputmode="numeric" value=${code} onInput=${(e) => setCodigo(e.currentTarget.value)} /><//>
+        <${Field} etiqueta=${t('producto.stock_minimo')} ayuda=${t('producto.stock_minimo_ayuda')}>
           <input type="number" min="0" step="1" value=${minimum} onInput=${(e) => setMinimo(e.currentTarget.value)} />
         <//>
-        <${Field} etiqueta="Observaciones">
+        <${Field} etiqueta=${t('producto.observaciones')}>
           <input value=${notes} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} />
         <//>
         <div class="campo">
-          <span class="campo-etiqueta">Foto del producto</span>
+          <span class="campo-etiqueta">${t('producto.foto')}</span>
           ${!previa && html`<${Thumbnail} db=${db} fotoId=${fotoId} />`}
-          ${previa && html`<img class="previa" src=${previa} alt="Foto nueva del producto" />`}
+          ${previa && html`<img class="previa" src=${previa} alt=${t('producto.foto_nueva_alt')} />`}
           <input type="file" accept="image/*" capture="environment"
             onChange=${(e) => setFoto(e.currentTarget.files?.[0] ?? null)} />
-          <span class="campo-ayuda">Elige una foto para añadirla o cambiarla. Sin foto nueva, se queda la que había.</span>
+          <span class="campo-ayuda">${t('producto.foto_ayuda')}</span>
         </div>
         <${Notice} tipo="error">${error}<//>
         <div class="acciones">
-          <${Button} type="submit">Guardar<//>
-          <${Button} tipo="secundario" onClick=${onCancelar}>Cancelar<//>
+          <${Button} type="submit">${t('btn.guardar')}<//>
+          <${Button} tipo="secundario" onClick=${onCancelar}>${t('btn.cancelar')}<//>
         </div>
       </form>
     </section>
@@ -471,11 +472,11 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
     setError('');
     try {
       const expiryIso = parseTypedDate(expiry);
-      if (!expiryIso) throw new Error('La caducidad debe ser una fecha válida, por ejemplo 01/03/2027');
+      if (!expiryIso) throw new Error(t('lote.error_caducidad'));
       await editLot(db, device, lot.id, {
         caducidad: expiryIso, ubicacion: location, cantidad: Number(quantity),
       });
-      notifyUser('Lote guardado', 'ok');
+      notifyUser(t('lote.guardado'), 'ok');
       onHecho();
     } catch (e) {
       setError(e.message);
@@ -485,7 +486,7 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
   // The delete is confirmed here and written later, unless "Undo" is pressed.
   function remove() {
     setConfirmarBorradoLote(false);
-    requestDelete({ tipo: 'lote', id: lot.id, texto: `Lote de ${product.nombre} borrado` });
+    requestDelete({ tipo: 'lote', id: lot.id, texto: t('lote.borrado', { nombre: product.nombre }) });
     onHecho();
   }
 
@@ -495,32 +496,32 @@ export function EditLot({ db, dispositivo: device, lote: lot, producto: product,
   }
 
   return html`
-    <${Modal} titulo=${`Editar lote de ${product.nombre}`} onCerrar=${onCerrar}>
+    <${Modal} titulo=${t('lote.editar_titulo', { nombre: product.nombre })} onCerrar=${onCerrar}>
       <form class="formulario" onSubmit=${save}>
-        <${Field} etiqueta="Caducidad" ayuda="Escríbela con el teclado: DD/MM/AAAA.">
-          <input type="text" inputmode="numeric" autocomplete="off" required placeholder="DD/MM/AAAA" maxlength="10"
+        <${Field} etiqueta=${t('anadir.caducidad')} ayuda=${t('lote.caducidad_ayuda')}>
+          <input type="text" inputmode="numeric" autocomplete="off" required placeholder=${t('fecha.formato')} maxlength="10"
             value=${expiry} onInput=${(e) => setCaducidad(formatDateInput(e.currentTarget.value))} />
         <//>
-        <${Field} etiqueta="Ubicación">
+        <${Field} etiqueta=${t('anadir.ubicacion')}>
           <select value=${location} onChange=${(e) => setUbicacion(e.currentTarget.value)}>
             ${locations.map((u) => html`<option value=${u} selected=${u === location}>${u}</option>`)}
           </select>
         <//>
-        <${Field} etiqueta="Cantidad" ayuda="Escribe cuántas unidades hay. 0 oculta el lote, no lo borra.">
+        <${Field} etiqueta=${t('lote.cantidad')} ayuda=${t('lote.cantidad_ayuda')}>
           <div class="cantidad-control">
-            <input type="number" inputmode="numeric" min="0" step="1" required aria-label="Cantidad" value=${quantity} onInput=${(e) => setCantidad(e.currentTarget.value)} />
-            <button type="button" aria-label="Aumentar una unidad" onClick=${() => ajustarCantidad(1)}>▲</button>
-            <button type="button" aria-label="Reducir una unidad" onClick=${() => ajustarCantidad(-1)}>▼</button>
+            <input type="number" inputmode="numeric" min="0" step="1" required aria-label=${t('lote.cantidad')} value=${quantity} onInput=${(e) => setCantidad(e.currentTarget.value)} />
+            <button type="button" aria-label=${t('btn.aumentar')} onClick=${() => ajustarCantidad(1)}>▲</button>
+            <button type="button" aria-label=${t('btn.reducir')} onClick=${() => ajustarCantidad(-1)}>▼</button>
           </div>
         <//>
         <${Notice} tipo="error">${error}<//>
         <div class="acciones">
-          <${Button} type="submit">Guardar<//>
+          <${Button} type="submit">${t('btn.guardar')}<//>
           ${!confirmarBorradoLote
-            ? html`<${Button} tipo="peligro" onClick=${() => setConfirmarBorradoLote(true)}>Borrar lote<//>`
-            : html`<span class="confirmacion">¿Seguro? Se quitará este lote.</span>
-                <${Button} tipo="peligro" onClick=${remove}>Sí, borrar<//>
-                <${Button} tipo="secundario" onClick=${() => setConfirmarBorradoLote(false)}>No<//>`}
+            ? html`<${Button} tipo="peligro" onClick=${() => setConfirmarBorradoLote(true)}>${t('btn.borrar_lote')}<//>`
+            : html`<span class="confirmacion">${t('lote.confirmar')}</span>
+                <${Button} tipo="peligro" onClick=${remove}>${t('btn.si_borrar')}<//>
+                <${Button} tipo="secundario" onClick=${() => setConfirmarBorradoLote(false)}>${t('btn.no')}<//>`}
         </div>
       </form>
     <//>

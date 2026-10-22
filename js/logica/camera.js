@@ -1,4 +1,5 @@
 // Camera constraints and messages, without touching the browser.
+import { t } from './idioma.js';
 
 export const CAMERA_CONSTRAINTS = Object.freeze({
   audio: false,
@@ -12,19 +13,21 @@ export const CAMERA_CONSTRAINTS = Object.freeze({
 export function cameraErrorMessage(error) {
   switch (error?.name) {
     case 'NotAllowedError':
-      return 'Permiso de cámara denegado. Actívalo en los ajustes del navegador para esta web.';
+      return t('camara.permiso');
     case 'NotFoundError':
     case 'OverconstrainedError':
-      return 'No se ha encontrado ninguna cámara.';
+      return t('camara.no_encontrada');
     case 'NotReadableError':
-      return 'La cámara está ocupada por otra app. Ciérrala y vuelve a probar.';
+      return t('camara.ocupada');
     case 'SecurityError':
-      return 'El navegador no permite usar la cámara en esta página (hace falta HTTPS).';
+      return t('camara.https');
     default:
-      return `No se pudo usar la cámara: ${error?.message || error?.name || 'error desconocido'}.`;
+      return t('camara.otro', { error: error?.message || error?.name || t('camara.error_desconocido') });
   }
 }
 
 // When reading a photo, any failure means no code was captured: the build
 // minified ZXing renames its exceptions, so they are not told apart by name.
-export const PHOTO_NO_CODE_MESSAGE = 'No se ha encontrado ningún código de barras en la imagen.';
+export function photoNoCodeMessage() {
+  return t('camara.sin_codigo_foto');
+}

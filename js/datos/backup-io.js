@@ -1,6 +1,7 @@
 // Entry and exit of JSON backups in the browser. The logic is in js/logica/backup.js.
 import { buildBackup, mergeBackup, validateBackup } from '../logica/backup.js';
 import { TABLES, request, transaction } from './db.js';
+import { t } from '../logica/idioma.js';
 
 const encodeBytes = (buffer) => {
   let binary = '';
@@ -53,7 +54,7 @@ export async function importBackupFile(db, uploadedFile) {
   try {
     backup = JSON.parse(text);
   } catch {
-    throw new Error('El fichero no es un JSON válido');
+    throw new Error(t('backup.no_json'));
   }
   validateBackup(backup);
   const newPhotos = (backup.fotos ?? []).map((f) => ({
