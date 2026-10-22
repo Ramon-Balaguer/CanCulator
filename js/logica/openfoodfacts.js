@@ -50,6 +50,16 @@ export function parseResponse(http, body) {
   throw new Error(`Respuesta inesperada de Open Food Facts (HTTP ${http})`);
 }
 
+// Volume in ml of a drink, from the quantity Open Food Facts gives ("33 cl", "1,5 l"). Null if there is none.
+// Without a written quantity, product_quantity (a number, in ml for drinks) is used.
+const CANTIDAD_EN_ML = { ml: 1, cl: 10, l: 1000 };
+export function volumenDesdeOFF(producto) {
+  const escrita = String(producto?.quantity ?? '').match(/(\d+(?:[.,]\d+)?)\s*(ml|cl|l)\b/i);
+  if (escrita) return Math.round(Number(escrita[1].replace(',', '.')) * CANTIDAD_EN_ML[escrita[2].toLowerCase()]);
+  const numero = Number(producto?.product_quantity);
+  return numero > 0 ? numero : null;
+}
+
 // 
 // Old entries, without the full product, are considered expired.
 export function isCacheValid(entry, now = new Date()) {

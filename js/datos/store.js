@@ -50,6 +50,8 @@ function validateProduct(data) {
   // Weight (grams) and price (euros) are optional, as the calories: empty = no data.
   if (data.peso_g !== undefined) cleanData.peso_g = optionalNumber(data.peso_g, t('store.peso'));
   if (data.precio !== undefined) cleanData.precio = optionalNumber(data.precio, t('store.precio'));
+  // Drinks carry volume (ml) instead of weight: each product has the one that fits its category.
+  if (data.volumen_ml !== undefined) cleanData.volumen_ml = optionalNumber(data.volumen_ml, t('store.volumen'));
   // The photo and the notes belong to the product, not to each lot.
   if (data.foto_id !== undefined) cleanData.foto_id = String(data.foto_id ?? '');
   if (data.observaciones !== undefined) cleanData.observaciones = String(data.observaciones ?? '').trim();
