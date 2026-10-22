@@ -27,6 +27,7 @@ const PRECACHE = [
   './js/logica/camera.js',
   './js/logica/dates.js',
   './js/logica/ean.js',
+  './js/logica/idioma.js',
   './js/logica/image.js',
   './js/logica/inventory.js',
   './js/logica/nutrition.js',

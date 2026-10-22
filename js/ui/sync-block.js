@@ -5,6 +5,7 @@ import { QrScannerModal } from './scanner.js';
 import { alCambiarConectadas, applyPeerOperations, createRoom, joinRoom, numeroConectadas } from '../datos/peer-link.js';
 import { readMeta, saveMeta } from '../datos/store.js';
 import { encodeInvite } from '../logica/peer-sync.js';
+import { t } from '../logica/idioma.js';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ESPERA_REUNION_MS = 1000;
@@ -13,11 +14,12 @@ const CLAVE_SALA = 'sala_casa';
 
 // La sala vive fuera de la pantalla: cambiar de pestaña no la cierra.
 // Estado compartido del módulo: la sala, su rol y su código, y lo que muestra el bloque.
+// El estado es una clave de texto ({ clave, vars }) para traducirlo al pintarlo, o un texto ya escrito.
 let contexto = { db: null, deviceId: null, refresh: () => {} };
 let sala = null;
 let reintento = null;
 let restaurada = false;
-let estado = { rol: null, codigo: '', status: 'Sin conectar.' };
+let estado = { rol: null, codigo: '', status: { clave: 'sincronizar.sin_conectar' } };
 const oyentes = new Set();
 
 function emitir(parcial) {
@@ -28,7 +30,7 @@ function emitir(parcial) {
 const alRecibir = async (operaciones) => {
   const n = await applyPeerOperations(contexto.db, contexto.deviceId, operaciones);
   if (n > 0) contexto.refresh();
-  emitir({ status: `Conectado. Operaciones recibidas aplicadas: ${n}.` });
+  emitir({ status: { clave: 'sincronizar.operaciones', vars: { n } } });
 };
 const alEstado = (status) => emitir({ status });
 
@@ -57,12 +59,17 @@ function unirseSala(codigo, token) {
 
 function salirSala() {
   cerrarSala();
-  emitir({ rol: null, codigo: '', status: 'Sin conectar.' });
+  emitir({ rol: null, codigo: '', status: { clave: 'sincronizar.sin_conectar' } });
   saveMeta(contexto.db, CLAVE_SALA, null);
 }
 
 function codigoNuevo() {
   return Array.from({ length: 6 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join('');
+}
+
+// Texto del estado: una clave se traduce; un texto ya escrito se muestra tal cual.
+function textoEstado(status) {
+  return typeof status === 'string' ? status : t(status.clave, status.vars);
 }
 
 // Código QR generado en el navegador (sin servicios externos).
@@ -73,7 +80,7 @@ function Qr({ text }) {
     const writer = new window.ZXingBrowser.BrowserQRCodeSvgWriter();
     ref.current.replaceChildren(writer.write(text, 180, 180));
   }, [text]);
-  return html`<div class="qr" ref=${ref} role="img" aria-label="Código QR para entrar en la sala"></div>`;
+  return html`<div class="qr" ref=${ref} role="img" aria-label=${t('sincronizar.qr_alt')}></div>`;
 }
 
 // Al arrancar la app (no al abrir Ajustes), vuelve a abrir o unir la sala guardada. Solo una vez.
@@ -114,7 +121,7 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
   const crearMain = async (event) => {
     event.preventDefault();
     const limpia = passwordTyped.trim();
-    if (!limpia) return setMensajeMain('La password no puede estar vacía.');
+    if (!limpia) return setMensajeMain(t('sincronizar.password_vacia'));
     await guardarPassword(limpia);
     setMensajeMain('');
     crearSala(codigoNuevo(), limpia);
@@ -132,41 +139,40 @@ export function SyncBlock({ db, deviceId, token, onToken, refresh }) {
 
   return html`
     <div class="bloque" data-testid="sincronizacion-casa">
-      <h3>Sincronizar entre móviles</h3>
-      <p class="secundario">Los dos móviles tienen que estar en la misma Wi-Fi.</p>
+      <h3>${t('sincronizar.titulo')}</h3>
+      <p class="secundario">${t('sincronizar.misma_wifi')}</p>
 
       <div class="bloque" data-testid="crear-main">
-        <h3>Crear main</h3>
-        <p class="secundario" data-testid="explicacion-password">La password de sincronización protege tu inventario: solo entra en la sala quien la tenga.
-          Pon la misma en todos los móviles de la casa y no la compartas fuera de ella.</p>
+        <h3>${t('sincronizar.crear_main')}</h3>
+        <p class="secundario" data-testid="explicacion-password">${t('sincronizar.explicacion_password')}</p>
         ${rol === 'anfitrion' && html`
           <${Qr} text=${inviteText} />
           <p class="codigo" data-testid="codigo-sala">${codigo}</p>
-          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>Cerrar sala<//></div>`}
+          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>${t('sincronizar.cerrar_sala')}<//></div>`}
         ${rol === null && html`
           <form class="formulario" onSubmit=${crearMain}>
-            <${Field} etiqueta="Password de sincronización">
+            <${Field} etiqueta=${t('sincronizar.password')}>
               <input type="password" autocomplete="off" value=${passwordTyped} onInput=${(e) => setPasswordTyped(e.currentTarget.value)} />
             <//>
-            <${Button} tipo="secundario" type="submit">Guardar y crear sala<//>
+            <${Button} tipo="secundario" type="submit">${t('sincronizar.guardar_crear')}<//>
           </form>
           ${mensajeMain && html`<p class="secundario">${mensajeMain}</p>`}`}
-        ${rol === 'invitado' && html`<p class="secundario">Este móvil ya está en una sala como cliente. Sal de ella para crear el main.</p>`}
+        ${rol === 'invitado' && html`<p class="secundario">${t('sincronizar.ya_cliente')}</p>`}
       </div>
 
       <div class="bloque" data-testid="crear-cliente">
-        <h3>Crear cliente</h3>
+        <h3>${t('sincronizar.crear_cliente')}</h3>
         ${rol === null && html`
-          <p class="secundario">En el otro móvil, escanea el QR del main o haz una foto. Luego pon la password.</p>
-          <div class="acciones"><${Button} tipo="secundario" onClick=${() => setScanning(true)}>Escanear QR<//></div>`}
+          <p class="secundario">${t('sincronizar.escanear_intro')}</p>
+          <div class="acciones"><${Button} tipo="secundario" onClick=${() => setScanning(true)}>${t('btn.escanear_qr')}<//></div>`}
         ${rol === 'invitado' && html`
-          <p class="secundario">Conectado a la sala <span class="codigo-pequeno">${codigo}</span>.</p>
-          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>Salir de la sala<//></div>`}
-        ${rol === 'anfitrion' && html`<p class="secundario">Este móvil es el main. Cierra la sala para conectarlo como cliente.</p>`}
+          <p class="secundario">${t('sincronizar.conectado_a')} <span class="codigo-pequeno">${codigo}</span>.</p>
+          <div class="acciones"><${Button} tipo="secundario" onClick=${salirSala}>${t('sincronizar.salir')}<//></div>`}
+        ${rol === 'anfitrion' && html`<p class="secundario">${t('sincronizar.es_main')}</p>`}
       </div>
 
-      <p class="secundario" data-testid="moviles-conectados">Móviles conectados: ${conectados}</p>
-      <p class="secundario" data-testid="estado-casa" role="status">${status}</p>
+      <p class="secundario" data-testid="moviles-conectados">${t('sincronizar.conectados', { n: conectados })}</p>
+      <p class="secundario" data-testid="estado-casa" role="status">${textoEstado(status)}</p>
       ${scanning && html`<${QrScannerModal} passwordInicial=${token ?? ''} onGuardar=${crearCliente} onCerrar=${() => setScanning(false)} />`}
     </div>`;
 }

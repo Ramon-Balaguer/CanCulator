@@ -1,5 +1,6 @@
 import { html } from 'htm/preact';
 import { useEffect, useRef } from 'preact/hooks';
+import { t } from '../logica/idioma.js';
 
 let modalCount = 0;
 
@@ -20,7 +21,7 @@ export function Modal({ titulo, onCerrar, children }) {
     <dialog ref=${ref} class="modal" aria-labelledby=${titleId.current} onCancel=${(e) => { e.preventDefault(); onCerrar(); }}>
       <div class="modal-cabecera">
         <h2 id=${titleId.current}>${titulo}</h2>
-        <button type="button" class="boton secundario pequeno" onClick=${onCerrar} aria-label="Cerrar">✕</button>
+        <button type="button" class="boton secundario pequeno" onClick=${onCerrar} aria-label=${t('btn.cerrar')}>✕</button>
       </div>
       <div class="modal-cuerpo">${children}</div>
     </dialog>
