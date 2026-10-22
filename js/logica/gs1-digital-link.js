@@ -5,6 +5,7 @@
 import { isValidGtin, normalizeCode } from './barcode.js';
 
 // { '01': '04006381333931', '10': 'LOTE', '17': '261231' }, or null if the text is not a web address.
+// Some labels put the data attributes in the query string instead (?17=261024), as GS1 allows.
 function identificadores(texto) {
   let url;
   try {
@@ -15,6 +16,7 @@ function identificadores(texto) {
   const partes = url.pathname.split('/').filter(Boolean);
   const pares = {};
   for (let i = 0; i + 1 < partes.length; i += 2) pares[partes[i]] = partes[i + 1];
+  for (const [identificador, valor] of url.searchParams) pares[identificador] ??= valor;
   return pares;
 }
 

@@ -50,3 +50,11 @@ test('caducidadDesdeDigitalLink devuelve null si no viene informada o no es una 
   assert.equal(caducidadDesdeDigitalLink('https://id.gs1.org/01/04006381333931/17/261332'), null);
   assert.equal(caducidadDesdeDigitalLink('4006381333931'), null);
 });
+
+// Real label (Mercadona): the GTIN is in the path, the data attributes 17 and others in the query string.
+const MERCADONA = 'https://qrtrack.mercadona.es/01/08436569260821/10/000678318001?17=261024&16=261021&3103=000459&3922=00826&8005=001800';
+
+test('etiqueta real de Mercadona: el código es su GTIN y la caducidad va en la query string (17)', () => {
+  assert.equal(codigoDesdeTexto(MERCADONA), '8436569260821');
+  assert.equal(caducidadDesdeDigitalLink(MERCADONA), '2026-10-24');
+});
