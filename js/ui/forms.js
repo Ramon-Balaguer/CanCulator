@@ -24,7 +24,7 @@ const EMPTY_FIELDS = () => ({
 });
 
 // Lot form. If productoInicial arrives (from Restock), it is preselected.
-export function LotForm({ db, dispositivo: device, datos: data, config, productoInicial, onHecho, onCancelar, notificar: notifyUser }) {
+export function LotForm({ db, dispositivo: device, datos: data, config, productoInicial, soloLote, onHecho, onCancelar, notificar: notifyUser }) {
   const [fields, setCampos] = useState(() => {
     const start = EMPTY_FIELDS();
     if (productoInicial) {
@@ -191,33 +191,39 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
   const categories = [...new Set([...config.categorias, fields.categoria].filter(Boolean))];
   const locations = [...new Set([...config.ubicaciones, fields.ubicacion].filter(Boolean))];
 
+  // Adding a lot from a product's detail: the product is already known,
+  // so only the lot's own data is asked: location, expiry and units.
+  const loteDeProducto = !!soloLote;
+
   return html`
     <section class="pantalla">
       <h2>Añadir lote</h2>
       <form class="formulario" onSubmit=${save}>
-        <div class="fila">
-          <${Button} tipo="secundario" onClick=${() => setEscaneando(true)}>Escanear código<//>
-          ${fields.codigo && html`<span class="codigo-pequeno">${fields.codigo}</span>`}
-        </div>
-        ${escaneando && html`<${ScannerModal} onCodigo=${onScanned} onCerrar=${() => setEscaneando(false)} />`}
-        ${consultando && html`<p class="secundario">Consultando Open Food Facts…</p>`}
-        <${Notice} tipo=${notice?.tipo ?? 'info'}>${notice?.texto}<//>
-        ${ofProducto && html`<${Button} tipo="secundario" onClick=${() => setVerOFF(true)}>Ver todos los datos de Open Food Facts<//>`}
-        ${verOFF && ofProducto && html`<${OFFData} codigo=${fields.codigo} producto=${ofProducto} onCerrar=${() => setVerOFF(false)} />`}
+        ${!loteDeProducto && html`
+          <div class="fila">
+            <${Button} tipo="secundario" onClick=${() => setEscaneando(true)}>Escanear código<//>
+            ${fields.codigo && html`<span class="codigo-pequeno">${fields.codigo}</span>`}
+          </div>
+          ${escaneando && html`<${ScannerModal} onCodigo=${onScanned} onCerrar=${() => setEscaneando(false)} />`}
+          ${consultando && html`<p class="secundario">Consultando Open Food Facts…</p>`}
+          <${Notice} tipo=${notice?.tipo ?? 'info'}>${notice?.texto}<//>
+          ${ofProducto && html`<${Button} tipo="secundario" onClick=${() => setVerOFF(true)}>Ver todos los datos de Open Food Facts<//>`}
+          ${verOFF && ofProducto && html`<${OFFData} codigo=${fields.codigo} producto=${ofProducto} onCerrar=${() => setVerOFF(false)} />`}
 
-        <${Field} etiqueta="Producto" ayuda=${lockedProduct ? 'El nombre es del producto: para cambiarlo, edita el producto.' : undefined}>
-          <input required list="productos-existentes" value=${fields.nombre} onInput=${change('nombre')} autocomplete="off"
-            readOnly=${!!lockedProduct} />
-          <datalist id="productos-existentes">
-            ${data.productos.filter((p) => !p.borrado).map((p) => html`<option value=${p.nombre}></option>`)}
-          </datalist>
-        <//>
+          <${Field} etiqueta="Producto" ayuda=${lockedProduct ? 'El nombre es del producto: para cambiarlo, edita el producto.' : undefined}>
+            <input required list="productos-existentes" value=${fields.nombre} onInput=${change('nombre')} autocomplete="off"
+              readOnly=${!!lockedProduct} />
+            <datalist id="productos-existentes">
+              ${data.productos.filter((p) => !p.borrado).map((p) => html`<option value=${p.nombre}></option>`)}
+            </datalist>
+          <//>
 
-        <${Field} etiqueta="Categoría">
-          <select value=${fields.categoria} onChange=${change('categoria')}>
-            ${categories.map((c) => html`<option value=${c} selected=${c === fields.categoria}>${c}</option>`)}
-          </select>
-        <//>
+          <${Field} etiqueta="Categoría">
+            <select value=${fields.categoria} onChange=${change('categoria')}>
+              ${categories.map((c) => html`<option value=${c} selected=${c === fields.categoria}>${c}</option>`)}
+            </select>
+          <//>
+        `}
 
         <${Field} etiqueta="Ubicación">
           <select value=${fields.ubicacion} onChange=${change('ubicacion')}>
@@ -237,12 +243,14 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
         </div>
 
 
-        <${Field} etiqueta="Foto (opcional)">
-          <input type="file" accept="image/*" capture="environment"
-            onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? fields.foto })} />
-        <//>
-        ${previa && html`<img class="previa" src=${previa} alt="Foto del producto" />`}
-        ${previa && html`<p class="secundario">Si prefieres otra foto, elígela arriba y sustituirá a esta.</p>`}
+        ${!loteDeProducto && html`
+          <${Field} etiqueta="Foto (opcional)">
+            <input type="file" accept="image/*" capture="environment"
+              onChange=${(e) => setCampos({ ...fields, foto: e.currentTarget.files?.[0] ?? fields.foto })} />
+          <//>
+          ${previa && html`<img class="previa" src=${previa} alt="Foto del producto" />`}
+          ${previa && html`<p class="secundario">Si prefieres otra foto, elígela arriba y sustituirá a esta.</p>`}
+        `}
 
         ${sameLot && html`<${Notice} tipo="info">Ya tienes ${sameLot.cantidad} ud. de ${currentProduct.nombre} con esta caducidad y ubicación. Si guardas, se suman a ese lote.<//>`}
         <${Notice} tipo="error">${error}<//>

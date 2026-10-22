@@ -141,13 +141,13 @@ export function Root({ db }) {
   let modal = null;
   if (view2?.tipo === 'alta') {
     modal = html`<section class="modal-pantalla"><${LotForm} db=${db} dispositivo=${device} datos=${visible} config=${config}
-      productoInicial=${view2.producto} notificar=${notifyUser} onHecho=${onDone} onCancelar=${close} /></section>`;
+      productoInicial=${view2.producto} soloLote=${view2.desde === 'producto'} notificar=${notifyUser} onHecho=${onDone} onCancelar=${close} /></section>`;
   } else if (view2?.tipo === 'producto') {
     const product = visible.productos.find((p) => p.id === view2.producto.id);
     if (product && !product.borrado) {
       modal = html`<${ProductDetail} db=${db} dispositivo=${device} datos=${visible} config=${config} producto=${product}
         notificar=${notifyUser} refrescar=${refresh} onCerrar=${close} solicitarBorrado=${requestDelete}
-        onAnadirLote=${(p) => setVista({ tipo: 'alta', producto: p })}
+        onAnadirLote=${(p) => setVista({ tipo: 'alta', producto: p, desde: 'producto' })}
         onEditarLote=${(lot) => setVista({ tipo: 'editar-lote', lote: lot, desde: 'producto', producto: product })} />`;
     }
   } else if (view2?.tipo === 'editar-lote') {
