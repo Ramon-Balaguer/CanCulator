@@ -1,4 +1,5 @@
 // Expiry dates: YYYY-MM-DD text. "Today" is the day in Madrid.
+import { t } from './idioma.js';
 
 export const TIME_ZONE = 'Europe/Madrid';
 const DAY_MS = 86_400_000;
@@ -45,22 +46,22 @@ export function readableDuration(days) {
   const rest = n % 365;
   const months = Math.floor(rest / 30);
   const looseDays = rest % 30;
-  const p = (figure, singular, plural) => `${figure} ${figure === 1 ? singular : plural}`;
+  const p = (figure, singular, plural) => `${figure} ${t(figure === 1 ? singular : plural)}`;
   const parts = [
-    years > 0 ? p(years, 'año', 'años') : null,
-    months > 0 ? p(months, 'mes', 'meses') : null,
-    looseDays > 0 ? p(looseDays, 'día', 'días') : null,
+    years > 0 ? p(years, 'fecha.ano', 'fecha.anos') : null,
+    months > 0 ? p(months, 'fecha.mes', 'fecha.meses') : null,
+    looseDays > 0 ? p(looseDays, 'fecha.dia', 'fecha.dias') : null,
   ].filter(Boolean);
-  if (parts.length === 0) return p(0, 'día', 'días');
-  return parts.slice(0, 2).join(' y ');
+  if (parts.length === 0) return p(0, 'fecha.dia', 'fecha.dias');
+  return parts.slice(0, 2).join(` ${t('fecha.y')} `);
 }
 
 export function describeExpiry(days) {
-  if (days < -1) return `Caducado hace ${readableDuration(days)}`;
-  if (days === -1) return 'Caducó ayer';
-  if (days === 0) return 'Caduca hoy';
-  if (days === 1) return 'Caduca mañana';
-  return `Caduca en ${readableDuration(days)}`;
+  if (days < -1) return t('fecha.caducado_hace', { duracion: readableDuration(days) });
+  if (days === -1) return t('fecha.caduco_ayer');
+  if (days === 0) return t('fecha.caduca_hoy');
+  if (days === 1) return t('fecha.caduca_manana');
+  return t('fecha.caduca_en', { duracion: readableDuration(days) });
 }
 
 // Date typed by hand (number keypad). While typing, the slashes are added by themselves:

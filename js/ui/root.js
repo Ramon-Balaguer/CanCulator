@@ -7,14 +7,15 @@ import { removeLot, removeProduct, loadAll, deviceId, readMeta } from '../datos/
 import { enviarCambiosPendientes } from '../datos/peer-link.js';
 import { restaurarSala } from './sync-block.js';
 import { effectiveSettings } from '../logica/settings.js';
+import { t, idiomaActual, alCambiarIdioma } from '../logica/idioma.js';
 
 const TABS = [
-  { id: 'stock', texto: 'Stock' },
-  { id: 'caducidad', texto: 'Caducidad' },
-  { id: 'reponer', texto: 'A reponer' },
-  { id: 'imprimir', texto: 'Imprimir' },
-  { id: 'estadisticas', texto: 'Estadísticas' },
-  { id: 'ajustes', texto: 'Ajustes' },
+  { id: 'stock', clave: 'pestana.stock' },
+  { id: 'caducidad', clave: 'pestana.caducidad' },
+  { id: 'reponer', clave: 'pestana.reponer' },
+  { id: 'imprimir', clave: 'pestana.imprimir' },
+  { id: 'estadisticas', clave: 'pestana.estadisticas' },
+  { id: 'ajustes', clave: 'pestana.ajustes' },
 ];
 
 // Time to press "Undo" after a delete. Only then is the real delete written.
@@ -32,6 +33,9 @@ export function Root({ db }) {
   // Ids of lots and products with a pending delete: they are hidden until confirmed or undone.
   const [ocultos, setOcultos] = useState(() => new Set());
   const pendingDeletes = useRef(new Map());
+  // When the language changes, the whole screen is drawn again with the new texts.
+  const [, setIdioma] = useState(idiomaActual());
+  useEffect(() => alCambiarIdioma(setIdioma), []);
 
   // optional action: { etiqueta, onClick } to show a button in the notice (e.g. «Undo»).
   const notifyUser = useCallback((text, type = 'info', accion = null) => {
@@ -42,7 +46,7 @@ export function Root({ db }) {
     try {
       setDatos(await loadAll(db));
     } catch (e) {
-      setError(`No se pudieron leer los datos: ${e.message}`);
+      setError(t('root.error_leer', { error: e.message }));
     }
   }, [db]);
 
@@ -67,7 +71,7 @@ export function Root({ db }) {
         if (type === 'lote') await removeLot(db, device, id);
         else await removeProduct(db, device, id);
       } catch (e) {
-        notifyUser(`No se pudo borrar: ${e.message}`, 'error');
+        notifyUser(t('root.error_borrar', { error: e.message }), 'error');
       } finally {
         show();
         refresh();
@@ -75,7 +79,7 @@ export function Root({ db }) {
     }, UNDO_WAIT_MS);
     pendingDeletes.current.set(id, write);
     notifyUser(text, 'info', {
-      etiqueta: 'Deshacer',
+      etiqueta: t('btn.deshacer'),
       onClick: () => {
         clearTimeout(write);
         pendingDeletes.current.delete(id);
@@ -91,7 +95,7 @@ export function Root({ db }) {
       setDispositivo(id);
       setToken(await readMeta(db, 'sync_token'));
       await loadData();
-    })().catch((e) => setError(`No se pudo abrir la base de datos: ${e.message}`));
+    })().catch((e) => setError(t('root.error_abrir_bd', { error: e.message })));
   }, [db, loadData]);
 
   // Al abrir la app, vuelve a abrir la sala guardada aunque la pestaña de Ajustes no esté visible.
@@ -101,19 +105,19 @@ export function Root({ db }) {
 
   // Another app version has updated the database: this tab can no longer save.
   useEffect(() => {
-    const onVersionChange = () => setError('Hay una versión nueva de la app. Recarga la página para seguir (no se pierde nada guardado).');
+    const onVersionChange = () => setError(t('root.version_nueva'));
     globalThis.addEventListener('bd-version-nueva', onVersionChange);
     return () => globalThis.removeEventListener('bd-version-nueva', onVersionChange);
   }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
-    const t = setTimeout(() => setAviso(null), notice.accion ? UNDO_WAIT_MS : 3000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setAviso(null), notice.accion ? UNDO_WAIT_MS : 3000);
+    return () => clearTimeout(timer);
   }, [notice]);
 
   if (error) return html`<${Notice} tipo="error">${error}<//>`;
-  if (!data) return html`<p class="cargando">Cargando…</p>`;
+  if (!data) return html`<p class="cargando">${t('app.cargando')}</p>`;
 
   const config = effectiveSettings(data.configuracion);
   const close = () => setVista(null);
@@ -165,7 +169,7 @@ export function Root({ db }) {
 
       ${modal}
 
-      <button type="button" class="fab" aria-label="Añadir lote" onClick=${() => setVista({ tipo: 'alta' })}>+</button>
+      <button type="button" class="fab" aria-label=${t('root.anadir_lote')} onClick=${() => setVista({ tipo: 'alta' })}>+</button>
 
       ${notice && (notice.accion
         ? html`<button type="button" class=${`toast toast-accion ${notice.tipo}`} role="status" key=${notice.id} onClick=${notice.accion.onClick}>
@@ -173,11 +177,11 @@ export function Root({ db }) {
           </button>`
         : html`<div class=${`toast ${notice.tipo}`} role="status" key=${notice.id}>${notice.texto}</div>`)}
 
-      <nav class="barra" aria-label="Pantallas">
+      <nav class="barra" aria-label=${t('nav.pantallas')}>
         ${TABS.map((p) => html`
           <button type="button" class=${`barra-boton ${pestana === p.id ? 'activa' : ''}`}
             aria-current=${pestana === p.id ? 'page' : null}
-            onClick=${() => { setPestana(p.id); setVista(null); }}>${p.texto}</button>`)}
+            onClick=${() => { setPestana(p.id); setVista(null); }}>${t(p.clave)}</button>`)}
       </nav>
     </div>
   `;

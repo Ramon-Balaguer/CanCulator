@@ -2,8 +2,9 @@ import { html } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Button, Field, Modal, Notice } from './components.js';
 import { isValidGtin, normalizeCode } from '../logica/barcode.js';
-import { cameraErrorMessage, CAMERA_CONSTRAINTS, PHOTO_NO_CODE_MESSAGE } from '../logica/camera.js';
+import { cameraErrorMessage, CAMERA_CONSTRAINTS, photoNoCodeMessage } from '../logica/camera.js';
 import { decodeInvite } from '../logica/peer-sync.js';
+import { t } from '../logica/idioma.js';
 
 // Scanner with the camera and, always, manual code entry as a backup.
 export function ScannerModal({ onCodigo, onCerrar }) {
@@ -17,7 +18,7 @@ export function ScannerModal({ onCodigo, onCerrar }) {
     let closed = false;
     const reader = window.ZXingBrowser?.BrowserMultiFormatOneDReader;
     if (!reader) {
-      setError('El lector de códigos no está disponible. Escribe el código a mano.');
+      setError(t('escaner.no_disponible'));
       return undefined;
     }
     new reader().decodeFromConstraints(CAMERA_CONSTRAINTS, video.current, (result) => {
@@ -42,26 +43,26 @@ export function ScannerModal({ onCodigo, onCerrar }) {
     const code = normalizeCode(manual);
     if (!code) return;
     if (!/^\d{8,14}$/.test(code)) {
-      setAviso('Un código de barras tiene entre 8 y 14 dígitos.');
+      setAviso(t('escaner.digitos'));
       return;
     }
     if (!isValidGtin(code)) {
-      setAviso('Ese código no tiene un dígito de control correcto. Revísalo.');
+      setAviso(t('escaner.digito_control'));
       return;
     }
     onCodigo(code);
   }
 
   return html`
-    <${Modal} titulo="Escanear código" onCerrar=${onCerrar}>
+    <${Modal} titulo=${t('escaner.titulo')} onCerrar=${onCerrar}>
       <video ref=${video} class="visor" playsinline muted autoplay></video>
       <${Notice} tipo="error">${error}<//>
       <form class="formulario" onSubmit=${sendManual}>
-        <${Field} etiqueta="O escribe el código">
+        <${Field} etiqueta=${t('escaner.manual')}>
           <input inputmode="numeric" autocomplete="off" value=${manual} onInput=${(e) => setManual(e.currentTarget.value)} />
         <//>
         <${Notice} tipo="error">${notice}<//>
-        <${Button} type="submit">Usar este código<//>
+        <${Button} type="submit">${t('btn.usar_codigo')}<//>
       </form>
     <//>
   `;
@@ -80,7 +81,7 @@ export function QrScannerModal({ passwordInicial, onGuardar, onCerrar }) {
   const rellenar = (texto) => {
     const invitacion = decodeInvite(texto);
     if (!invitacion) {
-      setAviso('Ese QR no es de una sala de inventario.');
+      setAviso(t('qr.no_sala'));
       return false;
     }
     setCodigo(invitacion.code);
@@ -94,7 +95,7 @@ export function QrScannerModal({ passwordInicial, onGuardar, onCerrar }) {
     let closed = false;
     const reader = window.ZXingBrowser?.BrowserQRCodeReader;
     if (!reader) {
-      setError('El lector de QR no está disponible. Escribe los datos a mano.');
+      setError(t('qr.no_disponible'));
       return undefined;
     }
     new reader().decodeFromConstraints(CAMERA_CONSTRAINTS, video.current, (result) => {
@@ -124,7 +125,7 @@ export function QrScannerModal({ passwordInicial, onGuardar, onCerrar }) {
       const resultado = await new window.ZXingBrowser.BrowserQRCodeReader().decodeFromImageUrl(url);
       rellenar(resultado.getText());
     } catch {
-      setAviso(PHOTO_NO_CODE_MESSAGE);
+      setAviso(photoNoCodeMessage());
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -134,28 +135,28 @@ export function QrScannerModal({ passwordInicial, onGuardar, onCerrar }) {
     event.preventDefault();
     const pass = password.trim();
     const code = codigo.trim().toUpperCase();
-    if (!pass) return setAviso('Pon la password de sincronización.');
-    if (code.length !== 6) return setAviso('El código de la sala tiene 6 caracteres.');
+    if (!pass) return setAviso(t('qr.pass_vacia'));
+    if (code.length !== 6) return setAviso(t('qr.codigo_largo'));
     onGuardar({ codigo: code, password: pass });
   }
 
   return html`
-    <${Modal} titulo="Escanear QR de la sala" onCerrar=${onCerrar}>
+    <${Modal} titulo=${t('qr.titulo')} onCerrar=${onCerrar}>
       <video ref=${video} class="visor" playsinline muted autoplay></video>
       <${Notice} tipo="error">${error}<//>
       <form class="formulario" onSubmit=${guardar}>
         <label class="boton secundario">
-          Hacer foto del QR
+          ${t('btn.hacer_foto_qr')}
           <input type="file" accept="image/*" capture="environment" class="oculto" onChange=${leerFoto} />
         </label>
-        <${Field} etiqueta="Password de sincronización">
+        <${Field} etiqueta=${t('sincronizar.password')}>
           <input type="password" autocomplete="off" value=${password} onInput=${(e) => setPassword(e.currentTarget.value)} />
         <//>
-        <${Field} etiqueta="Código de la sala">
+        <${Field} etiqueta=${t('qr.codigo')}>
           <input autocomplete="off" maxlength="6" value=${codigo} onInput=${(e) => setCodigo(e.currentTarget.value)} />
         <//>
         <${Notice} tipo="error">${aviso}<//>
-        <${Button} type="submit">Guardar<//>
+        <${Button} type="submit">${t('btn.guardar')}<//>
       </form>
     <//>
   `;

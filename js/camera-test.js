@@ -2,7 +2,7 @@
 import { html, render } from 'htm/preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { isValidGtin, normalizeCode, codeType } from './logica/barcode.js';
-import { PHOTO_NO_CODE_MESSAGE, cameraErrorMessage, CAMERA_CONSTRAINTS } from './logica/camera.js';
+import { photoNoCodeMessage, cameraErrorMessage, CAMERA_CONSTRAINTS } from './logica/camera.js';
 
 const { BrowserMultiFormatOneDReader, BarcodeFormat } = window.ZXingBrowser;
 
@@ -101,7 +101,7 @@ function CameraTest() {
     try {
       setLectura(newReading(await reader.current.decodeFromImageUrl(url), 'foto'));
     } catch {
-      setError(PHOTO_NO_CODE_MESSAGE);
+      setError(photoNoCodeMessage());
     } finally {
       URL.revokeObjectURL(url);
     }

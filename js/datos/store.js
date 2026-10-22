@@ -3,6 +3,7 @@
 import { TABLES, request, transaction } from './db.js';
 import { isActive, findSameLot } from '../logica/inventory.js';
 import { isISODate } from '../logica/dates.js';
+import { t } from '../logica/idioma.js';
 
 export const OPERATION_TYPES = Object.freeze(['crear', 'editar', 'consumir', 'reponer', 'borrar']);
 
@@ -10,12 +11,12 @@ const now = () => new Date().toISOString();
 
 // Without crypto.randomUUID (old browsers) there is no safe way to generate ids: it warns.
 export function newId() {
-  if (!globalThis.crypto?.randomUUID) throw new Error('Este navegador no puede generar identificadores');
+  if (!globalThis.crypto?.randomUUID) throw new Error(t('store.sin_ids'));
   return crypto.randomUUID();
 }
 
 export function newOperation({ dispositivo: device, tipo: type, entidad: entity, entidad_id: entityId, cambio: change = {}, fecha: date = now(), id = newId() }) {
-  if (!OPERATION_TYPES.includes(type)) throw new Error(`Tipo de operación desconocido: ${type}`);
+  if (!OPERATION_TYPES.includes(type)) throw new Error(t('store.tipo_desconocido', { tipo: type }));
   return { id, dispositivo: device, fecha: date, tipo: type, entidad: entity, entidad_id: entityId, cambio: change };
 }
 
@@ -34,9 +35,9 @@ export async function deviceId(db) {
 
 function validateProduct(data) {
   const name = String(data.nombre ?? '').replace(/\s+/g, ' ').trim();
-  if (!name) throw new Error('El producto necesita un nombre');
+  if (!name) throw new Error(t('store.nombre_obligatorio'));
   const minimum = Number(data.stock_minimo ?? 0);
-  if (!Number.isInteger(minimum) || minimum < 0) throw new Error('El stock mínimo debe ser un entero de 0 o más');
+  if (!Number.isInteger(minimum) || minimum < 0) throw new Error(t('store.stock_minimo'));
   const cleanData = {
     nombre: name,
     categoria: String(data.categoria ?? 'otros'),
@@ -44,8 +45,8 @@ function validateProduct(data) {
     stock_minimo: minimum,
   };
   // Product calories: only touched if they come in the data (empty = no data).
-  if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, 'Calorías por 100 g');
-  if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, 'Peso del bote');
+  if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, t('store.kcal_100g'));
+  if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, t('store.peso_bote'));
   // The photo and the notes belong to the product, not to each lot.
   if (data.foto_id !== undefined) cleanData.foto_id = String(data.foto_id ?? '');
   if (data.observaciones !== undefined) cleanData.observaciones = String(data.observaciones ?? '').trim();
@@ -55,15 +56,15 @@ function validateProduct(data) {
 function optionalNumber(value, name) {
   if (value === null || value === undefined || value === '') return '';
   const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) throw new Error(`${name} debe ser un número de 0 o más`);
+  if (!Number.isFinite(n) || n < 0) throw new Error(t('store.numero_no_negativo', { nombre: name }));
   return n;
 }
 
 function validateLot(data) {
   const quantity = Number(data.cantidad);
-  if (!Number.isInteger(quantity) || quantity < 1) throw new Error('La cantidad debe ser un entero de 1 o más');
-  if (!isISODate(data.caducidad)) throw new Error('La caducidad debe tener formato AAAA-MM-DD');
-  if (!data.ubicacion) throw new Error('Elige una ubicación');
+  if (!Number.isInteger(quantity) || quantity < 1) throw new Error(t('store.cantidad_minima'));
+  if (!isISODate(data.caducidad)) throw new Error(t('store.caducidad_formato'));
+  if (!data.ubicacion) throw new Error(t('store.elige_ubicacion'));
   return quantity;
 }
 
@@ -89,7 +90,7 @@ export function editProduct(db, device, id, changes) {
   return transaction(db, [TABLES.productos, TABLES.operaciones], 'readwrite', async (tx) => {
     const objectStore = tx.objectStore(TABLES.productos);
     const current = await request(objectStore.get(id));
-    if (!current) throw new Error('Producto no encontrado');
+    if (!current) throw new Error(t('store.producto_no_encontrado'));
     const cleanData = validateProduct({ ...current, ...changes });
     const change = Object.fromEntries(Object.entries(cleanData).filter(([k, v]) => current[k] !== v));
     if (Object.keys(change).length === 0) return current;
@@ -145,12 +146,12 @@ export function addLot(db, device, data) {
 
 // Consumes or restocks units of a lot: always increments, never a fixed value.
 export function adjustLot(db, device, lotId, delta) {
-  if (!Number.isInteger(delta) || delta === 0) throw new Error('El cambio debe ser un entero distinto de 0');
+  if (!Number.isInteger(delta) || delta === 0) throw new Error(t('store.cambio_entero'));
   return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
     const objectStore = tx.objectStore(TABLES.lotes);
     const current = await request(objectStore.get(lotId));
-    if (!current || !isActive(current)) throw new Error('Lote no encontrado');
-    if (current.cantidad + delta < 0) throw new Error('No puedes consumir más unidades de las que hay en el lote');
+    if (!current || !isActive(current)) throw new Error(t('store.lote_no_encontrado'));
+    if (current.cantidad + delta < 0) throw new Error(t('store.consumo_excede'));
     const lot = { ...current, cantidad: current.cantidad + delta, actualizado: now() };
     objectStore.put(lot);
     tx.objectStore(TABLES.operaciones).put(newOperation({
@@ -171,7 +172,7 @@ export function editLot(db, device, id, changes) {
   return transaction(db, [TABLES.lotes, TABLES.operaciones], 'readwrite', async (tx) => {
     const objectStore = tx.objectStore(TABLES.lotes);
     const current = await request(objectStore.get(id));
-    if (!current || !isActive(current)) throw new Error('Lote no encontrado');
+    if (!current || !isActive(current)) throw new Error(t('store.lote_no_encontrado'));
     const fields = {
       caducidad: changes.caducidad ?? current.caducidad,
       ubicacion: changes.ubicacion ?? current.ubicacion,
@@ -180,7 +181,7 @@ export function editLot(db, device, id, changes) {
     if (!fields.ubicacion) throw new Error('Elige una ubicación');
     // "quantity" is the final number the person counts (recount), not an adjustment.
     const newQuantity = changes.cantidad === undefined ? current.cantidad : Number(changes.cantidad);
-    if (!Number.isInteger(newQuantity) || newQuantity < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
+    if (!Number.isInteger(newQuantity) || newQuantity < 0) throw new Error(t('store.cantidad_cero'));
     const change = Object.fromEntries(
       Object.entries(fields).filter(([k, v]) => current[k] !== v),
     );

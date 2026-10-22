@@ -1,3 +1,5 @@
+import { t } from './idioma.js';
+
 // JSON backup of the inventory: build, validate and merge. No IndexedDB access.
 // The merge follows the same rule as the sync: the record with the most recent "updated" wins.
 
@@ -20,22 +22,22 @@ export function buildBackup({ dispositivo: device, productos: products, lotes: l
 const LISTS = ['productos', 'lotes', 'configuracion', 'fotos'];
 
 export function validateBackup(backup) {
-  if (!backup || typeof backup !== 'object') throw new Error('El fichero no es una copia válida');
-  if (backup.formato !== 'canculator') throw new Error('El fichero no es una copia de CanCulator');
+  if (!backup || typeof backup !== 'object') throw new Error(t('backup.no_valida'));
+  if (backup.formato !== 'canculator') throw new Error(t('backup.no_canculator'));
   if (!Number.isInteger(backup.version) || backup.version > BACKUP_VERSION) {
-    throw new Error(`La copia es de una versión más nueva (${backup.version}). Actualiza la app.`);
+    throw new Error(t('backup.version_nueva', { version: backup.version }));
   }
   for (const list of LISTS) {
     if (backup[list] !== undefined && !Array.isArray(backup[list])) {
-      throw new Error(`La copia tiene un campo "${list}" que no es una lista`);
+      throw new Error(t('backup.campo_no_lista', { campo: list }));
     }
   }
   for (const product of backup.productos ?? []) {
-    if (!product.id || typeof product.nombre !== 'string') throw new Error('Hay un producto sin id o sin nombre');
+    if (!product.id || typeof product.nombre !== 'string') throw new Error(t('backup.producto_sin_id'));
   }
   for (const lot of backup.lotes ?? []) {
-    if (!lot.id || !lot.producto_id) throw new Error('Hay un lote sin id o sin producto');
-    if (!Number.isInteger(lot.cantidad) || lot.cantidad < 0) throw new Error(`Cantidad no válida en el lote ${lot.id}`);
+    if (!lot.id || !lot.producto_id) throw new Error(t('backup.lote_sin_id'));
+    if (!Number.isInteger(lot.cantidad) || lot.cantidad < 0) throw new Error(t('backup.cantidad_lote', { id: lot.id }));
   }
   return backup;
 }
