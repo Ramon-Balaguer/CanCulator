@@ -34,6 +34,12 @@ const alRecibir = async (operaciones) => {
 };
 const alEstado = (status) => emitir({ status });
 
+// Tras una sincronización completa, la lista en pantalla se vuelve a leer para mostrar lo fusionado.
+const alRecibirEstado = (cambios) => {
+  contexto.refresh();
+  emitir({ status: { clave: 'sincronizar.operaciones', vars: { n: cambios } } });
+};
+
 function cerrarSala() {
   clearTimeout(reintento);
   sala?.cerrar();
@@ -42,7 +48,7 @@ function cerrarSala() {
 
 function crearSala(codigo, token) {
   cerrarSala();
-  sala = createRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onFotos: () => contexto.refresh(), onStatus: alEstado });
+  sala = createRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onSnapshot: alRecibirEstado, onFotos: () => contexto.refresh(), onStatus: alEstado });
   emitir({ rol: 'anfitrion', codigo });
   saveMeta(contexto.db, CLAVE_SALA, { codigo, rol: 'anfitrion' });
 }
@@ -52,7 +58,7 @@ function unirseSala(codigo, token) {
   const reintentar = () => {
     reintento = setTimeout(() => unirseSala(codigo, token), ESPERA_REUNION_MS);
   };
-  sala = joinRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onFotos: () => contexto.refresh(), onStatus: alEstado, onClosed: reintentar });
+  sala = joinRoom({ db: contexto.db, code: codigo, token, onOps: alRecibir, onSnapshot: alRecibirEstado, onFotos: () => contexto.refresh(), onStatus: alEstado, onClosed: reintentar });
   emitir({ rol: 'invitado', codigo });
   saveMeta(contexto.db, CLAVE_SALA, { codigo, rol: 'invitado' });
 }
