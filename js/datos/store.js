@@ -254,8 +254,7 @@ export function saveSetting(db, device, key, value) {
 
 // Photos are stored as bytes and not as a Blob: WebKit (Safari) cannot store in
 // IndexedDB a Blob created with canvas.toBlob ("Error preparing Blob/File data").
-export async function savePhoto(db, blob) {
-  const id = newId();
+export async function savePhoto(db, blob, id = newId()) {
   const bytes = await blob.arrayBuffer();
   return transaction(db, [TABLES.fotos], 'readwrite', (tx) => {
     tx.objectStore(TABLES.fotos).put({ id, bytes, tipo: blob.type || 'image/jpeg', creada: now() });

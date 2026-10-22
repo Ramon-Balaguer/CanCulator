@@ -20,7 +20,7 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
   if (lots.length === 0) return html`<section class="pantalla"><h2>${t('caducidad.titulo')}</h2><${Empty}>${t('caducidad.vacio')}<//></section>`;
-  const offImages = offImagesByBarcode(data.cacheOff ?? []);
+  const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
 
   async function consumeLot(lot, n) {
     try {
@@ -42,7 +42,7 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
           const days = daysBetween(today, lot.caducidad);
           return html`
             <li class=${`tarjeta estado-${status}`}>
-              <${ProductImage} db=${db} imageUrl=${offImages.get(product.codigo_barras)} photoId=${photoIdOf(product, data.lotes)} />
+              <${ProductImage} db=${db} offFotoId=${offPhotos.get(product.codigo_barras)} photoId=${photoIdOf(product, data.lotes)} />
               <div class="tarjeta-cuerpo">
                 <strong>${product.nombre}</strong>
                 <span class="secundario">${lot.ubicacion} · ${lot.cantidad} ${t('unidades.abrev')}</span>
@@ -90,11 +90,11 @@ export function StatisticsScreen({ datos: data }) {
     </section>`;
 }
 
-// Open Food Facts image by barcode (from the OFF cache).
-function offImagesByBarcode(cacheOff) {
+// Id of the Open Food Facts photo kept in the local database, by barcode (from the OFF cache).
+function offPhotosByBarcode(cacheOff) {
   return new Map(
-    cacheOff.filter((e) => e.encontrado && e.producto?.image_front_small_url)
-      .map((e) => [e.codigo, e.producto.image_front_small_url]),
+    cacheOff.filter((e) => e.encontrado && e.foto_off)
+      .map((e) => [e.codigo, e.foto_off]),
   );
 }
 
@@ -104,7 +104,7 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
   const today = todayInMadrid();
   const summary = filterSummary(stockSummary(data.productos, data.lotes), { categoria: category, ubicacion: location });
   const usedCategories = [...new Set(data.productos.filter((p) => !p.borrado).map((p) => p.categoria))];
-  const offImages = offImagesByBarcode(data.cacheOff ?? []);
+  const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <h2>${t('stock.titulo')}</h2>
@@ -128,7 +128,7 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
         ${summary.map((row) => html`
           <li>
             <button type="button" class="fila-boton" onClick=${() => onAbrirProducto(row.producto)}>
-              <${ProductImage} db=${db} imageUrl=${offImages.get(row.producto.codigo_barras)} photoId=${row.fotoId} />
+              <${ProductImage} db=${db} offFotoId=${offPhotos.get(row.producto.codigo_barras)} photoId=${row.fotoId} />
               <span class="fila-texto">
                 <span class="fila-titulo">${row.producto.nombre}</span>
                 <span class="secundario">${row.producto.categoria}</span>
@@ -176,7 +176,7 @@ export function RestockScreen({ datos: data, onComprado }) {
 export function PrintScreen({ db, datos: data }) {
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
-  const offImages = offImagesByBarcode(data.cacheOff ?? []);
+  const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
@@ -192,7 +192,7 @@ export function PrintScreen({ db, datos: data }) {
         <tbody>
           ${lots.map((lot) => html`
             <tr>
-              <td class="celda-foto"><${ProductImage} db=${db} imageUrl=${offImages.get(byId.get(lot.producto_id).codigo_barras)} photoId=${photoIdOf(byId.get(lot.producto_id), data.lotes)} /></td>
+              <td class="celda-foto"><${ProductImage} db=${db} offFotoId=${offPhotos.get(byId.get(lot.producto_id).codigo_barras)} photoId=${photoIdOf(byId.get(lot.producto_id), data.lotes)} /></td>
               <td>${shortId(lot.id)}</td>
               <td>${byId.get(lot.producto_id).nombre}</td>
               <td class="celda-codigo"><${Barcode} codigo=${byId.get(lot.producto_id).codigo_barras} /></td>

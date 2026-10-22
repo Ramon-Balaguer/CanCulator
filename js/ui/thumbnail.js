@@ -40,13 +40,8 @@ export function Thumbnail({ db, fotoId }) {
     : html`<span class="miniatura vacia" aria-hidden="true"></span>`;
 }
 
-// Product image from Open Food Facts by default; if there is none, or it fails to load,
-// the lot's own photo is shown instead.
-export function ProductImage({ db, imageUrl, photoId }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [imageUrl]);
-  if (imageUrl && !failed) {
-    return html`<img class="miniatura" src=${imageUrl} alt="Imagen del producto" loading="lazy" onError=${() => setFailed(true)} />`;
-  }
-  return html`<${Thumbnail} db=${db} fotoId=${photoId} />`;
+// Product image from Open Food Facts, kept in the local database (so it works offline);
+// without it, the lot's own photo is shown.
+export function ProductImage({ db, offFotoId, photoId }) {
+  return html`<${Thumbnail} db=${db} fotoId=${offFotoId || photoId} />`;
 }
