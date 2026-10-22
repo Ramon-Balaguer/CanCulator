@@ -144,7 +144,11 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
 export function RestockScreen({ datos: data, onComprado }) {
   const pending = toRestock(data.productos, data.lotes);
   if (pending.length === 0) {
-    return html`<section class="pantalla"><h2>A reponer</h2><${Empty}>Nada por debajo del mínimo.<//></section>`;
+    return html`<section class="pantalla">
+      <h2>A reponer</h2>
+      <${Empty}>Nada por debajo del mínimo.<//>
+      <${Empty}>Aquí aparecen los productos cuyo stock baja de su mínimo. Para que aparezca alguno, edita un producto y pon un «Stock mínimo» mayor que 0.<//>
+    </section>`;
   }
   return html`
     <section class="pantalla">
