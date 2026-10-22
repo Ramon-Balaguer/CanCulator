@@ -8,7 +8,7 @@ import { findSameLot, findProductByCode, findProductByName, lotsToConsume, photo
 import { isValidGtin } from '../logica/barcode.js';
 import { todayInMadrid, formatDate, daysBetween, describeExpiry, formatDateInput, parseTypedDate } from '../logica/dates.js';
 import { Thumbnail } from './thumbnail.js';
-import { queryOFF, STATES, readCacheOFF } from '../datos/off.js';
+import { queryOFF, queryPrecioOFF, STATES, readCacheOFF } from '../datos/off.js';
 import { OFFData } from './off-data.js';
 import { guessCategory, frontImageUrl } from '../logica/off-category.js';
 import { nutritionDataFromOFF, kcalPerContainer, storedKcalPerContainer } from '../logica/nutrition.js';
@@ -21,6 +21,9 @@ const EMPTY_FIELDS = () => ({
   ubicacion: '',
   caducidad: '',
   cantidad: '1',
+  // Optional, only for a new product: the QR link or Open Food Facts bring them.
+  peso: '',
+  precio: '',
   foto: null,
 });
 
@@ -57,8 +60,8 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
 
   // After scanning: if there is already a product, it is used; if not, Open Food Facts is asked ONCE.
   // A failure never blocks the entry: the name stays editable by hand.
-  // The expiry date comes only when the QR carries it (GS1 identifier 17); otherwise the field is kept.
-  async function onScanned(code, caducidad) {
+  // The expiry date, weight and price come only when the QR carries them; otherwise the fields are kept.
+  async function onScanned(code, qr = {}) {
     setEscaneando(false);
     setAviso(null);
     const existing = findProductByCode(data.productos, code);
@@ -67,7 +70,9 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
       codigo: code,
       nombre: existing?.nombre ?? c.nombre,
       categoria: existing?.categoria ?? c.categoria,
-      caducidad: caducidad ?? c.caducidad,
+      caducidad: qr.caducidad ?? c.caducidad,
+      peso: qr.peso ? String(qr.peso) : c.peso,
+      precio: qr.precio ? String(qr.precio) : c.precio,
     }));
     if (existing) {
       setAviso({ tipo: 'info', texto: t('anadir.ya_tienes_producto', { nombre: existing.nombre }) });
@@ -79,6 +84,10 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
     }
     setConsultando(true);
     try {
+      // The price comes apart: it does not hold back the product data. A price from the QR label is kept.
+      queryPrecioOFF(code).then((precioOFF) => {
+        if (precioOFF) setCampos((c) => ({ ...c, precio: c.precio || String(precioOFF) }));
+      });
       const r = await queryOFF(db, code);
       if (r.estado === STATES.ENCONTRADO) {
         setOfProducto(r.producto ?? null);
@@ -154,6 +163,8 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
           categoria: fields.categoria,
           codigo_barras: fields.codigo,
           stock_minimo: 0,
+          peso_g: fields.peso,
+          precio: fields.precio,
           foto_id: photoId,
           // If Open Food Facts brought energy, the calories are stored with the product.
           ...nutritionDataFromOFF(ofProducto ?? {}),
@@ -226,6 +237,17 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
               ${categories.map((c) => html`<option value=${c} selected=${c === fields.categoria}>${c}</option>`)}
             </select>
           <//>
+
+          ${!currentProduct && html`
+            <div class="fila">
+              <${Field} etiqueta=${t('producto.peso')} ayuda=${t('producto.peso_ayuda')}>
+                <input type="number" inputmode="decimal" min="0" step="any" value=${fields.peso} onInput=${change('peso')} />
+              <//>
+              <${Field} etiqueta=${t('producto.precio')}>
+                <input type="number" inputmode="decimal" min="0" step="0.01" value=${fields.precio} onInput=${change('precio')} />
+              <//>
+            </div>
+          `}
         `}
 
         <${Field} etiqueta=${t('anadir.ubicacion')}>
@@ -388,6 +410,8 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
   const [category, setCategoria] = useState(product.categoria);
   const [code, setCodigo] = useState(product.codigo_barras ?? '');
   const [minimum, setMinimo] = useState(String(product.stock_minimo));
+  const [weight, setPeso] = useState(String(product.peso_g ?? ''));
+  const [price, setPrecio] = useState(String(product.precio ?? ''));
   const [notes, setObservaciones] = useState(product.observaciones ?? '');
   // Photo chosen now (it replaces the product's photo); without a new one, the photo stays.
   const [photo, setFoto] = useState(null);
@@ -415,7 +439,7 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
       }
       await editProduct(db, device, product.id, {
         nombre: name, categoria: category, codigo_barras: code, stock_minimo: Number(minimum),
-        observaciones: notes, ...(photoId ? { foto_id: photoId } : {}),
+        peso_g: weight, precio: price, observaciones: notes, ...(photoId ? { foto_id: photoId } : {}),
       });
       notifyUser(t('producto.guardado'), 'ok');
       onHecho();
@@ -438,6 +462,14 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
         <${Field} etiqueta=${t('producto.stock_minimo')} ayuda=${t('producto.stock_minimo_ayuda')}>
           <input type="number" min="0" step="1" value=${minimum} onInput=${(e) => setMinimo(e.currentTarget.value)} />
         <//>
+        <div class="fila">
+          <${Field} etiqueta=${t('producto.peso')} ayuda=${t('producto.peso_ayuda')}>
+            <input type="number" inputmode="decimal" min="0" step="any" value=${weight} onInput=${(e) => setPeso(e.currentTarget.value)} />
+          <//>
+          <${Field} etiqueta=${t('producto.precio')}>
+            <input type="number" inputmode="decimal" min="0" step="0.01" value=${price} onInput=${(e) => setPrecio(e.currentTarget.value)} />
+          <//>
+        </div>
         <${Field} etiqueta=${t('producto.observaciones')}>
           <input value=${notes} maxlength="200" onInput=${(e) => setObservaciones(e.currentTarget.value)} />
         <//>

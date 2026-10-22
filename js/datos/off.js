@@ -2,7 +2,7 @@
 // It never throws for lack of network: it returns a state and the entry goes on with the name by hand.
 import { TABLES, request, transaction } from './db.js';
 import { savePhoto } from './store.js';
-import { isCacheValid, offPhotoId, parseResponse, productUrl } from '../logica/openfoodfacts.js';
+import { isCacheValid, offPhotoId, parseResponse, precioDesdeOpenPrices, pricesUrl, productUrl } from '../logica/openfoodfacts.js';
 import { frontImageUrl } from '../logica/off-category.js';
 
 export const OFF_TIMEOUT_MS = 8000;
@@ -58,6 +58,17 @@ async function requestOFF(code, fetchFn) {
     return parseResponse(response.status, body);
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// Price in euros from Open Prices, or null. Best effort: without network or without records there is no price.
+export async function queryPrecioOFF(code, { fetchFn = globalThis.fetch.bind(globalThis) } = {}) {
+  try {
+    const response = await fetchFn(pricesUrl(code), { signal: AbortSignal.timeout(OFF_TIMEOUT_MS), headers: { Accept: 'application/json' } });
+    if (!response.ok) return null;
+    return precioDesdeOpenPrices(await response.json());
+  } catch {
+    return null;
   }
 }
 

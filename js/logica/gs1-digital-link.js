@@ -45,6 +45,29 @@ export function caducidadDesdeDigitalLink(texto) {
   return `${año}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 }
 
+// Value of the first identifier that matches the pattern, read as digits with n decimals,
+// where n is the last digit of the identifier (310n, 390n, 392n). Null if there is none.
+function valorConDecimales(texto, patron) {
+  for (const [identificador, valor] of Object.entries(identificadores(texto) ?? {})) {
+    const coincide = identificador.match(patron);
+    if (coincide && /^\d+$/.test(valor)) return Number(valor) / 10 ** Number(coincide[1]);
+  }
+  return null;
+}
+
+// Net weight in grams: the identifier 310n gives kilograms with n decimals. Null if the QR does not carry it.
+export function pesoDesdeDigitalLink(texto) {
+  const kilos = valorConDecimales(texto, /^310(\d)$/);
+  return kilos > 0 ? Math.round(kilos * 100000) / 100 : null;
+}
+
+// Price in euros: the identifiers 390n and 392n give the amount payable with n decimals.
+// Null if the QR does not carry a price.
+export function precioDesdeDigitalLink(texto) {
+  const euros = valorConDecimales(texto, /^39[02](\d)$/);
+  return euros > 0 ? euros : null;
+}
+
 // What a scanner or a typed entry means: the GTIN of a Digital Link, or the code itself.
 export function codigoDesdeTexto(texto) {
   return gtinDesdeDigitalLink(texto) ?? normalizeCode(texto);

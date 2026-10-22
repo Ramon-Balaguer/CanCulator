@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gtinDesdeDigitalLink, codigoDesdeTexto, caducidadDesdeDigitalLink } from '../../js/logica/gs1-digital-link.js';
+import { gtinDesdeDigitalLink, codigoDesdeTexto, caducidadDesdeDigitalLink, pesoDesdeDigitalLink, precioDesdeDigitalLink } from '../../js/logica/gs1-digital-link.js';
 
 test('gtinDesdeDigitalLink saca el GTIN de una URL GS1 Digital Link', () => {
   assert.equal(gtinDesdeDigitalLink('https://id.gs1.org/01/04006381333931'), '4006381333931');
@@ -57,4 +57,24 @@ const MERCADONA = 'https://qrtrack.mercadona.es/01/08436569260821/10/00067831800
 test('etiqueta real de Mercadona: el código es su GTIN y la caducidad va en la query string (17)', () => {
   assert.equal(codigoDesdeTexto(MERCADONA), '8436569260821');
   assert.equal(caducidadDesdeDigitalLink(MERCADONA), '2026-10-24');
+});
+
+test('pesoDesdeDigitalLink saca el peso neto en gramos del identificador 310n (kilos con n decimales)', () => {
+  assert.equal(pesoDesdeDigitalLink(MERCADONA), 459);
+  assert.equal(pesoDesdeDigitalLink('https://id.gs1.org/01/04006381333931/3102/000250'), 2500);
+});
+
+test('pesoDesdeDigitalLink devuelve null si el QR no trae peso', () => {
+  assert.equal(pesoDesdeDigitalLink('https://id.gs1.org/01/04006381333931/17/261231'), null);
+  assert.equal(pesoDesdeDigitalLink('4006381333931'), null);
+});
+
+test('precioDesdeDigitalLink saca el importe en euros del identificador 390n o 392n (n decimales)', () => {
+  assert.equal(precioDesdeDigitalLink(MERCADONA), 8.26);
+  assert.equal(precioDesdeDigitalLink('https://id.gs1.org/01/04006381333931/3902/000199'), 1.99);
+});
+
+test('precioDesdeDigitalLink devuelve null si el QR no trae precio o vale 0', () => {
+  assert.equal(precioDesdeDigitalLink('https://id.gs1.org/01/04006381333931/17/261231'), null);
+  assert.equal(precioDesdeDigitalLink('https://id.gs1.org/01/04006381333931/3922/00000'), null);
 });
