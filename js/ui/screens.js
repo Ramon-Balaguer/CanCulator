@@ -259,7 +259,7 @@ function EditableList({ titulo, valores: values, onGuardar, notificar: notifyUse
     </div>`;
 }
 
-export function SettingsScreen({ db, dispositivo: device, config, notificar: notifyUser, refrescar: refresh, sincronizacion: syncLogic, estadoSync, ultimaSync, pendientes: pending, onToken }) {
+export function SettingsScreen({ db, dispositivo: device, config, notificar: notifyUser, refrescar: refresh, token, onToken }) {
   const [importado, setImportado] = useState('');
   const save = async (key, value) => {
     const cleanData = validateValue(key, value);
@@ -315,7 +315,7 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
         <//>
       </div>
 
-      <${SyncBlock} db=${db} deviceId=${device} token=${syncLogic.token} onToken=${onToken} refresh=${refresh} />
+      <${SyncBlock} db=${db} deviceId=${device} token=${token} onToken=${onToken} refresh=${refresh} />
 
       <${InstallApp} />
 

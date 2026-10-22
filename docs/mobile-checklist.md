@@ -39,11 +39,10 @@ URL pública: https://ramon-balaguer.github.io/canculator/
 - [ ] Tras cargar la app, la consulta no se repite en bucle: solo al escanear.
 - [ ] Tras escanear un producto conocido, «Ver todos los datos de Open Food Facts» muestra fotos, ingredientes, nutrientes y la lista de campos; sin conexión, el mismo producto sigue viéndose desde «Datos de Open Food Facts» en Stock.
 
-## Fin de fase 4: sincronización
+## Fin de fase 4: sincronización entre móviles
 
-- [ ] Antes de nada, en el móvil, abrir `sync-test.html` (en la misma web) y «Enviar ping» con la URL y el token: sale «OK · servidor versión 1». Si no, ver `docs/apps-script.md`.
-- [ ] Pegar en Ajustes la URL de Apps Script y el token, y pulsar «Sincronizar ahora»: el estado dice que se ha sincronizado.
-- [ ] Dar de alta un lote en un móvil y sincronizar los dos: aparece en el otro y en la Google Sheet.
-- [ ] Los dos móviles en modo avión consumen 1 unidad del mismo lote; quitar el modo avión y sincronizar los dos: el lote ha bajado 2.
-- [ ] La foto de un lote nuevo aparece en la carpeta `inventario-fotos` de Drive.
+- [ ] En Ajustes, en el móvil principal: «Guardar y crear sala», y en el otro móvil, escanear el QR del principal y poner la misma password: sale «Conectado».
+- [ ] Dar de alta un lote en un móvil: aparece en el otro sin tocar nada.
+- [ ] Los dos móviles en modo avión consumen 1 unidad del mismo lote; quitar el modo avión y volver a conectarlos: el lote ha bajado 2.
+- [ ] La foto de un lote nuevo llega al otro móvil.
 - [ ] Una semana después, en el iPhone: los datos y la cola pendiente siguen ahí.

@@ -1,5 +1,5 @@
 // Sincronización directa entre móviles (WebRTC). Reglas puras, sin red ni IndexedDB.
-// Aplican los mismos criterios que el servidor (apps-script/Code.gs) a las operaciones recibidas.
+// Aplican criterios de conflicto (gana el cambio más reciente) a las operaciones recibidas.
 
 export const PROTOCOLO = 'canculator/1';
 

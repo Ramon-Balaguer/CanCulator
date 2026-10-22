@@ -17,5 +17,3 @@ Cada desarrollo acaba así, sin preguntar:
 2. Commit, push y PR.
 3. Merge de la PR a `main` (el push a `main` despliega GitHub Pages).
 4. Borrar la rama, la remota y la local.
-
-El despliegue de `apps-script/Code.gs` es manual, en la cuenta de Google del dueño. Avisa siempre de ello cuando cambie ese archivo.

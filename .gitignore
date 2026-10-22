@@ -21,7 +21,6 @@ fotos/
 .env.*
 *token*
 *secreto*
-.clasprc.json
 
 # Sistema
 .DS_Store
