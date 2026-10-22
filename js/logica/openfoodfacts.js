@@ -14,6 +14,12 @@ export function productUrl(code) {
   return `${API_BASE}${code}.json`;
 }
 
+// Id of the product's front photo in the local photo table (the app's own, not the lot's).
+export function offPhotoId(code) {
+  productUrl(code);
+  return `off-${code}`;
+}
+
 const cleanText = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
 // Returns { encontrado, nombre, marca, producto }. Throws if the response is not a known one.

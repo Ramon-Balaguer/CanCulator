@@ -1,7 +1,9 @@
 // Query of names from Open Food Facts with a local cache (store cache_off).
 // It never throws for lack of network: it returns a state and the entry goes on with the name by hand.
 import { TABLES, request, transaction } from './db.js';
-import { isCacheValid, parseResponse, productUrl } from '../logica/openfoodfacts.js';
+import { savePhoto } from './store.js';
+import { isCacheValid, offPhotoId, parseResponse, productUrl } from '../logica/openfoodfacts.js';
+import { frontImageUrl } from '../logica/off-category.js';
 
 export const OFF_TIMEOUT_MS = 8000;
 
@@ -9,6 +11,30 @@ export const OFF_TIMEOUT_MS = 8000;
 export async function readCacheOFF(db, code) {
   const entry = await transaction(db, [TABLES.cacheOff], 'readonly', (tx) => request(tx.objectStore(TABLES.cacheOff).get(code)));
   return entry?.encontrado ? entry.producto ?? null : null;
+}
+
+// Keeps the front photo of the product in the local database, so the app shows it offline.
+// Best effort: without network nothing is stored, and the next query tries again. Never throws.
+export async function keepOFFPhoto(db, code, producto, fetchFn) {
+  try {
+    const url = frontImageUrl(producto);
+    if (!url) return;
+    const saved = await transaction(db, [TABLES.cacheOff], 'readonly', (tx) => request(tx.objectStore(TABLES.cacheOff).get(code)));
+    if (saved?.foto_off) return;
+    const response = await fetchFn(url, { signal: AbortSignal.timeout(OFF_TIMEOUT_MS) });
+    if (!response.ok) return;
+    const blob = await response.blob();
+    if (!blob.type.startsWith('image/')) return;
+    const id = offPhotoId(code);
+    await savePhoto(db, blob, id);
+    await transaction(db, [TABLES.cacheOff], 'readwrite', async (tx) => {
+      const store = tx.objectStore(TABLES.cacheOff);
+      const entry = await request(store.get(code));
+      if (entry) store.put({ ...entry, foto_off: id });
+    });
+  } catch {
+    // Without the photo the product works the same: the lot photo or no photo at all.
+  }
 }
 
 export const STATES = Object.freeze({
@@ -39,6 +65,7 @@ async function requestOFF(code, fetchFn) {
 export async function queryOFF(db, code, { fetchFn = globalThis.fetch.bind(globalThis), ahora: now = new Date() } = {}) {
   const saved = await transaction(db, [TABLES.cacheOff], 'readonly', (tx) => request(tx.objectStore(TABLES.cacheOff).get(code)));
   if (isCacheValid(saved, now)) {
+    if (saved.encontrado) void keepOFFPhoto(db, code, saved.producto, fetchFn);
     return saved.encontrado
       ? { estado: STATES.ENCONTRADO, nombre: saved.nombre, marca: saved.marca, producto: saved.producto, origen: 'cache' }
       : { estado: STATES.NO_ENCONTRADO, origen: 'cache' };
@@ -64,6 +91,7 @@ export async function queryOFF(db, code, { fetchFn = globalThis.fetch.bind(globa
     consultado: now.toISOString(),
   };
   await transaction(db, [TABLES.cacheOff], 'readwrite', (tx) => { tx.objectStore(TABLES.cacheOff).put(entry); });
+  if (result.encontrado) void keepOFFPhoto(db, code, result.producto, fetchFn);
 
   return result.encontrado
     ? { estado: STATES.ENCONTRADO, nombre: entry.nombre, marca: entry.marca, producto: entry.producto, origen: 'red' }

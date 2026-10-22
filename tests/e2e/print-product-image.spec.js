@@ -34,6 +34,6 @@ test.describe('imagen por defecto en la hoja de impresión', () => {
 
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Imprimir' }).click();
     const fila = page.locator('table.tabla-imprimir tbody tr').first();
-    await expect(fila.locator('img.miniatura')).toHaveAttribute('src', /images\.openfoodfacts\.org/);
+    await expect(fila.locator('img.miniatura')).toHaveAttribute('src', /^blob:/);
   });
 });

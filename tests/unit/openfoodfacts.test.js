@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { isCacheValid, parseResponse, productUrl } from '../../js/logica/openfoodfacts.js';
+import { isCacheValid, offPhotoId, parseResponse, productUrl } from '../../js/logica/openfoodfacts.js';
 
 const fixture = (name) => JSON.parse(readFileSync(new URL(`../fixtures/off/${name}.json`, import.meta.url), 'utf8'));
 
@@ -9,6 +9,11 @@ test('la URL pide solo nombre y marca, y rechaza códigos mal formados', () => {
   assert.equal(productUrl('3229820129488'), 'https://world.openfoodfacts.org/api/v2/product/3229820129488.json');
   assert.throws(() => productUrl('abc'), /no válido/);
   assert.throws(() => productUrl('1234'), /no válido/);
+});
+
+test('la foto de Open Food Facts de un código tiene un id propio en la base de datos', () => {
+  assert.equal(offPhotoId('3229820129488'), 'off-3229820129488');
+  assert.throws(() => offPhotoId('abc'), /no válido/);
 });
 
 test('fixture real: producto encontrado (muesli)', () => {
