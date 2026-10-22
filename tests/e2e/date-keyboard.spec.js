@@ -16,6 +16,7 @@ test('la caducidad se escribe con el teclado numérico y pone las barras solas',
   await newLotTest.getByLabel('Unidades').fill('2');
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
   await expect(page.locator('.modal-pantalla')).toHaveCount(0);
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   await expect(page.locator('li.tarjeta', { hasText: 'Judías teclado' })).toContainText('01/03/2027');
 });
 
@@ -40,6 +41,7 @@ test('editar un lote muestra su caducidad en DD/MM/AAAA y la guarda escrita a ma
   await newLotTest.getByLabel('Unidades').fill('1');
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
 
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   const card = page.locator('li.tarjeta', { hasText: 'Tomate teclado' });
   await card.getByRole('button', { name: 'Editar' }).click();
   const edit = page.getByRole('dialog', { name: /Editar lote de Tomate teclado/ });

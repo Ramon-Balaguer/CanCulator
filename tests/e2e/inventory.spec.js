@@ -21,6 +21,8 @@ async function waitForServiceWorker(page) {
 async function openApp(page) {
   await page.goto('./');
   await expect(page.getByRole('navigation', { name: 'Pantallas' })).toBeVisible();
+  // The app opens on Stock; these tests work on the Caducidad list.
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
 }
 
 async function newLot(page, { nombre: name, caducidad: expiry = insideDays(30), cantidad: quantity = 2, foto: photo = false }) {
@@ -30,7 +32,7 @@ async function newLot(page, { nombre: name, caducidad: expiry = insideDays(30), 
   await form.getByLabel('Caducidad').fill(expiry);
   await form.getByLabel('Unidades').fill(String(quantity));
   if (photo) {
-    await form.getByLabel('Foto del lote (opcional)').setInputFiles({
+    await form.getByLabel('Foto (opcional)').setInputFiles({
       name: 'lata.png',
       mimeType: 'image/png',
       buffer: pngEan13(TEST_CODE, { ancho: 320, alto: 240 }),
@@ -137,7 +139,8 @@ test.describe('stock, reponer e imprimir', () => {
     await openApp(page);
     await newLot(page, { nombre: 'Sardinas', cantidad: 5 });
     await page.reload();
-    await expect(page.locator('li.tarjeta', { hasText: 'Sardinas' })).toContainText('5 ud.');
+    // After a reload the app opens on Stock, where each product is a row.
+    await expect(page.locator('li', { hasText: 'Sardinas' })).toContainText('5 ud.');
   });
 });
 
@@ -189,7 +192,7 @@ test.describe('copia JSON y modo sin conexión', () => {
       await newLot(page, { nombre: 'Pimientos', cantidad: 6 });
       await server.cortar();
       await page.reload();
-      await expect(page.locator('li.tarjeta', { hasText: 'Pimientos' })).toContainText('6 ud.', { timeout: 20_000 });
+      await expect(page.locator('li', { hasText: 'Pimientos' })).toContainText('6 ud.', { timeout: 20_000 });
     } finally {
       await server.cortar();
     }

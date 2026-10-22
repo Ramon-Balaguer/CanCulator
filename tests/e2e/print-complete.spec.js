@@ -10,7 +10,7 @@ test('imprimir incluye la foto del lote y el código de barras del producto', as
   await newLotTest.getByLabel('Producto').fill('Muesli imprimible');
   await newLotTest.getByLabel('Caducidad').fill('2027-04-01');
   await newLotTest.getByLabel('Unidades').fill('2');
-  await newLotTest.getByLabel('Foto del lote (opcional)').setInputFiles({ name: 'm.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
+  await newLotTest.getByLabel('Foto (opcional)').setInputFiles({ name: 'm.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
   await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 

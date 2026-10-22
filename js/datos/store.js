@@ -46,6 +46,9 @@ function validateProduct(data) {
   // Product calories: only touched if they come in the data (empty = no data).
   if (data.kcal_100g !== undefined) cleanData.kcal_100g = optionalNumber(data.kcal_100g, 'Calorías por 100 g');
   if (data.peso_bote_g !== undefined) cleanData.peso_bote_g = optionalNumber(data.peso_bote_g, 'Peso del bote');
+  // The photo and the notes belong to the product, not to each lot.
+  if (data.foto_id !== undefined) cleanData.foto_id = String(data.foto_id ?? '');
+  if (data.observaciones !== undefined) cleanData.observaciones = String(data.observaciones ?? '').trim();
   return cleanData;
 }
 
@@ -122,8 +125,6 @@ export function addLot(db, device, data) {
       cantidad: quantity,
       caducidad: data.caducidad,
       ubicacion: data.ubicacion,
-      observaciones: String(data.observaciones ?? '').trim(),
-      foto_id: data.foto_id ?? '',
       revisar: 'no',
       actualizado: now(),
       borrado: false,
@@ -136,8 +137,6 @@ export function addLot(db, device, data) {
         cantidad: quantity,
         caducidad: lot.caducidad,
         ubicacion: lot.ubicacion,
-        observaciones: lot.observaciones,
-        foto_id: lot.foto_id,
       },
     }));
     return { lote: lot, fusionado: false };
@@ -182,12 +181,8 @@ export function editLot(db, device, id, changes) {
     // "quantity" is the final number the person counts (recount), not an adjustment.
     const newQuantity = changes.cantidad === undefined ? current.cantidad : Number(changes.cantidad);
     if (!Number.isInteger(newQuantity) || newQuantity < 0) throw new Error('La cantidad debe ser un entero de 0 o más');
-    const newItem = {
-      observaciones: changes.observaciones !== undefined ? String(changes.observaciones).trim() : current.observaciones,
-      foto_id: changes.foto_id ?? current.foto_id,
-    };
     const change = Object.fromEntries(
-      Object.entries({ ...fields, ...newItem }).filter(([k, v]) => current[k] !== v),
+      Object.entries(fields).filter(([k, v]) => current[k] !== v),
     );
     const delta = newQuantity - current.cantidad;
     if (Object.keys(change).length === 0 && delta === 0) return current;

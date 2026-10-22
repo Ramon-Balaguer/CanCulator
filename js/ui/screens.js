@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
 import { SyncBlock } from './sync-block.js';
 import { Notice, Button, Field, Empty } from './components.js';
-import { ProductImage, Thumbnail } from './thumbnail.js';
+import { ProductImage } from './thumbnail.js';
 import { Barcode } from './barcode-view.js';
 import { consume, saveSetting, saveMeta } from '../datos/store.js';
 import { downloadText, exportBackup, importBackupFile } from '../datos/backup-io.js';
@@ -10,7 +10,7 @@ import { VERSION } from '../version.js';
 import { isInstalled, isIOS, installApp, canInstallWithButton, subscribeInstall } from './install.js';
 import { validateValue } from '../logica/settings.js';
 import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logica/dates.js';
-import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary } from '../logica/inventory.js';
+import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary, photoIdOf } from '../logica/inventory.js';
 import { stockStatistics } from '../logica/statistics.js';
 
 // ---------- Expiry ----------
@@ -19,6 +19,7 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
   const byId = mapById(data.productos);
   const lots = visibleLots(data.lotes, data.productos);
   if (lots.length === 0) return html`<section class="pantalla"><h2>Caducidad</h2><${Empty}>No hay comida registrada. Usa el botón + para añadir un lote.<//></section>`;
+  const offImages = offImagesByBarcode(data.cacheOff ?? []);
 
   async function consumeLot(lot, n) {
     try {
@@ -40,14 +41,14 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
           const days = daysBetween(today, lot.caducidad);
           return html`
             <li class=${`tarjeta estado-${status}`}>
-              <${Thumbnail} db=${db} fotoId=${lot.foto_id} />
+              <${ProductImage} db=${db} imageUrl=${offImages.get(product.codigo_barras)} photoId=${photoIdOf(product, data.lotes)} />
               <div class="tarjeta-cuerpo">
                 <strong>${product.nombre}</strong>
                 <span class="secundario">${lot.ubicacion} · ${lot.cantidad} ud.</span>
                 <span class="etiqueta-estado">${formatDate(lot.caducidad)} · ${describeExpiry(days)}</span>
               </div>
               <div class="tarjeta-acciones">
-                <${Button} onClick=${() => consumeLot(lot, 1)}>−1<//>
+                <${Button} className="consumir" onClick=${() => consumeLot(lot, 1)}>−1<//>
                 <${Button} tipo="secundario" onClick=${() => onEditarLote(lot)}>Editar<//>
               </div>
             </li>`;
@@ -184,7 +185,7 @@ export function PrintScreen({ db, datos: data }) {
         <tbody>
           ${lots.map((lot) => html`
             <tr>
-              <td class="celda-foto"><${ProductImage} db=${db} imageUrl=${offImages.get(byId.get(lot.producto_id).codigo_barras)} photoId=${lot.foto_id} /></td>
+              <td class="celda-foto"><${ProductImage} db=${db} imageUrl=${offImages.get(byId.get(lot.producto_id).codigo_barras)} photoId=${photoIdOf(byId.get(lot.producto_id), data.lotes)} /></td>
               <td>${shortId(lot.id)}</td>
               <td>${byId.get(lot.producto_id).nombre}</td>
               <td class="celda-codigo"><${Barcode} codigo=${byId.get(lot.producto_id).codigo_barras} /></td>

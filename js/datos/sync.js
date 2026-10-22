@@ -1,7 +1,7 @@
 // Sync with the server (Apps Script). The rules logic is in js/logica/sync-logic.js.
 import { TABLES, request, transaction } from './db.js';
 import { ACTIONS, applyServerChanges, buildSyncRequest, pendingEntities, confirmedIds, parseSyncResponse } from '../logica/sync-logic.js';
-import { editLot, saveMeta, readMeta } from './store.js';
+import { editProduct, saveMeta, readMeta } from './store.js';
 import { isActive } from '../logica/inventory.js';
 
 export const SYNC_TIMEOUT_MS = 30_000;
@@ -97,11 +97,20 @@ async function syncDataOnce(db, { url, token, dispositivo: device, fetchFn }) {
 
 // Uploads the photos not yet in Drive. A failure on one photo does not stop the others or the data.
 export async function uploadPendingPhotos(db, { url, token, dispositivo: device, fetchFn }) {
-  const [photos, lots] = await Promise.all([
+  const [photos, products, lots] = await Promise.all([
     transaction(db, [TABLES.fotos], 'readonly', (tx) => request(tx.objectStore(TABLES.fotos).getAll())),
+    transaction(db, [TABLES.productos], 'readonly', (tx) => request(tx.objectStore(TABLES.productos).getAll())),
     transaction(db, [TABLES.lotes], 'readonly', (tx) => request(tx.objectStore(TABLES.lotes).getAll())),
   ]);
-  const referenced = new Map(lots.filter(isActive).filter((l) => l.foto_id).map((l) => [l.foto_id, l]));
+  const productsById = new Map(products.map((p) => [p.id, p]));
+  // The photo belongs to a product. Photos from before sat on a lot: they count for their product
+  // as long as it has no photo of its own.
+  const referenced = new Map();
+  for (const lot of lots.filter(isActive).filter((l) => l.foto_id)) {
+    const product = productsById.get(lot.producto_id);
+    if (product && (!product.foto_id || product.foto_id === lot.foto_id)) referenced.set(lot.foto_id, product.id);
+  }
+  for (const product of products.filter(isActive).filter((p) => p.foto_id)) referenced.set(product.foto_id, product.id);
   const pending = photos.filter((f) => !f.drive_id && referenced.has(f.id));
 
   const uploaded = [];
@@ -116,8 +125,8 @@ export async function uploadPendingPhotos(db, { url, token, dispositivo: device,
       await transaction(db, [TABLES.fotos], 'readwrite', (tx) => {
         tx.objectStore(TABLES.fotos).put({ ...photo, drive_id: r.id });
       });
-      // The lot now carries the Drive id; the change travels as one more operation.
-      await editLot(db, device, referenced.get(photo.id).id, { foto_id: r.id });
+      // The product now carries the Drive id; the change travels as one more operation.
+      await editProduct(db, device, referenced.get(photo.id), { foto_id: r.id });
       uploaded.push(photo.id);
     } catch (error) {
       errors.push(`${photo.id}: ${error.message}`);

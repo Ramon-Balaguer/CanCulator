@@ -12,6 +12,7 @@ async function createLot(page, name) {
 }
 
 async function removeLotConfirmed(page, name) {
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   const card = page.locator('li.tarjeta', { hasText: name });
   await card.getByRole('button', { name: 'Editar' }).click();
   const edit = page.getByRole('dialog', { name: new RegExp(`Editar lote de ${name}`) });

@@ -9,6 +9,7 @@ test('borrar un lote pide confirmación: «No» lo conserva, «Sí» lo quita', 
   await newLotTest.getByLabel('Unidades').fill('2');
   await newLotTest.getByRole('button', { name: 'Guardar lote' }).click();
 
+  await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
   const card = page.locator('li.tarjeta', { hasText: 'Borrar con confirmación' });
   await card.getByRole('button', { name: 'Editar' }).click();
   const edit = page.getByRole('dialog', { name: /Editar lote de Borrar con confirmación/ });

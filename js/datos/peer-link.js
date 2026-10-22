@@ -145,12 +145,15 @@ function prepararConexion({ db, conexion, token, onOps, onFotos, onStatus, onClo
 
 // Las operaciones solo llevan el id de la foto: los bytes se piden aparte, una foto por mensaje.
 async function pedirFotosFaltantes(db, conexion) {
-  const { lotes, fotos } = await transaction(db, [TABLES.lotes, TABLES.fotos], 'readonly', async (tx) => ({
+  const { productos, lotes, fotos } = await transaction(db, [TABLES.productos, TABLES.lotes, TABLES.fotos], 'readonly', async (tx) => ({
+    productos: await request(tx.objectStore(TABLES.productos).getAll()),
     lotes: await request(tx.objectStore(TABLES.lotes).getAll()),
     fotos: await request(tx.objectStore(TABLES.fotos).getAll()),
   }));
   const tengo = new Set(fotos.flatMap((f) => [f.id, f.drive_id].filter(Boolean)));
-  const faltan = [...new Set(lotes.filter((l) => !l.borrado && l.foto_id && !tengo.has(l.foto_id)).map((l) => l.foto_id))];
+  // Photos of products, and those still on lots from before.
+  const ids = [...productos, ...lotes].filter((x) => !x.borrado && x.foto_id).map((x) => x.foto_id);
+  const faltan = [...new Set(ids.filter((id) => !tengo.has(id)))];
   if (faltan.length > 0 && conexion.open) conexion.send({ tipo: 'pedir-fotos', ids: faltan });
 }
 

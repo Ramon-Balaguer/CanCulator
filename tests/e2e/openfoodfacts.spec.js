@@ -61,6 +61,7 @@ test.describe('Open Food Facts en el alta', () => {
     await form.getByLabel('Producto').fill('Pan rallado casero');
     await form.getByLabel('Caducidad').fill('2027-03-01');
     await form.getByRole('button', { name: 'Guardar lote' }).click();
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
     await expect(page.locator('li.tarjeta', { hasText: 'Pan rallado casero' })).toBeVisible();
   });
 
@@ -73,6 +74,7 @@ test.describe('Open Food Facts en el alta', () => {
     await form.getByLabel('Producto').fill('Garbanzos de la tienda');
     await form.getByLabel('Caducidad').fill('2027-03-01');
     await form.getByRole('button', { name: 'Guardar lote' }).click();
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Caducidad' }).click();
     await expect(page.locator('li.tarjeta', { hasText: 'Garbanzos de la tienda' })).toBeVisible();
   });
 

@@ -62,6 +62,12 @@ export function lotsToConsume(productId, lots) {
     .sort(compareExpiry);
 }
 
+// The product's photo. Lots from before carried their own photo: until they are moved, that one is used.
+export function photoIdOf(product, lots) {
+  if (product.foto_id) return product.foto_id;
+  return lots.find((l) => l.producto_id === product.id && l.foto_id)?.foto_id ?? '';
+}
+
 // A row per product: total units, next expiry and locations.
 // First those that have units, by name; last those at 0.
 export function stockSummary(products, lots) {
@@ -74,8 +80,7 @@ export function stockSummary(products, lots) {
         producto: product,
         total: own.reduce((sum, l) => sum + l.cantidad, 0),
         proximaCaducidad: own[0]?.caducidad ?? null,
-        // The first lot (by expiry) that has its own photo, for the row when there is no product image.
-        fotoId: own.find((l) => l.foto_id)?.foto_id ?? '',
+        fotoId: photoIdOf(product, lots),
         ubicaciones: [...new Set(own.map((l) => l.ubicacion))],
       };
     })

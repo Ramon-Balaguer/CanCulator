@@ -28,7 +28,7 @@ test.describe('imagen por defecto en la hoja de impresión', () => {
     const alta = page.locator('.modal-pantalla');
     await alta.getByLabel('Caducidad').fill('2027-03-01');
     await alta.getByLabel('Unidades').fill('1');
-    await alta.getByLabel('Foto del lote (opcional)').setInputFiles({ name: 'm.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
+    await alta.getByLabel('Foto (opcional)').setInputFiles({ name: 'm.png', mimeType: 'image/png', buffer: pngEan13('2012345678903', { ancho: 200, alto: 150 }) });
     await alta.getByRole('button', { name: 'Guardar lote' }).click();
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
