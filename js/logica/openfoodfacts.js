@@ -20,6 +20,21 @@ export function offPhotoId(code) {
   return `off-${code}`;
 }
 
+// Open Prices, the prices project of Open Food Facts: the prices reported for a barcode.
+export const PRICES_API_BASE = 'https://prices.openfoodfacts.org/api/v1/prices';
+
+// The most recent price in euros of the code.
+export function pricesUrl(code) {
+  productUrl(code);
+  return `${PRICES_API_BASE}?product_code=${code}&currency=EUR&order_by=-date&size=1`;
+}
+
+// Price in euros of the first record, or null if there is none.
+export function precioDesdeOpenPrices(body) {
+  const price = body?.items?.[0]?.price;
+  return typeof price === 'number' && price > 0 ? price : null;
+}
+
 const cleanText = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
 
 // Returns { encontrado, nombre, marca, producto }. Throws if the response is not a known one.
