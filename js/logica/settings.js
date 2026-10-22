@@ -5,10 +5,13 @@ import { t } from './idioma.js';
 export const DEFAULT_CATEGORIES = Object.freeze([
   'legumbres',
   'pescado',
+  'pescado fresco',
   'carne',
+  'carne fresca',
   'verduras y hortalizas',
   'fruta',
   'sopas y platos preparados',
+  'preparados frescos',
   'tomate y salsas',
   'lácteos de larga duración',
   'pasta',
