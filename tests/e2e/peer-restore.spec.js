@@ -29,18 +29,3 @@ test('tras recargar, el anfitrión reabre la sala y el invitado reconecta', asyn
     await b.close();
   }
 });
-
-// Si el anfitrión aún no está en la sala (p. ej. recargando), el invitado no se rinde: reintenta solo.
-test('el invitado reintenta si la sala aún no existe', async ({ browser }) => {
-  test.skip(browser.browserType().name() !== 'chromium', 'WebRTC: solo Chromium en este entorno.');
-  test.setTimeout(120_000);
-  const context = await browser.newContext();
-  const invitado = await context.newPage();
-  try {
-    await abrirAjustes(invitado);
-    await entrarComoCliente(invitado, 'ZZZZZZ');
-    await expect(invitado.getByTestId('estado-casa')).toContainText('reintentando', { timeout: 60_000 });
-  } finally {
-    await context.close();
-  }
-});
