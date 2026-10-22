@@ -51,5 +51,36 @@ test('los productos sin datos de energía no suman kcal y se cuentan aparte', ()
 
 test('sin stock ni caché, todo a cero', () => {
   const e = stockStatistics([], [], []);
-  assert.deepEqual(e, { totalUnidades: 0, totalKcal: 0, productosConKcal: 0, productosSinKcal: 0, porCategoria: [] });
+  assert.deepEqual(e, { totalUnidades: 0, totalKcal: 0, productosConKcal: 0, productosSinKcal: 0, totalPesoG: 0, totalLitros: 0, totalCoste: 0, porCategoria: [] });
+});
+
+const products2 = [
+  { id: 'p-arroz', nombre: 'Arroz', categoria: 'arroz y cereales', codigo_barras: '', stock_minimo: 0, borrado: false, peso_g: 500, precio: 1.2, volumen_ml: '' },
+  { id: 'p-agua', nombre: 'Agua', categoria: 'agua y bebidas', codigo_barras: '', stock_minimo: 0, borrado: false, peso_g: '', volumen_ml: 1500, precio: 0.5 },
+  { id: 'p-sin-medidas', nombre: 'Sal', categoria: 'aceites y condimentos', codigo_barras: '', stock_minimo: 0, borrado: false, peso_g: '', volumen_ml: '', precio: '' },
+];
+
+const lots2 = [
+  { id: 'a1', producto_id: 'p-arroz', cantidad: 2, caducidad: '2027-03-01', borrado: false },
+  { id: 'a2', producto_id: 'p-agua', cantidad: 4, caducidad: '2027-03-01', borrado: false },
+  { id: 'a3', producto_id: 'p-sin-medidas', cantidad: 1, caducidad: '2027-03-01', borrado: false },
+];
+
+test('peso en gramos y litros: cada producto suma lo que tiene, por sus unidades', () => {
+  const e = stockStatistics(products2, lots2, []);
+  assert.equal(e.totalPesoG, 1000);
+  assert.equal(e.totalLitros, 6);
+});
+
+test('coste: precio por unidad por unidades, en euros, sin productos sin precio', () => {
+  const e = stockStatistics(products2, lots2, []);
+  assert.equal(e.totalCoste, 2 * 1.2 + 4 * 0.5);
+});
+
+test('por categoría: peso, litros y coste de cada una', () => {
+  const e = stockStatistics(products2, lots2, []);
+  const arroz = e.porCategoria.find((c) => c.categoria === 'arroz y cereales');
+  const agua = e.porCategoria.find((c) => c.categoria === 'agua y bebidas');
+  assert.deepEqual([arroz.pesoG, arroz.litros, arroz.coste], [1000, 0, 2.4]);
+  assert.deepEqual([agua.pesoG, agua.litros, agua.coste], [0, 6, 2]);
 });
