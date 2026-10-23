@@ -98,3 +98,32 @@ test.describe('estadísticas del stock', () => {
     await expect(filas.filter({ hasText: 'agua y bebidas' })).toContainText('0,99');
   });
 });
+
+test.describe('estadísticas en pantalla vertical', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('la tabla se ve entera en el móvil, sin desbordar la página', async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('sin cámara'), { name: 'NotFoundError' }));
+    });
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Añadir lote' }).click();
+    const lentils = page.locator('.modal-pantalla');
+    await lentils.getByLabel('Producto').fill('Lentejas');
+    await lentils.getByLabel('Peso (g)').fill('1000');
+    await lentils.getByLabel('Precio (€)').fill('12.5');
+    await lentils.getByLabel('Caducidad').fill('2027-03-01');
+    await lentils.getByLabel('Unidades').fill('24');
+    await lentils.getByRole('button', { name: 'Guardar lote' }).click();
+    await expect(page.locator('.modal-pantalla')).toHaveCount(0);
+
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
+    const tabla = page.getByTestId('estadisticas').locator('table');
+    await expect(tabla).toBeVisible();
+
+    const pagina = await page.evaluate(() => ({ ancho: window.innerWidth, desbordada: document.documentElement.scrollWidth - window.innerWidth }));
+    expect(pagina.desbordada, 'la página no debe tener scroll horizontal').toBeLessThanOrEqual(0);
+    const ancho = await tabla.evaluate((el) => ({ tabla: el.scrollWidth, hueco: el.parentElement.clientWidth }));
+    expect(ancho.tabla, 'la tabla debe caber en su tarjeta, sin cortar columnas').toBeLessThanOrEqual(ancho.hueco);
+  });
+});

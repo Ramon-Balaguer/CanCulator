@@ -528,8 +528,8 @@ textarea { min-height: 80px; }
 
 /* ---------- Stock: estadísticas ---------- */
 .estadisticas p { margin: 4px 0; }
-.tabla-estadisticas { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 6px; }
-.tabla-estadisticas th, .tabla-estadisticas td { padding: 6px; border-bottom: 1px solid var(--borde); text-align: left; }
+.tabla-estadisticas { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 6px; }
+.tabla-estadisticas th, .tabla-estadisticas td { padding: 6px 2px; border-bottom: 1px solid var(--borde); text-align: left; }
 .tabla-estadisticas th:not(:first-child), .tabla-estadisticas td:not(:first-child) { text-align: right; }
 
 /* Tabla de impresión en pantalla: se desplaza sola dentro de su contenedor, sin ensanchar la página. */

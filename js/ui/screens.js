@@ -81,20 +81,22 @@ export function StatisticsScreen({ datos: data }) {
       <p>${t('estadisticas.peso_total')} <strong data-testid="peso-total">${formatearNumero(e.totalPesoG, idioma, { decimales: 1 })} g</strong></p>
       <p>${t('estadisticas.litros_total')} <strong data-testid="litros-total">${formatearNumero(e.totalLitros, idioma, { decimales: 2 })} l</strong></p>
       <p>${t('estadisticas.coste_total')} <strong data-testid="coste-total">${formatearNumero(e.totalCoste, idioma, { decimales: 2, minimo: 2 })} €</strong></p>
-      <table class="tabla-estadisticas">
-        <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th><th>${t('estadisticas.peso')}</th><th>${t('estadisticas.litros')}</th><th>${t('estadisticas.coste')}</th></tr></thead>
-        <tbody>
-          ${e.porCategoria.map((c) => html`
-            <tr>
-              <td>${c.categoria}</td>
-              <td>${formatearNumero(c.unidades, idioma)}</td>
-              <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : formatearNumero(c.kcal, idioma)}</td>
-              <td>${formatearNumero(c.pesoG, idioma, { decimales: 1 })}</td>
-              <td>${formatearNumero(c.litros, idioma, { decimales: 2 })}</td>
-              <td>${formatearNumero(c.coste, idioma, { decimales: 2, minimo: 2 })}</td>
-            </tr>`)}
-        </tbody>
-      </table>
+      <div class="tabla-scroll">
+        <table class="tabla-estadisticas">
+          <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th><th>${t('estadisticas.peso')}</th><th>${t('estadisticas.litros')}</th><th>${t('estadisticas.coste')}</th></tr></thead>
+          <tbody>
+            ${e.porCategoria.map((c) => html`
+              <tr>
+                <td>${c.categoria}</td>
+                <td>${formatearNumero(c.unidades, idioma)}</td>
+                <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : formatearNumero(c.kcal, idioma)}</td>
+                <td>${formatearNumero(c.pesoG, idioma, { decimales: 1 })}</td>
+                <td>${formatearNumero(c.litros, idioma, { decimales: 2 })}</td>
+                <td>${formatearNumero(c.coste, idioma, { decimales: 2, minimo: 2 })}</td>
+              </tr>`)}
+          </tbody>
+        </table>
+      </div>
     </div>
     </section>`;
 }
