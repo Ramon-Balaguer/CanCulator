@@ -39,7 +39,7 @@ jobs:
 
       - name: Guardar informe de Playwright
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: informe-playwright
           path: playwright-report/
@@ -74,12 +74,12 @@ jobs:
       - name: Preparar _site e inyectar el hash del commit en sw.js
         run: node scripts/build.mjs "$GITHUB_SHA"
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
       - name: Desplegar en GitHub Pages
         id: despliegue
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
