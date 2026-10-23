@@ -8,6 +8,8 @@ import { applyRemoteOps, hashToken, mergeSnapshot } from '../logica/peer-sync.js
 const PREFIJO_SALA = 'canculator-';
 const MAX_IDS_APLICADOS = 5000;
 const ESPERA_REINTENTO_MS = 5000;
+// Si el otro móvil no llega a verificarse en este tiempo (WebRTC atascado), el invitado empieza de nuevo.
+const ESPERA_UNION_MS = 20_000;
 
 // Conexiones verificadas ahora mismo. Cada una lleva la cuenta de lo que ya ha enviado.
 const conectadas = new Set();
@@ -70,20 +72,50 @@ export function createRoom({ db, code, token, onOps, onSnapshot, onFotos, onStat
 // Si el anfitrión aún no está registrado (p. ej. tras recargar su app), también llama a onClosed.
 export function joinRoom({ db, code, token, onOps, onSnapshot, onFotos, onStatus, onClosed }) {
   const peer = new window.Peer();
+  let vigilancia = null;
+  // Pide reintentar una sola vez, aunque fallen a la vez la red y la conexión.
+  let reintentoPedido = false;
+  const reintentar = () => {
+    if (reintentoPedido) return;
+    reintentoPedido = true;
+    clearTimeout(vigilancia);
+    onClosed?.();
+  };
   peer.on('open', () => {
     onStatus('Uniéndose a la sala…');
-    prepararConexion({ db, conexion: peer.connect(PREFIJO_SALA + code), token, onOps, onSnapshot, onFotos, onStatus, onClosed });
+    vigilancia = setTimeout(() => {
+      onStatus('La sala no responde; reintentando…');
+      peer.destroy();
+      reintentar();
+    }, ESPERA_UNION_MS);
+    prepararConexion({
+      db,
+      conexion: peer.connect(PREFIJO_SALA + code),
+      token,
+      onOps,
+      onSnapshot,
+      onFotos,
+      onStatus,
+      onClosed: reintentar,
+      onVerificada: () => clearTimeout(vigilancia),
+    });
   });
   peer.on('error', (e) => {
-    if (e.type === 'peer-unavailable') {
-      onStatus('La sala aún no está disponible; reintentando…');
+    if (e.type === 'peer-unavailable' || e.type === 'network') {
+      onStatus(e.type === 'network' ? 'Sin conexión con el servicio de señalización; reintentando…' : 'La sala aún no está disponible; reintentando…');
       peer.destroy();
-      onClosed?.();
+      reintentar();
     } else {
       onStatus(`No se pudo unir: ${e.type}`);
     }
   });
-  return { cerrar: () => peer.destroy() };
+  return {
+    cerrar: () => {
+      reintentoPedido = true;
+      clearTimeout(vigilancia);
+      peer.destroy();
+    },
+  };
 }
 
 // Envía a los móviles conectados las operaciones que aún no les han llegado.
@@ -102,7 +134,7 @@ export async function enviarCambiosPendientes() {
 // Protocolo: saludo (huella del token). Si coincide, se envían las operaciones pendientes y el estado
 // completo (snapshot), y, a partir de ahí, cada cambio local nuevo. El snapshot corrige las diferencias
 // que las operaciones no hayan dejado (un registro que nunca llegó, o uno que quedó atrás).
-function prepararConexion({ db, conexion, token, onOps, onSnapshot, onFotos, onStatus, onClosed }) {
+function prepararConexion({ db, conexion, token, onOps, onSnapshot, onFotos, onStatus, onClosed, onVerificada }) {
   const miHuellaPromesa = hashToken(token);
   const registro = { conexion, db, enviados: new Set() };
   let verificado = false;
@@ -119,6 +151,7 @@ function prepararConexion({ db, conexion, token, onOps, onSnapshot, onFotos, onS
         return;
       }
       verificado = true;
+      onVerificada?.();
       conectadas.add(registro);
       avisarConectadas();
       onStatus('Conectado. Sincronizando…');
