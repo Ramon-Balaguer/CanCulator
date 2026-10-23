@@ -85,6 +85,15 @@ export async function importBackupFile(db, uploadedFile) {
   });
 }
 
+// Empties every table, Meta included (device id and sync token), so the app starts from zero.
+export function resetDatabase(db) {
+  return transaction(db, Object.values(TABLES), 'readwrite', async (tx) => {
+    for (const table of Object.values(TABLES)) {
+      await request(tx.objectStore(table).clear());
+    }
+  });
+}
+
 export function downloadText({ nombre: name, texto: text }) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const link = document.createElement('a');
