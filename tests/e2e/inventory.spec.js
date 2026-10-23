@@ -120,6 +120,21 @@ test.describe('stock, reponer e imprimir', () => {
     await expect(page.locator('.modal-pantalla').getByLabel('Producto')).toHaveValue('Atún');
   });
 
+  test('A reponer: muestra la foto del producto en su fila', async ({ page }) => {
+    await openApp(page);
+    await newLot(page, { nombre: 'Atún', cantidad: 1, foto: true });
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Stock' }).click();
+    await page.locator('button.fila-boton', { hasText: 'Atún' }).click();
+    await page.getByRole('dialog', { name: 'Atún' }).getByRole('button', { name: 'Editar producto' }).click();
+    await page.getByLabel('Stock mínimo').fill('4');
+    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cerrar' }).click();
+
+    await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'A reponer' }).click();
+    const row = page.locator('.tarjeta', { hasText: 'Atún' });
+    await expect(row.locator('img.miniatura')).toHaveAttribute('src', /^blob:/);
+  });
+
   test('A reponer vacío: explica cómo hacer que aparezca un producto', async ({ page }) => {
     await openApp(page);
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'A reponer' }).click();
