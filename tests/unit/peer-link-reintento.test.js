@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 // peer-link registra un listener global al cargarse: en Node no existe, así que se simula antes.
@@ -51,6 +51,58 @@ test('si la sala no existe, el invitado avisa, se cierra y pide reintentar', () 
     assert.equal(peer.destroyed, true);
     assert.equal(closed, 1);
   } finally {
+    globalThis.window = previous;
+  }
+});
+
+test('si el servicio de señalización falla por red, el invitado reintenta', () => {
+  const previous = globalThis.window;
+  globalThis.window = { Peer: FakePeer };
+  try {
+    let closed = 0;
+    joinRoom({
+      db: null,
+      code: 'ZZZZZZ',
+      token: 'token-de-prueba',
+      onOps() {},
+      onFotos() {},
+      onStatus() {},
+      onClosed: () => { closed += 1; },
+    });
+    const peer = FakePeer.last;
+    peer.handlers.open();
+    peer.handlers.error({ type: 'network' });
+
+    assert.equal(peer.destroyed, true);
+    assert.equal(closed, 1);
+  } finally {
+    globalThis.window = previous;
+  }
+});
+
+test('si la conexión no se verifica a tiempo, el invitado se cierra y reintenta una sola vez', () => {
+  const previous = globalThis.window;
+  globalThis.window = { Peer: FakePeer };
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    let closed = 0;
+    joinRoom({
+      db: null,
+      code: 'ZZZZZZ',
+      token: 'token-de-prueba',
+      onOps() {},
+      onFotos() {},
+      onStatus() {},
+      onClosed: () => { closed += 1; },
+    });
+    const peer = FakePeer.last;
+    peer.handlers.open();
+    mock.timers.tick(60_000);
+
+    assert.equal(peer.destroyed, true);
+    assert.equal(closed, 1);
+  } finally {
+    mock.timers.reset();
     globalThis.window = previous;
   }
 });
