@@ -12,7 +12,7 @@ import { queryOFF, queryPrecioOFF, STATES, readCacheOFF } from '../datos/off.js'
 import { OFFData } from './off-data.js';
 import { guessCategory, frontImageUrl } from '../logica/off-category.js';
 import { volumenDesdeOFF } from '../logica/openfoodfacts.js';
-import { esBebida } from '../logica/settings.js';
+import { usaVolumen } from '../logica/settings.js';
 import { nutritionDataFromOFF, kcalPerContainer, storedKcalPerContainer } from '../logica/nutrition.js';
 import { t } from '../logica/idioma.js';
 
@@ -170,8 +170,8 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
           codigo_barras: fields.codigo,
           stock_minimo: 0,
           // Drinks are measured in ml and solids in grams: only the one that fits the category is stored.
-          peso_g: esBebida(fields.categoria) ? '' : fields.peso,
-          volumen_ml: esBebida(fields.categoria) ? fields.volumen : '',
+          peso_g: usaVolumen(fields.categoria) ? '' : fields.peso,
+          volumen_ml: usaVolumen(fields.categoria) ? fields.volumen : '',
           precio: fields.precio,
           foto_id: photoId,
           // If Open Food Facts brought energy, the calories are stored with the product.
@@ -248,9 +248,9 @@ export function LotForm({ db, dispositivo: device, datos: data, config, producto
 
           ${!currentProduct && html`
             <div class="fila">
-              <${Field} etiqueta=${t(esBebida(fields.categoria) ? 'producto.volumen' : 'producto.peso')}>
-                <input type="number" inputmode="decimal" min="0" step="any" value=${esBebida(fields.categoria) ? fields.volumen : fields.peso}
-                  onInput=${change(esBebida(fields.categoria) ? 'volumen' : 'peso')} />
+              <${Field} etiqueta=${t(usaVolumen(fields.categoria) ? 'producto.volumen' : 'producto.peso')}>
+                <input type="number" inputmode="decimal" min="0" step="any" value=${usaVolumen(fields.categoria) ? fields.volumen : fields.peso}
+                  onInput=${change(usaVolumen(fields.categoria) ? 'volumen' : 'peso')} />
               <//>
               <${Field} etiqueta=${t('producto.precio')}>
                 <input type="number" inputmode="decimal" min="0" step="0.01" value=${fields.precio} onInput=${change('precio')} />
@@ -449,7 +449,7 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
       }
       await editProduct(db, device, product.id, {
         nombre: name, categoria: category, codigo_barras: code, stock_minimo: Number(minimum),
-        peso_g: esBebida(category) ? '' : weight, volumen_ml: esBebida(category) ? volume : '',
+        peso_g: usaVolumen(category) ? '' : weight, volumen_ml: usaVolumen(category) ? volume : '',
         precio: price, observaciones: notes, ...(photoId ? { foto_id: photoId } : {}),
       });
       notifyUser(t('producto.guardado'), 'ok');
@@ -474,7 +474,7 @@ export function EditProduct({ db, dispositivo: device, config, producto: product
           <input type="number" min="0" step="1" value=${minimum} onInput=${(e) => setMinimo(e.currentTarget.value)} />
         <//>
         <div class="fila">
-          ${esBebida(category)
+          ${usaVolumen(category)
             ? html`<${Field} etiqueta=${t('producto.volumen')}>
                 <input type="number" inputmode="decimal" min="0" step="any" value=${volume} onInput=${(e) => setVolumen(e.currentTarget.value)} />
               <//>`

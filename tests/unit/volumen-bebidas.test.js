@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { volumenDesdeOFF } from '../../js/logica/openfoodfacts.js';
-import { esBebida } from '../../js/logica/settings.js';
+import { usaVolumen } from '../../js/logica/settings.js';
 
 test('el volumen en ml sale de la cantidad de Open Food Facts, pase en ml, cl o l', () => {
   assert.equal(volumenDesdeOFF({ quantity: '330 ml' }), 330);
@@ -16,8 +16,10 @@ test('sin cantidad escrita, usa product_quantity; si no hay ninguno, null', () =
   assert.equal(volumenDesdeOFF(undefined), null);
 });
 
-test('solo la categoría agua y bebidas usa volumen en ml en vez de peso', () => {
-  assert.equal(esBebida('agua y bebidas'), true);
-  assert.equal(esBebida('pasta'), false);
-  assert.equal(esBebida(''), false);
+test('aguas, bebidas, tomate y salsas y aceites usan volumen en ml en vez de peso', () => {
+  assert.equal(usaVolumen('agua y bebidas'), true);
+  assert.equal(usaVolumen('tomate y salsas'), true);
+  assert.equal(usaVolumen('aceites y condimentos'), true);
+  assert.equal(usaVolumen('pasta'), false);
+  assert.equal(usaVolumen(''), false);
 });

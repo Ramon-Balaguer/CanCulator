@@ -42,9 +42,9 @@ test.describe('estadísticas del stock', () => {
 
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
     await expect(page.getByTestId('unidades-total')).toHaveText('4');
-    await expect(page.getByTestId('kcal-total')).toHaveText('2640 kcal');
+    await expect(page.getByTestId('kcal-total')).toHaveText('2.640 kcal');
     await expect(page.getByTestId('estadisticas')).toContainText('faltan datos de 1 producto');
-    await expect(page.getByTestId('estadisticas').locator('tbody tr').first()).toContainText('2640');
+    await expect(page.getByTestId('estadisticas').locator('tbody tr').first()).toContainText('2.640');
   });
 
   test('peso, litros y coste en total y por categoría', async ({ page }) => {
@@ -90,11 +90,11 @@ test.describe('estadísticas del stock', () => {
     await expect(page.locator('.modal-pantalla')).toHaveCount(0);
 
     await page.getByRole('navigation', { name: 'Pantallas' }).getByRole('button', { name: 'Estadísticas' }).click();
-    await expect(page.getByTestId('peso-total')).toHaveText('1000 g');
-    await expect(page.getByTestId('litros-total')).toHaveText('0.99 l');
-    await expect(page.getByTestId('coste-total')).toHaveText('8.00 €');
+    await expect(page.getByTestId('peso-total')).toHaveText('1.000 g');
+    await expect(page.getByTestId('litros-total')).toHaveText('0,99 l');
+    await expect(page.getByTestId('coste-total')).toHaveText('8,00 €');
     const filas = page.getByTestId('estadisticas').locator('tbody tr');
-    await expect(filas.filter({ hasText: 'legumbres' })).toContainText('1000');
-    await expect(filas.filter({ hasText: 'agua y bebidas' })).toContainText('0.99');
+    await expect(filas.filter({ hasText: 'legumbres' })).toContainText('1.000');
+    await expect(filas.filter({ hasText: 'agua y bebidas' })).toContainText('0,99');
   });
 });
