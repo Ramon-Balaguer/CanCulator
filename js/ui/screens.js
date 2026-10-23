@@ -1,6 +1,7 @@
 import { html } from 'htm/preact';
 import { useEffect, useState } from 'preact/hooks';
 import { SyncBlock } from './sync-block.js';
+import { ResetApp } from './reset-app.js';
 import { Notice, Button, Field, Empty } from './components.js';
 import { ProductImage } from './thumbnail.js';
 import { Barcode } from './barcode-view.js';
@@ -369,6 +370,8 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
         <${Notice} tipo="ok">${importado}<//>
         <p class="secundario">${t('ajustes.copia_ayuda')}</p>
       </div>
+
+      <${ResetApp} db=${db} dispositivo=${device} notificar=${notifyUser} />
     </section>
   `;
 }
