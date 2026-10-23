@@ -150,7 +150,7 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
 }
 
 // ---------- Restock ----------
-export function RestockScreen({ datos: data, onComprado }) {
+export function RestockScreen({ db, datos: data, onComprado }) {
   const pending = toRestock(data.productos, data.lotes);
   if (pending.length === 0) {
     return html`<section class="pantalla">
@@ -159,12 +159,14 @@ export function RestockScreen({ datos: data, onComprado }) {
       <${Empty}>${t('reponer.ayuda')}<//>
     </section>`;
   }
+  const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <h2>${t('reponer.titulo')}</h2>
       <ul class="lista">
         ${pending.map((row) => html`
           <li class="tarjeta">
+            <${ProductImage} db=${db} offFotoId=${offPhotos.get(row.producto.codigo_barras)} photoId=${photoIdOf(row.producto, data.lotes)} />
             <div class="tarjeta-cuerpo">
               <strong>${row.producto.nombre}</strong>
               <span class="secundario">${t('reponer.hay', { stock: row.stock, minimo: row.producto.stock_minimo, falta: row.falta })}</span>

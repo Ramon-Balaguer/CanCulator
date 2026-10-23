@@ -135,7 +135,7 @@ export function Root({ db }) {
       notificar=${notifyUser} refrescar=${refresh} onEditarLote=${(lot) => setVista({ tipo: 'editar-lote', lote: lot })} />`,
     stock: html`<${StockScreen} db=${db} datos=${visible} config=${config}
       onAbrirProducto=${(product) => setVista({ tipo: 'producto', producto: product })} />`,
-    reponer: html`<${RestockScreen} datos=${visible} onComprado=${(product) => setVista({ tipo: 'alta', producto: product })} />`,
+    reponer: html`<${RestockScreen} db=${db} datos=${visible} onComprado=${(product) => setVista({ tipo: 'alta', producto: product })} />`,
     imprimir: html`<${PrintScreen} db=${db} datos=${visible} />`,
     estadisticas: html`<${StatisticsScreen} datos=${visible} />`,
     ajustes: html`<${SettingsScreen} db=${db} dispositivo=${device} config=${config}
