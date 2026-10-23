@@ -12,6 +12,7 @@ import { validateValue } from '../logica/settings.js';
 import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logica/dates.js';
 import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary, photoIdOf } from '../logica/inventory.js';
 import { stockStatistics } from '../logica/statistics.js';
+import { formatearNumero } from '../logica/formato.js';
 import { t, idiomaActual, cambiarIdioma, IDIOMAS, NOMBRES_IDIOMA } from '../logica/idioma.js';
 
 // ---------- Expiry ----------
@@ -63,32 +64,33 @@ export function ExpiryScreen({ db, dispositivo: device, datos: data, config, not
 // Statistics screen: new ones are added here. They count the whole stock, without filters.
 export function StatisticsScreen({ datos: data }) {
   const e = stockStatistics(data.productos, data.lotes, data.cacheOff ?? []);
+  const idioma = idiomaActual();
   return html`
     <section class="pantalla">
       <h2>${t('estadisticas.titulo')}</h2>
     <div class="estadisticas bloque" data-testid="estadisticas">
       ${e.totalUnidades === 0 && html`<p class="vacio">${t('estadisticas.vacio')}</p>`}
       <h3>${t('estadisticas.titulo')}</h3>
-      <p>${t('estadisticas.unidades_total')} <strong data-testid="unidades-total">${e.totalUnidades}</strong></p>
-      <p>${t('estadisticas.kcal_total')} <strong data-testid="kcal-total">${e.totalKcal} kcal</strong>
+      <p>${t('estadisticas.unidades_total')} <strong data-testid="unidades-total">${formatearNumero(e.totalUnidades, idioma)}</strong></p>
+      <p>${t('estadisticas.kcal_total')} <strong data-testid="kcal-total">${formatearNumero(e.totalKcal, idioma)} kcal</strong>
         ${e.productosSinKcal > 0 && html`<span class="secundario"> ${e.productosSinKcal === 1
           ? t('estadisticas.faltan_uno')
           : t('estadisticas.faltan_varios', { n: e.productosSinKcal })}</span>`}
       </p>
-      <p>${t('estadisticas.peso_total')} <strong data-testid="peso-total">${e.totalPesoG} g</strong></p>
-      <p>${t('estadisticas.litros_total')} <strong data-testid="litros-total">${e.totalLitros} l</strong></p>
-      <p>${t('estadisticas.coste_total')} <strong data-testid="coste-total">${e.totalCoste.toFixed(2)} €</strong></p>
+      <p>${t('estadisticas.peso_total')} <strong data-testid="peso-total">${formatearNumero(e.totalPesoG, idioma, { decimales: 1 })} g</strong></p>
+      <p>${t('estadisticas.litros_total')} <strong data-testid="litros-total">${formatearNumero(e.totalLitros, idioma, { decimales: 2 })} l</strong></p>
+      <p>${t('estadisticas.coste_total')} <strong data-testid="coste-total">${formatearNumero(e.totalCoste, idioma, { decimales: 2, minimo: 2 })} €</strong></p>
       <table class="tabla-estadisticas">
         <thead><tr><th>${t('estadisticas.categoria')}</th><th>${t('estadisticas.unidades')}</th><th>Kcal</th><th>${t('estadisticas.peso')}</th><th>${t('estadisticas.litros')}</th><th>${t('estadisticas.coste')}</th></tr></thead>
         <tbody>
           ${e.porCategoria.map((c) => html`
             <tr>
               <td>${c.categoria}</td>
-              <td>${c.unidades}</td>
-              <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : `${c.kcal}`}</td>
-              <td>${c.pesoG}</td>
-              <td>${c.litros}</td>
-              <td>${c.coste.toFixed(2)}</td>
+              <td>${formatearNumero(c.unidades, idioma)}</td>
+              <td>${c.productosSinKcal > 0 && c.kcal === 0 ? '—' : formatearNumero(c.kcal, idioma)}</td>
+              <td>${formatearNumero(c.pesoG, idioma, { decimales: 1 })}</td>
+              <td>${formatearNumero(c.litros, idioma, { decimales: 2 })}</td>
+              <td>${formatearNumero(c.coste, idioma, { decimales: 2, minimo: 2 })}</td>
             </tr>`)}
         </tbody>
       </table>

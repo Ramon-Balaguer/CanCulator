@@ -30,6 +30,7 @@ const PRECACHE = [
   './js/logica/gs1-digital-link.js',
   './js/logica/idioma.js',
   './js/logica/image.js',
+  './js/logica/formato.js',
   './js/logica/inventory.js',
   './js/logica/nutrition.js',
   './js/logica/off-category.js',

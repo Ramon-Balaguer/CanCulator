@@ -122,4 +122,18 @@ test.describe('peso y precio del producto', () => {
     await expect(page.getByLabel('Volumen (ml)')).toHaveValue('330');
     await expect(page.getByLabel('Peso (g)')).toHaveCount(0);
   });
+
+  test('tomate y salsas y aceites y condimentos piden el volumen en ml, no el peso', async ({ page }) => {
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Añadir lote' }).click();
+    const form = page.locator('.modal-pantalla');
+    for (const categoria of ['tomate y salsas', 'aceites y condimentos']) {
+      await form.getByLabel('Categoría').selectOption(categoria);
+      await expect(form.getByLabel('Volumen (ml)')).toBeVisible();
+      await expect(form.getByLabel('Peso (g)')).toHaveCount(0);
+    }
+    await form.getByLabel('Categoría').selectOption('pasta');
+    await expect(form.getByLabel('Peso (g)')).toBeVisible();
+    await expect(form.getByLabel('Volumen (ml)')).toHaveCount(0);
+  });
 });

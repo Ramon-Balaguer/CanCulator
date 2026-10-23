@@ -62,12 +62,12 @@ export function stockStatistics(products, lots, cacheOff = []) {
   }
 
   const byCategory = [...categories.values()]
-    .map((c) => ({ ...c, kcal: round1(c.kcal), pesoG: round1(c.pesoG), litros: round2(c.litros), coste: round2(c.coste) }))
+    .map((c) => ({ ...c, kcal: Math.round(c.kcal), pesoG: round1(c.pesoG), litros: round2(c.litros), coste: round2(c.coste) }))
     .sort((a, b) => b.unidades - a.unidades || a.categoria.localeCompare(b.categoria, 'es'));
 
   return {
     totalUnidades: totalUnits,
-    totalKcal: round1(totalKcal),
+    totalKcal: Math.round(totalKcal),
     productosConKcal: productsWithKcal,
     productosSinKcal: productsWithoutKcal,
     totalPesoG: round1(totalPesoG),

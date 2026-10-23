@@ -35,7 +35,7 @@ test('cuenta unidades en total y por categoría, sin lotes a cero', () => {
 
 test('calorías: muesli 3 ud. a 1320 kcal/bote y Coca-Cola 3 ud. a 139,9 kcal/bote', () => {
   const e = stockStatistics(products, lots, cacheOff);
-  assert.equal(e.totalKcal, 3 * 1320 + 3 * 139.9);
+  assert.equal(e.totalKcal, 4380);
   const cereals = e.porCategoria.find((c) => c.categoria === 'cereales');
   assert.equal(cereals.kcal, 3960);
   assert.equal(e.productosConKcal, 2);
