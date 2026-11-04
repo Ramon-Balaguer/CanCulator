@@ -14,10 +14,6 @@ UI labels are quoted as they appear in the Spanish interface.
 - [ ] iPhone: in Safari, Share → «Añadir a pantalla de inicio». When opened from the icon, Safari's bar is not visible.
 - [ ] Open the installed app, close it completely, turn on airplane mode and reopen it: it loads and says «Sin conexión».
 - [ ] Turn airplane mode off: it says «En línea» again.
-- [ ] From the installed app, open «Prueba de cámara y código de barras» → «Abrir cámara»: the browser asks for permission, the rear camera shows, and pointing it at the barcode of a can at home shows the number with «dígito de control correcto».
-- [ ] On the same page, «Leer de una foto»: take a photo of the barcode and the same number appears.
-- [ ] With airplane mode on, the camera test page opens and reads a barcode (no internet needed).
-- [ ] If anything camera-related fails, take a screenshot of the «Este dispositivo» section and of the error message.
 
 ## End of phase 2: local app
 

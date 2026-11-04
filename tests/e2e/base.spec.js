@@ -44,11 +44,6 @@ test('sin conexión: tras cortar la red y recargar, la app carga desde la caché
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('CanCulator');
     await expect(page.locator('#version')).toHaveText('desarrollo');
 
-    // The camera page (Preact, htm and ZXing in vendor/) also works offline.
-    // Wide margin: on Windows, WebKit takes ~2 s to fail each request to a closed port
-    // closed, and the modules are requested in a chain. On Linux the failure is immediate.
-    await page.goto(new URL('camera-test.html', server.url).href);
-    await expect(page.getByRole('button', { name: 'Abrir cámara' })).toBeVisible({ timeout: 20_000 });
   } finally {
     await server.cortar();
   }

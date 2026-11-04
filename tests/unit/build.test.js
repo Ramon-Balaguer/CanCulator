@@ -66,7 +66,6 @@ test('el service worker precarga todos los ficheros de la app (sin conexión, to
     ...await walk('css'),
     ...(await walk('vendor')).filter((f) => !f.includes('/licenses/')),
     'index.html',
-    'camera-test.html',
     'manifest.webmanifest',
   ];
   const missing = required.filter((f) => !precached.has(f));

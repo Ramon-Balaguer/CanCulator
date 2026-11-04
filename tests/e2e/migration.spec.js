@@ -3,7 +3,8 @@ import { test, expect } from './cobertura.js';
 // A database created with version 1 (phase 2) must open with the current version
 // { tipo, ... } for modals and forms
 test('la base de datos de la versión 1 pasa a la actual sin perder datos', async ({ page }) => {
-  await page.goto('./camera-test.html');
+  // Página estática del mismo origen: no abre la base de datos de la app antes de crear la v1.
+  await page.goto('./manifest.webmanifest');
   await page.evaluate(async () => {
     const open = indexedDB.open('canculator', 1);
     await new Promise((resolve, reject) => {
