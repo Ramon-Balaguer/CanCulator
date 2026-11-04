@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { readFileSync } from 'node:fs';
 
 // Weight and price are optional product fields. The QR label brings them in its link (Mercadona);

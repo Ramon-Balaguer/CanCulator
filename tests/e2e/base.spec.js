@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { ownServer } from './own-server.js';
 
 test('la página muestra el nombre de la app', async ({ page }) => {
