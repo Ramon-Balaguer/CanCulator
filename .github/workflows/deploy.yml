@@ -31,11 +31,8 @@ jobs:
       - name: Instalar navegadores de Playwright
         run: npx playwright install --with-deps chromium webkit
 
-      - name: Pruebas unitarias
-        run: npm run test:unit
-
-      - name: Pruebas E2E
-        run: npm run test:e2e
+      - name: Pruebas unitarias y E2E con cobertura (mínimo 90 %)
+        run: npm run test:cobertura
 
       - name: Guardar informe de Playwright
         if: failure()

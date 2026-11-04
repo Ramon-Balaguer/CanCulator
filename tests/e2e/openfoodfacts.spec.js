@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { readFileSync } from 'node:fs';
 
 // Recorded responses from the real API (tests/fixtures/off/). Served with CORS like the API.

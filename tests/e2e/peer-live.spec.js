@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 
 // Con los móviles conectados, cada cambio llega al otro sin pulsar nada.

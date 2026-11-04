@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 test('la versión y la conexión están en la cabecera, no al pie', async ({ page }) => {
   await page.goto('./');
   await expect(page.locator('header.cabecera #version')).not.toHaveText('');

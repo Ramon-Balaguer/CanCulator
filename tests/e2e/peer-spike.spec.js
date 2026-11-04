@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 // Prototipo manual: usa el servicio público de señalización de PeerJS, así que requiere internet.
 test('dos páginas se conectan por sala y se envían mensajes', async ({ browser }) => {

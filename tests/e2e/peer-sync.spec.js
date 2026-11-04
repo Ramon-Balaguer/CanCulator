@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 
 // Sincronización directa entre dos móviles por WebRTC. Usa el servicio público de señalización

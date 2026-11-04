@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 test('quitar una categoría se puede deshacer desde el aviso', async ({ page }) => {
   await page.goto('./');
