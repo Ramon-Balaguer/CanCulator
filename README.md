@@ -20,6 +20,21 @@ These screenshots use a demo inventory: 65 products, 170 lots, 16 photos and abo
 | :---: | :---: | :---: |
 <img src="docs/img/ajustes-top.png" alt="Settings with categories and locations" width="260" height="563"> | <img src="docs/img/sincronizar-main.png" alt="Main phone with the room code" width="260" height="563"> | <img src="docs/img/sincronizar-cliente.png" alt="Client phone connected to the room" width="260" height="563">
 
+## Promo videos
+
+Presentation videos with voice-over, in Spanish and English. They open with wars, blackouts, floods and heatwaves,
+each with its own image and sound effects, explain why to prepare for emergencies (the EU recommends keeping
+essential supplies for at least 72 hours), show the main screens and how to install the app on iPhone and Android. The 9:16 versions are for Instagram (Reels and Stories).
+
+| Video | 16:9 (1920×1080) | 9:16 (1080×1920) |
+| :--- | :---: | :---: |
+| Spanish, full (80 s) | [CanCulator-es-16x9.mp4](docs/video/CanCulator-es-16x9.mp4) | [CanCulator-es-9x16.mp4](docs/video/CanCulator-es-9x16.mp4) |
+| English, full (77 s) | [CanCulator-en-16x9.mp4](docs/video/CanCulator-en-16x9.mp4) | [CanCulator-en-9x16.mp4](docs/video/CanCulator-en-9x16.mp4) |
+| Spanish, short (31 s) | | [CanCulator-es-9x16-short.mp4](docs/video/CanCulator-es-9x16-short.mp4) |
+| English, short (30 s) | | [CanCulator-en-9x16-short.mp4](docs/video/CanCulator-en-9x16-short.mp4) |
+
+The videos are in `docs/video/`, which is not published to GitHub Pages and is not cached by the app.
+
 ## Screens
 
 - **Stock**: every lot grouped by product, with filters by category and location.
