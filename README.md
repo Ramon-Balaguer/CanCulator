@@ -166,4 +166,6 @@ These rules apply to every change (see [`CLAUDE.md`](CLAUDE.md)):
 
 ## License
 
-Private project. All rights reserved.
+CanCulator is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may read, use, modify and
+share the code for noncommercial purposes. Commercial use, including use in a company or corporate environment,
+is not allowed without a separate license from the copyright holder.
