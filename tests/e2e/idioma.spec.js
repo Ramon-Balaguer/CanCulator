@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 // Idioma: el primer ajuste de la pantalla Ajustes elige español o inglés, y la elección sobrevive a recargar.
 test.describe('Idioma de la app', () => {

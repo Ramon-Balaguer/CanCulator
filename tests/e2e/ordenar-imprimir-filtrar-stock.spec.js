@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 async function addLot(page, producto, caducidad) {
   await page.getByRole('button', { name: 'Añadir lote' }).click();

@@ -135,6 +135,7 @@ Other scripts:
 
 - `npm run test:unit`: unit tests only. They live in `tests/unit/`.
 - `npm run test:e2e`: browser tests only. They live in `tests/e2e/`.
+- `npm run test:cobertura`: runs both suites and reports coverage of `js/` (unit tests + browser code). It fails if line coverage is below 90 %. The HTML report is in `coverage/informe/index.html`.
 - `npm run construir`: builds `_site/` for GitHub Pages, injecting the commit version into `sw.js`.
 
 ### Project layout
