@@ -11,6 +11,9 @@ test('no queda ninguna referencia a Apps Script en los archivos del repositorio'
   const archivos = execFileSync('git', ['ls-files'], { encoding: 'utf8' })
     .split('\n')
     .filter((f) => f && f !== ESTE_ARCHIVO);
-  const con = archivos.filter((f) => PATRON.test(readFileSync(f, 'utf8')));
+  // docs/ puede nombrar Apps Script: es el registro histórico de por qué se eliminó (ADR 0005).
+  const con = archivos
+    .filter((f) => !f.startsWith('docs/'))
+    .filter((f) => PATRON.test(readFileSync(f, 'utf8')));
   assert.deepEqual(con, []);
 });
