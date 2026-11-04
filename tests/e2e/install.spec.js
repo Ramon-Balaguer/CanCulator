@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 test('en iPhone, Ajustes explica cómo añadir a la pantalla de inicio', async ({ browser }) => {
   const context = await browser.newContext({

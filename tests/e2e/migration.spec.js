@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 // A database created with version 1 (phase 2) must open with the current version
 // { tipo, ... } for modals and forms

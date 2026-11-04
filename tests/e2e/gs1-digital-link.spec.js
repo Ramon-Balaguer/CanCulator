@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { readFileSync } from 'node:fs';
 
 // The QR of a product carries a GS1 Digital Link: its GTIN is the code to look up in Open Food Facts.

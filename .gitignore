@@ -4,6 +4,7 @@ _site/
 vendor/
 test-results/
 playwright-report/
+coverage/
 playwright/.cache/
 tests/.generated/
 

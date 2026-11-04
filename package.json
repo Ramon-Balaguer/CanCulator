@@ -11,13 +11,18 @@
     "pretest:unit": "npm run vendor",
     "test:unit": "node --test \"tests/unit/**/*.test.js\"",
     "pretest:e2e": "npm run vendor",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:cobertura": "node scripts/cobertura.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "istanbul-lib-coverage": "^3.2.2",
+    "istanbul-lib-report": "^3.0.1",
+    "istanbul-reports": "^3.2.0",
+    "v8-to-istanbul": "^9.3.0"
   },
   "dependencies": {
     "@zxing/browser": "0.2.1",

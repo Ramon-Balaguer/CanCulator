@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { TEST_CODE, pngEan13 } from '../fixtures/barcode.js';
 
 test('la página de prueba de cámara carga Preact, htm y ZXing', async ({ page }) => {

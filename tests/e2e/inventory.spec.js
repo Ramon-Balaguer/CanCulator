@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { pngEan13, TEST_CODE } from '../fixtures/barcode.js';
 import { ownServer } from './own-server.js';
 
