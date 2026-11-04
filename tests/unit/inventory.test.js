@@ -12,6 +12,7 @@ import {
   stockSummary,
   stockOf,
   replaceById,
+  ordenarParaImprimir,
 } from '../../js/logica/inventory.js';
 import { describeExpiry, daysBetween, isISODate, formatDate, todayInMadrid } from '../../js/logica/dates.js';
 import { effectiveSettings, validateValue } from '../../js/logica/settings.js';
@@ -141,4 +142,29 @@ test('configuracion: valores por defecto y validación', () => {
   assert.deepEqual(validateValue('emails_avisos', ['A@x.es', 'a@x.es']), ['a@x.es']);
   assert.throws(() => validateValue('hora_aviso', '25:00'), /HH:MM/);
   assert.throws(() => validateValue('inventado', 1), /desconocido/);
+});
+
+test('filtrarResumen por nombre, sin distinguir mayúsculas ni acentos', () => {
+  const summary = stockSummary(products, lots);
+  assert.deepEqual(filterSummary(summary, { nombre: 'atun' }).map((f) => f.producto.id), ['p-atun']);
+  assert.deepEqual(filterSummary(summary, { nombre: 'ATÚN' }).map((f) => f.producto.id), ['p-atun']);
+  assert.deepEqual(filterSummary(summary, { nombre: '  tomate ' }).map((f) => f.producto.id), ['p-tomate']);
+  assert.equal(filterSummary(summary, { nombre: '' }).length, 3);
+  assert.deepEqual(filterSummary(summary, { nombre: 'zanahoria' }), []);
+  assert.deepEqual(filterSummary(summary, { nombre: 'lentejas', ubicacion: 'Sótano' }), []);
+});
+
+test('ordenarParaImprimir por caducidad (por defecto) o por nombre de producto', () => {
+  const byExpiry = ordenarParaImprimir(visibleLots(lots, products), products);
+  assert.deepEqual(byExpiry.map((l) => l.id), ['l4', 'l2', 'l1']);
+  assert.deepEqual(ordenarParaImprimir(visibleLots(lots, products), products, 'caducidad').map((l) => l.id), ['l4', 'l2', 'l1']);
+  // Por nombre: Atún (l2 antes que l1 por caducidad), luego Lentejas (l4).
+  assert.deepEqual(ordenarParaImprimir(visibleLots(lots, products), products, 'nombre').map((l) => l.id), ['l2', 'l1', 'l4']);
+});
+
+test('ordenarParaImprimir por nombre no muta la lista original', () => {
+  const original = visibleLots(lots, products);
+  const copia = original.map((l) => l.id);
+  ordenarParaImprimir(original, products, 'nombre');
+  assert.deepEqual(original.map((l) => l.id), copia);
 });

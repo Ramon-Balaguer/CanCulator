@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 async function createLot(page, name) {
   await page.goto('./');

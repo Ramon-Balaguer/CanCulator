@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 test('borrar un lote pide confirmación: «No» lo conserva, «Sí» lo quita', async ({ page }) => {
   await page.goto('./');

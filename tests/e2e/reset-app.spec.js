@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 async function anadirProducto(page, nombre) {
   await page.goto('./');
