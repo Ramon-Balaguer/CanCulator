@@ -180,16 +180,6 @@ a:hover { color: var(--verde-hover); }
   overflow-wrap: anywhere;
 }
 
-.diagnostico {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  margin: 0;
-}
-
-.diagnostico dd { margin: 0; font-weight: 600; }
-.diagnostico dd[data-ok="no"] { color: var(--peligro); }
-
 .nota {
   margin: 8px 0 0;
   color: var(--suave);

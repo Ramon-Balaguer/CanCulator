@@ -355,12 +355,6 @@ export function SettingsScreen({ db, dispositivo: device, config, notificar: not
       </div>
 
       <div class="bloque">
-        <h3>${t('ajustes.diagnostico')}</h3>
-        <p><a href="camera-test.html">${t('ajustes.prueba_camara')}</a></p>
-        <p><a href="peer-test.html">${t('ajustes.prueba_sala')}</a></p>
-      </div>
-
-      <div class="bloque">
         <h3>${t('ajustes.copia')}</h3>
         <div class="acciones">
           <${Button} onClick=${runExport}>${t('ajustes.exportar')}<//>

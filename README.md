@@ -145,7 +145,6 @@ Other scripts:
 - `js/logica/peer-sync.js` and `js/datos/peer-link.js`: sync between phones, with a conflict rule and an operations queue.
 - `sw.js`: the service worker. It tries the network first and falls back to the cache when there is no connection
   or the network takes longer than 4 seconds.
-- `camera-test.html`: camera and barcode diagnostics on the phone.
 - `scripts/`: the local server, the build, and the vendor copy.
 - `docs/mobile-checklist.md`: manual checks on Android and iPhone, by phase.
 
