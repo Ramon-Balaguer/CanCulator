@@ -105,7 +105,7 @@ queue and are sent as soon as it connects again.
 | *Error de la sala* or *No se pudo unir* | Check that both phones have internet access. Close the room and create it again. |
 | *La conexión se ha cerrado.* | The client retries by itself. If it does not connect, check the Wi-Fi network. |
 
-For a step-by-step test on real phones, see [`docs/mobile-checklist.md`](docs/mobile-checklist.md) (in Spanish).
+For a step-by-step test on real phones, see [`docs/mobile-checklist.md`](docs/mobile-checklist.md).
 The **Prueba de sala P2P** page under **Ajustes → Diagnóstico** helps when a connection fails.
 
 ## Data
@@ -165,4 +165,6 @@ These rules apply to every change (see [`CLAUDE.md`](CLAUDE.md)):
 
 ## License
 
-Private project. All rights reserved.
+CanCulator is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may read, use, modify and
+share the code for noncommercial purposes. Commercial use, including use in a company or corporate environment,
+is not allowed without a separate license from the copyright holder.
