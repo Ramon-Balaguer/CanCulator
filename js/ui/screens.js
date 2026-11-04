@@ -11,7 +11,7 @@ import { VERSION } from '../version.js';
 import { isInstalled, isIOS, installApp, canInstallWithButton, subscribeInstall } from './install.js';
 import { validateValue } from '../logica/settings.js';
 import { describeExpiry, daysBetween, formatDate, todayInMadrid } from '../logica/dates.js';
-import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary, photoIdOf } from '../logica/inventory.js';
+import { expiryStatus, filterSummary, shortId, visibleLots, mapById, toRestock, stockSummary, photoIdOf, ordenarParaImprimir } from '../logica/inventory.js';
 import { stockStatistics } from '../logica/statistics.js';
 import { formatearNumero } from '../logica/formato.js';
 import { t, idiomaActual, cambiarIdioma, IDIOMAS, NOMBRES_IDIOMA } from '../logica/idioma.js';
@@ -112,8 +112,9 @@ function offPhotosByBarcode(cacheOff) {
 export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
   const [category, setCategoria] = useState('');
   const [location, setUbicacion] = useState('');
+  const [name, setNombre] = useState('');
   const today = todayInMadrid();
-  const summary = filterSummary(stockSummary(data.productos, data.lotes), { categoria: category, ubicacion: location });
+  const summary = filterSummary(stockSummary(data.productos, data.lotes), { categoria: category, ubicacion: location, nombre: name });
   const usedCategories = [...new Set(data.productos.filter((p) => !p.borrado).map((p) => p.categoria))];
   const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
   return html`
@@ -121,6 +122,9 @@ export function StockScreen({ db, datos: data, config, onAbrirProducto }) {
       <h2>${t('stock.titulo')}</h2>
 
       <div class="fila">
+        <${Field} etiqueta=${t('stock.buscar')}>
+          <input type="search" value=${name} onInput=${(e) => setNombre(e.currentTarget.value)} />
+        <//>
         <${Field} etiqueta=${t('stock.categoria')}>
           <select value=${category} onChange=${(e) => setCategoria(e.currentTarget.value)}>
             <option value="">${t('stock.todas')}</option>
@@ -187,13 +191,20 @@ export function RestockScreen({ db, datos: data, onComprado }) {
 
 // ---------- Print ----------
 export function PrintScreen({ db, datos: data }) {
+  const [orden, setOrden] = useState('caducidad');
   const byId = mapById(data.productos);
-  const lots = visibleLots(data.lotes, data.productos);
+  const lots = ordenarParaImprimir(visibleLots(data.lotes, data.productos), data.productos, orden);
   const offPhotos = offPhotosByBarcode(data.cacheOff ?? []);
   return html`
     <section class="pantalla">
       <div class="no-imprimir acciones">
         <h2>${t('imprimir.titulo')}</h2>
+        <${Field} etiqueta=${t('imprimir.ordenar')}>
+          <select value=${orden} onChange=${(e) => setOrden(e.currentTarget.value)}>
+            <option value="caducidad">${t('imprimir.orden.caducidad')}</option>
+            <option value="nombre">${t('imprimir.orden.nombre')}</option>
+          </select>
+        <//>
         <${Button} onClick=${() => window.print()}>${t('btn.imprimir')}<//>
       </div>
       <p class="solo-imprimir cabecera-impresion">${t('imprimir.cabecera', { fecha: formatDate(todayInMadrid()) })}</p>
