@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 // Ajustes: dos zonas para sincronizar. «Crear main» guarda la password de sincronización y crea la sala
 // (QR y código). «Crear cliente» abre el escáner, donde se pone la password y el código, o se hace la foto del QR.

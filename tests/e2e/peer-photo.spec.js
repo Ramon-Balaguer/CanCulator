@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 import { pngEan13 } from '../fixtures/barcode.js';
 import { abrirAjustes, crearMain, entrarComoCliente } from './sincronizacion.js';
 

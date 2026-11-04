@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './cobertura.js';
 
 test('la caducidad se escribe con el teclado numérico y pone las barras solas', async ({ page }) => {
   await page.goto('./');

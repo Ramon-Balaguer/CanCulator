@@ -87,10 +87,25 @@ export function stockSummary(products, lots) {
     .sort((a, b) => (b.total > 0) - (a.total > 0) || compareText(a.producto.nombre, b.producto.nombre));
 }
 
-export function filterSummary(summary, { categoria: category = '', ubicacion: location = '' } = {}) {
+// Lowercase and without accents, so "atun" finds "Atún".
+function sinAcentos(texto) {
+  return String(texto).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+}
+
+export function filterSummary(summary, { categoria: category = '', ubicacion: location = '', nombre: name = '' } = {}) {
+  const buscado = sinAcentos(name).trim();
   return summary.filter((row) =>
     (!category || row.producto.categoria === category)
-    && (!location || row.ubicaciones.includes(location)));
+    && (!location || row.ubicaciones.includes(location))
+    && (!buscado || sinAcentos(row.producto.nombre).includes(buscado)));
+}
+
+// Lots in the print order: by expiry (default) or by product name; ties keep the expiry order.
+export function ordenarParaImprimir(lots, products, criterio = 'caducidad') {
+  const byId = mapById(products);
+  const nombreDe = (lot) => byId.get(lot.producto_id)?.nombre ?? '';
+  const porNombre = (a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es', { sensitivity: 'base' });
+  return [...lots].sort(criterio === 'nombre' ? (a, b) => porNombre(a, b) || compareExpiry(a, b) : compareExpiry);
 }
 
 // Products with stock below their minimum (only if the minimum is greater than 0).
