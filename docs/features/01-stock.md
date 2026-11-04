@@ -1,9 +1,9 @@
 # Stock
 
-Pestaña principal de la app (se abre por defecto). Muestra todos los lotes agrupados por producto.
+The main tab of the app (opened by default). It lists every lot grouped by product.
 
-- Filtros por categoría y por ubicación.
-- Cada fila muestra la foto del producto (la de Open Food Facts, o la del lote que caduca antes).
-- Botón **Datos de Open Food Facts** en la ficha del producto, si tiene código de barras.
+- Filters by category and by location.
+- Each row shows the product photo (from Open Food Facts, or from the lot that expires first).
+- **Open Food Facts data** button on the product sheet, when the product has a barcode.
 
-Relacionado: [Caducidad](02-caducidad.md), [Fotos](08-fotos.md), [Open Food Facts](07-open-food-facts.md).
+Related: [Expiry](02-expiry.md), [Photos](08-photos.md), [Open Food Facts](07-open-food-facts.md).

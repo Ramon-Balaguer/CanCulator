@@ -1,48 +1,50 @@
-# Checklist de pruebas en móvil
+# Mobile test checklist
 
-Hazlas en un Android con Chrome y en un iPhone con Safari. Marca cada casilla en los dos.
-Si la cámara o el modo sin conexión fallan en el iPhone, avisa antes de empezar la fase siguiente.
+Run it on Android with Chrome and on an iPhone with Safari. Tick each box on both.
+If the camera or offline mode fails on the iPhone, report it before starting the next phase.
 
-URL pública: https://ramon-balaguer.github.io/canculator/
+Public URL: https://ramon-balaguer.github.io/canculator/
 
-## Fin de fase 1: base
+UI labels are quoted as they appear in the Spanish interface.
 
-- [ ] La URL pública abre y muestra «CanCulator» y, abajo, «Versión» con 7 caracteres (no «desarrollo»).
-- [ ] Android: menú de Chrome → «Instalar aplicación» o «Añadir a pantalla de inicio». El icono es una lata sobre fondo verde.
-- [ ] iPhone: en Safari, Compartir → «Añadir a pantalla de inicio». Al abrirla desde el icono, no se ve la barra de Safari.
-- [ ] Abre la app instalada, cierra la app del todo, activa el modo avión y vuelve a abrirla: carga y dice «Sin conexión».
-- [ ] Desactiva el modo avión: vuelve a decir «En línea».
-- [ ] Desde la app instalada, abre «Prueba de cámara y código de barras» → «Abrir cámara»: el navegador pide permiso, se ve la cámara trasera y, al apuntar al código de una lata de casa, sale el número con «dígito de control correcto».
-- [ ] En la misma página, «Leer de una foto»: haz una foto al código y sale el mismo número.
-- [ ] Con el modo avión activado, la página de prueba de cámara abre y lee un código (no necesita internet).
-- [ ] Si algo de la cámara falla, haz una captura de la sección «Este dispositivo» y del mensaje de error.
+## End of phase 1: base
 
-## Fin de fase 2: app local
+- [ ] The public URL opens and shows «CanCulator» and, at the bottom, «Versión» with 7 characters (not «desarrollo»).
+- [ ] Android: Chrome menu → «Instalar aplicación» or «Añadir a pantalla de inicio». The icon is a can on a green background.
+- [ ] iPhone: in Safari, Share → «Añadir a pantalla de inicio». When opened from the icon, Safari's bar is not visible.
+- [ ] Open the installed app, close it completely, turn on airplane mode and reopen it: it loads and says «Sin conexión».
+- [ ] Turn airplane mode off: it says «En línea» again.
+- [ ] From the installed app, open «Prueba de cámara y código de barras» → «Abrir cámara»: the browser asks for permission, the rear camera shows, and pointing it at the barcode of a can at home shows the number with «dígito de control correcto».
+- [ ] On the same page, «Leer de una foto»: take a photo of the barcode and the same number appears.
+- [ ] With airplane mode on, the camera test page opens and reads a barcode (no internet needed).
+- [ ] If anything camera-related fails, take a screenshot of the «Este dispositivo» section and of the error message.
 
-- [ ] Alta de un lote con foto hecha con la cámara: la foto se ve en la ficha.
-- [ ] Lectura de un código de barras real (una lata de casa) con la cámara: el número sale bien.
-- [ ] Consumir 1 unidad desde Caducidad: el stock baja y el lote que caduca antes es el propuesto.
-- [ ] En modo avión, dar de alta un lote y consumir otro; cerrar la app del todo y volver a abrirla: los cambios siguen.
-- [ ] Al día siguiente, abrir la app: los datos siguen (sobre todo en iPhone).
-- [ ] Desde Ajustes, añadir una categoría y una ubicación nuevas, y quitarlas: se guardan al cerrar y volver a abrir la app.
-- [ ] Imprimir: el botón abre el diálogo de impresión y la lista sale sin la barra de pantallas (en iPhone, Compartir → Imprimir, o «Guardar en Archivos» en PDF).
-- [ ] Exportar JSON: se descarga el fichero (en iPhone, aparece en Archivos). Importarlo de nuevo no duplica nada.
-- [ ] A reponer: un producto con mínimo mayor que su stock aparece, y «Comprado» abre el alta con el producto ya escrito.
-- [ ] Con una foto de lote guardada, cerrar la app del todo y volver a abrirla: la miniatura sigue ahí (iOS).
+## End of phase 2: local app
 
-## Fin de fase 3: Open Food Facts
+- [ ] Add a lot with a photo taken with the camera: the photo shows on the product sheet.
+- [ ] Read a real barcode (a can from home) with the camera: the number is correct.
+- [ ] Consume 1 unit from Caducidad (expiry): the stock goes down and the lot that expires first is the one proposed.
+- [ ] In airplane mode, add one lot and consume another; close the app completely and reopen it: the changes are still there.
+- [ ] The next day, open the app: the data is still there (especially on iPhone).
+- [ ] From Ajustes (settings), add a new category and location, then remove them: they are kept after closing and reopening the app.
+- [ ] Print: the button opens the print dialog and the list prints without the screen tab bar (on iPhone, Share → Print, or «Guardar en Archivos» for PDF).
+- [ ] Export JSON: the file downloads (on iPhone it appears in Files). Importing it again does not duplicate anything.
+- [ ] A reponer (restock): a product whose minimum is higher than its stock appears, and «Comprado» (bought) opens the add form with the product already filled in.
+- [ ] With a saved lot photo, close the app completely and reopen it: the thumbnail is still there (iOS).
 
-- [ ] Escanear un código de un producto conocido (por ejemplo, una lata o un paquete de supermercado con código): el nombre se rellena solo, con el aviso «Open Food Facts: …».
-- [ ] Escanear un código que no esté en la base de datos: sale «No está en Open Food Facts» y se puede escribir el nombre; el lote se guarda.
-- [ ] Con el modo avión, escanear un código nuevo: sale «Sin conexión» y el alta sigue funcionando a mano.
-- [ ] Escanear dos veces el mismo código, sin guardar: la segunda vez no tarda (sale de la caché).
-- [ ] Tras cargar la app, la consulta no se repite en bucle: solo al escanear.
-- [ ] Tras escanear un producto conocido, «Ver todos los datos de Open Food Facts» muestra fotos, ingredientes, nutrientes y la lista de campos; sin conexión, el mismo producto sigue viéndose desde «Datos de Open Food Facts» en Stock.
+## End of phase 3: Open Food Facts
 
-## Fin de fase 4: sincronización entre móviles
+- [ ] Scan the barcode of a known product (for example a can or a supermarket package with a barcode): the name fills in by itself, with the notice «Open Food Facts: …».
+- [ ] Scan a barcode that is not in the database: «No está en Open Food Facts» appears and you can type the name; the lot is saved.
+- [ ] With airplane mode on, scan a new barcode: «Sin conexión» appears and manual entry still works.
+- [ ] Scan the same barcode twice, without saving: the second time is instant (it comes from the cache).
+- [ ] After loading the app, the query does not repeat in a loop: it only runs when scanning.
+- [ ] After scanning a known product, «Ver todos los datos de Open Food Facts» shows photos, ingredients, nutrients and the field list; offline, the same product is still visible from «Datos de Open Food Facts» in Stock.
 
-- [ ] En Ajustes, en el móvil principal: «Guardar y crear sala», y en el otro móvil, escanear el QR del principal y poner la misma password: sale «Conectado».
-- [ ] Dar de alta un lote en un móvil: aparece en el otro sin tocar nada.
-- [ ] Los dos móviles en modo avión consumen 1 unidad del mismo lote; quitar el modo avión y volver a conectarlos: el lote ha bajado 2.
-- [ ] La foto de un lote nuevo llega al otro móvil.
-- [ ] Una semana después, en el iPhone: los datos y la cola pendiente siguen ahí.
+## End of phase 4: sync between phones
+
+- [ ] In Ajustes on the main phone: «Guardar y crear sala» (save and create room). On the other phone, scan the QR of the main phone and enter the same password: «Conectado» (connected) appears.
+- [ ] Add a lot on one phone: it appears on the other one without doing anything else.
+- [ ] Both phones in airplane mode each consume 1 unit of the same lot; turn airplane mode off and let them reconnect: the lot has gone down by 2.
+- [ ] The photo of a new lot reaches the other phone.
+- [ ] One week later, on the iPhone: the data and the pending queue are still there.

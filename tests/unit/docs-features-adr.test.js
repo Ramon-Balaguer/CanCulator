@@ -6,7 +6,7 @@ import { join } from 'node:path';
 const RAIZ = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const DOCS = join(RAIZ, 'docs');
 
-const SECCIONES_ADR = ['## Estado', '## Contexto', '## Decisión', '## Consecuencias'];
+const SECCIONES_ADR = ['## Status', '## Context', '## Decision', '## Consequences'];
 
 async function ficheros(carpeta) {
   return (await readdir(join(DOCS, carpeta))).filter((f) => f.endsWith('.md')).sort();

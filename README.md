@@ -105,7 +105,7 @@ queue and are sent as soon as it connects again.
 | *Error de la sala* or *No se pudo unir* | Check that both phones have internet access. Close the room and create it again. |
 | *La conexión se ha cerrado.* | The client retries by itself. If it does not connect, check the Wi-Fi network. |
 
-For a step-by-step test on real phones, see [`docs/mobile-checklist.md`](docs/mobile-checklist.md) (in Spanish).
+For a step-by-step test on real phones, see [`docs/mobile-checklist.md`](docs/mobile-checklist.md).
 The **Prueba de sala P2P** page under **Ajustes → Diagnóstico** helps when a connection fails.
 
 ## Data
